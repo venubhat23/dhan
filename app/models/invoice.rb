@@ -47,7 +47,7 @@ class Invoice < ApplicationRecord
 
     last_invoice = Invoice.order(:created_at).last
     number = last_invoice ? last_invoice.invoice_number.split('-').last.to_i + 1 : 1
-    self.invoice_number = "INV-#{Date.current.strftime('%Y%m')}-#{number.to_s.rjust(4, '0')}"
+    self.invoice_number = "INV-#{number.to_s.rjust(6, '0')}"
   end
 
   def generate_share_token

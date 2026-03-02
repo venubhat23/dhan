@@ -24,6 +24,10 @@ class Admin::BookingsController < Admin::ApplicationController
       @bookings = @bookings.where(created_at: params[:date_from]..params[:date_to])
     end
 
+    if params[:customer_id].present? && params[:customer_id].strip != ''
+      @bookings = @bookings.where(customer_id: params[:customer_id])
+    end
+
     # Get pagination settings from system settings
     @per_page = SystemSetting.default_pagination_per_page
 
@@ -32,6 +36,10 @@ class Admin::BookingsController < Admin::ApplicationController
 
     # Use all_bookings for statistics cards to show complete picture
     @bookings_for_stats = @all_bookings
+
+    # Load customers for filter dropdown
+    @customers = Customer.select(:id, :first_name, :middle_name, :last_name, :email, :mobile)
+                        .order(:first_name, :last_name)
   end
 
   def new
@@ -107,17 +115,17 @@ class Admin::BookingsController < Admin::ApplicationController
       # Log the calculated totals for debugging
       Rails.logger.info "Booking totals - Subtotal: #{@booking.subtotal}, Tax: #{@booking.tax_amount}, Discount: #{@booking.discount_amount}, Total: #{@booking.total_amount}"
 
-      # Automatically generate invoice for all bookings
-      @booking.generate_invoice_number
+      # Invoice generation moved to consolidated invoice system to prevent duplicates
+      # @booking.generate_invoice_number
 
-      Rails.logger.info "Booking ##{@booking.id} created with invoice ##{@booking.invoice_number}"
+      Rails.logger.info "Booking ##{@booking.id} created successfully. Invoice will be generated via consolidated system."
 
       # Convert to order if payment is received
       if @booking.payment_status_paid? && params[:create_order] == '1'
         @booking.convert_to_order!
       end
 
-      redirect_to admin_booking_path(@booking), notice: 'Booking created successfully! Invoice generated.'
+      redirect_to admin_booking_path(@booking), notice: 'Booking created successfully! Invoice will be generated via consolidated system.'
     else
       Rails.logger.error "Booking creation failed: #{@booking.errors.full_messages.join(', ')}"
       Rails.logger.error "Booking items errors: #{@booking.booking_items.map(&:errors).map(&:full_messages).flatten.join(', ')}"
@@ -158,11 +166,52 @@ class Admin::BookingsController < Admin::ApplicationController
   end
 
   def destroy
-    if @booking.order.present?
-      redirect_to admin_bookings_path, alert: 'Cannot delete booking with associated order.'
-    else
-      @booking.destroy
-      redirect_to admin_bookings_path, notice: 'Booking deleted successfully!'
+    begin
+      # Check for associated orders (if enabled)
+      if @booking.respond_to?(:order) && @booking.order.present?
+        redirect_to admin_bookings_path, alert: 'Cannot delete booking with associated order.'
+        return
+      end
+
+      # Store booking info for confirmation message
+      booking_number = @booking.booking_number
+      customer_name = @booking.customer&.display_name || 'Unknown'
+
+      # Log the deletion for audit purposes
+      Rails.logger.info "Deleting booking #{booking_number} (ID: #{@booking.id}) for customer #{customer_name} by user #{current_user&.email || 'Unknown'}"
+
+      # Also clean up any regular Invoice records that might reference this booking
+      if defined?(Invoice)
+        related_invoices = Invoice.where("invoice_items.description LIKE ?", "%#{booking_number}%")
+                                  .joins(:invoice_items)
+        if related_invoices.any?
+          Rails.logger.info "Found #{related_invoices.count} invoice(s) with items referencing booking #{booking_number}"
+          related_invoices.each do |invoice|
+            # Only delete invoice items that reference this booking
+            invoice.invoice_items.where("description LIKE ?", "%#{booking_number}%").destroy_all
+            # Delete the entire invoice if it has no items left
+            if invoice.invoice_items.count == 0
+              Rails.logger.info "Deleting empty invoice #{invoice.invoice_number} after removing booking items"
+              invoice.destroy
+            end
+          end
+        end
+      end
+
+      # Delete the booking (will cascade delete all associated records due to dependent: :destroy)
+      @booking.destroy!
+
+      # Log successful deletion
+      Rails.logger.info "Successfully deleted booking #{booking_number} and all associated records"
+
+      redirect_to admin_bookings_path, notice: "Booking #{booking_number} for #{customer_name} has been permanently deleted along with all associated records."
+    rescue => e
+      # Log the error
+      Rails.logger.error "Failed to delete booking #{@booking.booking_number} (ID: #{@booking.id}): #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+
+      # Provide user-friendly error message
+      redirect_to admin_bookings_path, alert: "Failed to delete booking: #{e.message}. Please try again or contact support if the issue persists."
     end
   end
 

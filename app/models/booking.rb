@@ -73,8 +73,8 @@ class Booking < ApplicationRecord
 
     # Save the booking first
     if save
-      # Create the BookingInvoice record
-      create_booking_invoice_record
+      # BookingInvoice creation disabled - invoices will be generated via consolidated system
+      # create_booking_invoice_record
     end
   end
 
@@ -314,6 +314,20 @@ class Booking < ApplicationRecord
     when 'online', '4' then 'Online'
     when 'cod', '5' then 'COD'
     else raw_value.to_s.humanize
+    end
+  end
+
+  def payment_status_display
+    # Get the raw value directly from database using SQL to bypass any Rails caching issues
+    raw_value = self.class.connection.select_value("SELECT payment_status FROM bookings WHERE id = #{id}")
+    return 'Unpaid' if raw_value.blank?
+
+    case raw_value.to_s
+    when 'unpaid', '0' then 'Unpaid'
+    when 'paid', '1' then 'Paid'
+    when 'partially_paid', '2' then 'Partially Paid'
+    when 'refunded', '3' then 'Refunded'
+    else 'Unpaid'
     end
   end
 

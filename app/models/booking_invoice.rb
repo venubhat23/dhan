@@ -123,6 +123,16 @@ class BookingInvoice < ApplicationRecord
     customer&.mobile || booking&.customer_phone
   end
 
+  def payment_status_display
+    case payment_status
+    when 'unpaid' then 'Unpaid'
+    when 'paid' then 'Paid'
+    when 'partially_paid' then 'Partially Paid'
+    when 'refunded' then 'Refunded'
+    else 'Unpaid'
+    end
+  end
+
   def generate_share_token
     return if share_token.present?
 

@@ -8,17 +8,60 @@
       body {
         font-family: Arial, sans-serif;
         margin: 0;
-        padding: 10px;
-        background-color: #f5f5f5;
-        font-size: 11px;
+        padding: 0;
+        background-color: #e5e5e5;
+        font-size: 12px;
+      }
+
+      .page-controls {
+        background-color: white;
+        padding: 15px;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+      }
+
+      .download-btn {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 5px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        transition: background-color 0.3s;
+      }
+
+      .download-btn:hover {
+        background-color: #c82333;
+        color: white;
+        text-decoration: none;
+      }
+
+      .download-btn:before {
+        content: "📄 ";
+        margin-right: 5px;
+      }
+
+      .invoice-wrapper {
+        max-width: 210mm;
+        margin: 0 auto 40px;
+        background-color: white;
+        box-shadow: 0 0 20px rgba(0,0,0,0.15);
+        position: relative;
       }
 
       .invoice-container {
-        max-width: 800px;
+        width: 210mm;
+        min-height: 297mm;
         margin: 0 auto;
         background-color: white;
-        padding: 15px;
-        border: 1px solid #ddd;
+        padding: 20mm;
+        box-sizing: border-box;
+        page-break-after: always;
       }
 
       /* Header section */
@@ -499,10 +542,25 @@
           background-color: white;
           font-size: 10px;
         }
+
+        .page-controls {
+          display: none;
+        }
+
+        .invoice-wrapper {
+          box-shadow: none;
+          max-width: none;
+          margin: 0;
+        }
+
         .invoice-container {
           border: none;
-          padding: 10px;
+          padding: 15mm;
+          width: 210mm;
+          min-height: 297mm;
+          page-break-after: always;
         }
+
         .logo {
           width: 80px;
         }
@@ -516,6 +574,36 @@
         .signature-box {
           height: 40px;
           width: 100px;
+        }
+      }
+
+      /* Responsive styles for mobile */
+      @media (max-width: 768px) {
+        .invoice-wrapper {
+          margin: 10px;
+          max-width: calc(100vw - 20px);
+        }
+
+        .invoice-container {
+          width: 100%;
+          min-height: auto;
+          padding: 15px;
+        }
+
+        .company-name {
+          font-size: 18px;
+        }
+
+        .logo {
+          width: 60px;
+        }
+
+        .items-table {
+          font-size: 10px;
+        }
+
+        .items-table th, .items-table td {
+          padding: 3px 2px;
         }
       }
 
@@ -573,6 +661,13 @@
           sgst_rate = item.product.sgst_percentage || 0
           igst_rate = item.product.igst_percentage || 0
 
+          # If individual rates are not set, use main gst_percentage split evenly between CGST and SGST
+          if cgst_rate == 0 && sgst_rate == 0 && igst_rate == 0 && item.product.gst_percentage.present?
+            main_gst_rate = item.product.gst_percentage
+            cgst_rate = main_gst_rate / 2
+            sgst_rate = main_gst_rate / 2
+          end
+
           cgst_amount = (base_amount * cgst_rate / 100).round(2)
           sgst_amount = (base_amount * sgst_rate / 100).round(2)
           igst_amount = (base_amount * igst_rate / 100).round(2)
@@ -584,7 +679,8 @@
       end
 
       total_tax = total_cgst + total_sgst + total_igst
-      final_total = subtotal_amount + total_tax
+      discount_amount = @invoice.respond_to?(:discount_amount) ? (@invoice.discount_amount || 0) : 0
+      final_total = subtotal_amount + total_tax - discount_amount
     %>
 
     <%
@@ -592,7 +688,13 @@
       business_settings = @business_settings || SystemSetting.business_settings
     %>
 
-    <div class="invoice-container">
+    <div class="page-controls">
+      <a href="<%= request.url %>.pdf" class="download-btn" target="_blank">Download PDF</a>
+    </div>
+
+    <!-- Invoice Wrapper for A4 Format -->
+    <div class="invoice-wrapper">
+      <div class="invoice-container">
       <!-- Tax label and original recipient -->
       <div class="tax-label-container">
         <span class="tax-label"><%= has_gst ? 'TAX INVOICE' : 'BILL OF SUPPLY' %></span>
@@ -682,22 +784,18 @@
                 <td class="center-align"><%= item.quantity %> <%= item.product&.unit_type || 'PCS' %></td>
                 <td class="right-align">
                   <%
-                    # Display GST-inclusive unit price
-                    if item.product&.gst_enabled
-                      gst_rate = (item.product.cgst_percentage || 0) + (item.product.sgst_percentage || 0) + (item.product.igst_percentage || 0)
-                      gst_rate = item.product.gst_percentage || 0 if gst_rate == 0
-                      unit_price_with_gst = (item.unit_price || 0) * (1 + gst_rate/100)
-                    else
-                      unit_price_with_gst = item.unit_price || 0
-                    end
+                    # Display base unit price (without GST)
+                    unit_price = item.unit_price || 0
                   %>
-                  ₹<%= number_with_delimiter(sprintf('%.2f', unit_price_with_gst), delimiter: ',') %>
+                  ₹<%= number_with_delimiter(sprintf('%.2f', unit_price), delimiter: ',') %>
                 </td>
                 <td class="right-align">
                   <%
                     base_amount = item.quantity * (item.unit_price || 0)
                     if item.product&.gst_enabled
+                      # Get total GST rate - prioritize combined CGST+SGST+IGST, fallback to main gst_percentage
                       total_gst_rate = (item.product.cgst_percentage || 0) + (item.product.sgst_percentage || 0) + (item.product.igst_percentage || 0)
+                      total_gst_rate = item.product.gst_percentage || 0 if total_gst_rate == 0
                       tax_amount = (base_amount * total_gst_rate) / 100
                     else
                       total_gst_rate = 0
@@ -705,18 +803,22 @@
                     end
                   %>
                   ₹<%= number_with_delimiter(tax_amount.round(2), delimiter: ',') %><br />
-                  <span class="tax-rate">(<%= total_gst_rate %>%)</span>
+                  <span class="tax-rate">(<%= total_gst_rate.to_i == total_gst_rate ? total_gst_rate.to_i : total_gst_rate %>%)</span>
                 </td>
                 <td class="right-align">
                   <%
-                    # Calculate final amount consistently with the rate display
-                    if item.product&.gst_enabled
-                      gst_rate = (item.product.cgst_percentage || 0) + (item.product.sgst_percentage || 0) + (item.product.igst_percentage || 0)
-                      gst_rate = item.product.gst_percentage || 0 if gst_rate == 0
-                      unit_price_with_gst = (item.unit_price || 0) * (1 + gst_rate/100)
-                      final_amount = item.quantity * unit_price_with_gst
+                    # The item.unit_price already includes GST, so this is the gross amount
+                    gross_amount = item.quantity * (item.unit_price || 0)
+
+                    # Apply proportional discount directly to the gross amount
+                    if discount_amount > 0 && invoice_items.length > 0
+                      # For single item invoices, apply full discount. For multiple items, apply proportionally
+                      total_gross = invoice_items.sum { |i| i.quantity * (i.unit_price || 0) }
+                      item_proportion = gross_amount / total_gross
+                      item_discount = discount_amount * item_proportion
+                      final_amount = gross_amount - item_discount
                     else
-                      final_amount = item.quantity * (item.unit_price || 0)
+                      final_amount = gross_amount
                     end
                   %>
                   ₹<%= number_with_delimiter(final_amount.round(2), delimiter: ',') %>
@@ -815,6 +917,13 @@
                     cgst_rate = item.product.cgst_percentage || 0
                     sgst_rate = item.product.sgst_percentage || 0
 
+                    # If individual rates are not set, use main gst_percentage split evenly between CGST and SGST
+                    if cgst_rate == 0 && sgst_rate == 0 && item.product.gst_percentage.present?
+                      main_gst_rate = item.product.gst_percentage
+                      cgst_rate = main_gst_rate / 2
+                      sgst_rate = main_gst_rate / 2
+                    end
+
                     if cgst_rate > 0
                       cgst_amount = (base_amount * cgst_rate / 100).round(2)
                       cgst_groups[cgst_rate] = (cgst_groups[cgst_rate] || 0) + cgst_amount
@@ -857,6 +966,12 @@
                   <span class="tax-amount">₹ <%= number_with_delimiter(total_igst.round(2), delimiter: ',') %></span>
                 </div>
               <% end %>
+              <% if discount_amount > 0 %>
+                <div class="tax-line">
+                  <span class="tax-label">DISCOUNT</span>
+                  <span class="tax-amount">-₹ <%= number_with_delimiter(discount_amount.round(2), delimiter: ',') %></span>
+                </div>
+              <% end %>
               <div class="total">
                 <div class="tax-line">
                   <span class="tax-label">TOTAL AMOUNT</span>
@@ -864,7 +979,7 @@
                 </div>
                 <div class="tax-line" style="font-weight: normal; font-size: 10px;">
                   <span class="tax-label">Received Amount</span>
-                  <span class="tax-amount">₹ <%= @invoice.payment_status == 'fully_paid' ? number_with_delimiter(@invoice.total_amount, delimiter: ',') : '0' %></span>
+                  <span class="tax-amount">₹ <%= @invoice.payment_status == 'paid' ? number_with_delimiter(@invoice.total_amount, delimiter: ',') : '0' %></span>
                 </div>
               </div>
               <div class="amount-words">
@@ -956,6 +1071,7 @@
           </td>
         </tr>
       </table>
+      </div>
     </div>
   </body>
 </html>

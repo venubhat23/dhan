@@ -218,6 +218,14 @@ Rails.application.routes.draw do
       end
     end
 
+    # Booking Invoice System
+    resources :booking_invoices do
+      member do
+        patch :mark_paid
+        get :download_pdf
+      end
+    end
+
     # Pending Amounts Management
     resources :pending_amounts, only: [:index, :create, :update, :destroy]
 

@@ -2,125 +2,40 @@ class Admin::InvoicesController < Admin::ApplicationController
   before_action :set_invoice, only: [:show, :edit, :update, :destroy, :mark_as_paid]
 
   def index
-    # Base query with includes
-    base_query = Invoice.includes(:customer, :invoice_items)
+    # Decide which type of invoices to show based on params
+    invoice_type = params[:type] || 'all'  # 'all', 'regular', 'booking'
 
-    # Apply search filters
-    if params[:search].present?
-      search_term = "%#{params[:search]}%"
-      base_query = base_query.joins(:customer)
-                            .where("invoices.invoice_number ILIKE ? OR
-                                    customers.first_name ILIKE ? OR
-                                    customers.last_name ILIKE ? OR
-                                    customers.email ILIKE ? OR
-                                    customers.mobile ILIKE ?",
-                                   search_term, search_term, search_term, search_term, search_term)
+    # Build combined invoices collection
+    @all_invoices = []
+
+    # Get regular invoices if needed
+    if ['all', 'regular'].include?(invoice_type)
+      regular_invoices = build_regular_invoices_query
+      @all_invoices.concat(regular_invoices.map { |inv| prepare_invoice_data(inv, 'regular') })
     end
 
-    # Apply status filter
-    if params[:status].present? && params[:status] != 'all'
-      base_query = base_query.where(payment_status: params[:status])
+    # Get booking invoices if needed
+    if ['all', 'booking'].include?(invoice_type)
+      booking_invoices = build_booking_invoices_query
+      @all_invoices.concat(booking_invoices.map { |inv| prepare_invoice_data(inv, 'booking') })
     end
 
-    # Apply date range filter
-    if params[:date_from].present?
-      base_query = base_query.where('invoice_date >= ?', Date.parse(params[:date_from]))
-    end
+    # Sort combined invoices by created_at descending
+    @all_invoices.sort_by! { |inv| inv[:created_at] }.reverse!
 
-    if params[:date_to].present?
-      base_query = base_query.where('invoice_date <= ?', Date.parse(params[:date_to]))
-    end
-
-
-    # Get filtered invoices with pagination
-    @invoices = base_query.order(created_at: :desc)
-                         .limit(params[:limit]&.to_i || 50)
-                         .offset(params[:offset]&.to_i || 0)
+    # Apply pagination
+    limit = params[:limit]&.to_i || 50
+    offset = params[:offset]&.to_i || 0
+    @invoices = @all_invoices[offset, limit] || []
 
     # Calculate summary statistics
-    @stats = calculate_invoice_stats(base_query)
+    @stats = calculate_combined_invoice_stats
 
     # Get delivery persons for filter dropdown
     @delivery_persons = DeliveryPerson.active.order(:first_name, :last_name)
-  end
 
-  def show
-    @invoice_items = @invoice.invoice_items.includes(:milk_delivery_task)
-  end
-
-  def edit
-    @invoice_items = @invoice.invoice_items.includes(:product, :milk_delivery_task)
-  end
-
-  def update
-    if @invoice.update(invoice_params)
-      redirect_to admin_invoice_path(@invoice), notice: 'Invoice was successfully updated.'
-    else
-      @invoice_items = @invoice.invoice_items.includes(:product, :milk_delivery_task)
-      render :edit, alert: 'Failed to update invoice.'
-    end
-  end
-
-  def destroy
-    @invoice.destroy
-    redirect_to admin_invoices_path, notice: 'Invoice was successfully deleted.'
-  rescue => e
-    redirect_to admin_invoices_path, alert: "Error deleting invoice: #{e.message}"
-  end
-
-  def mark_as_paid
-    @invoice.update!(
-      payment_status: :fully_paid,
-      status: :paid,
-      paid_at: Time.current
-    )
-
-    redirect_to admin_invoices_path, notice: 'Invoice marked as paid successfully.'
-  rescue => e
-    redirect_to admin_invoices_path, alert: "Error marking invoice as paid: #{e.message}"
-  end
-
-  def bulk_mark_as_paid
-    invoice_ids = params[:invoice_ids]
-
-    if invoice_ids.blank? || !invoice_ids.is_a?(Array)
-      render json: { success: false, error: 'No invoice IDs provided' }, status: :bad_request
-      return
-    end
-
-    # Find invoices that are not already paid
-    invoices_to_update = Invoice.where(id: invoice_ids)
-                               .where.not(payment_status: 'fully_paid')
-
-    if invoices_to_update.empty?
-      render json: { success: false, error: 'No unpaid invoices found to update' }, status: :bad_request
-      return
-    end
-
-    updated_count = 0
-
-    Invoice.transaction do
-      invoices_to_update.find_each do |invoice|
-        invoice.update!(
-          payment_status: :fully_paid,
-          status: :paid,
-          paid_at: Time.current
-        )
-        updated_count += 1
-      end
-    end
-
-    render json: {
-      success: true,
-      updated_count: updated_count,
-      message: "Successfully marked #{updated_count} invoice(s) as paid"
-    }
-  rescue => e
-    Rails.logger.error "Bulk mark as paid error: #{e.message}"
-    render json: {
-      success: false,
-      error: "Error marking invoices as paid: #{e.message}"
-    }, status: :internal_server_error
+    # Set invoice type for the view
+    @invoice_type = invoice_type
   end
 
   def customers
@@ -263,6 +178,160 @@ class Admin::InvoicesController < Admin::ApplicationController
 
   private
 
+  def build_regular_invoices_query
+    base_query = Invoice.includes(:customer, :invoice_items)
+    apply_search_filters(base_query, 'invoices')
+  end
+
+  def build_booking_invoices_query
+    base_query = BookingInvoice.includes(:customer, :booking)
+    apply_search_filters(base_query, 'booking_invoices')
+  end
+
+  def apply_search_filters(base_query, table_name)
+    # Apply search filters
+    if params[:search].present?
+      search_term = "%#{params[:search]}%"
+      base_query = base_query.joins(:customer)
+                            .where("#{table_name}.invoice_number ILIKE ? OR
+                                    customers.first_name ILIKE ? OR
+                                    customers.last_name ILIKE ? OR
+                                    customers.email ILIKE ? OR
+                                    customers.mobile ILIKE ?",
+                                   search_term, search_term, search_term, search_term, search_term)
+    end
+
+    # Apply status filter
+    if params[:status].present? && params[:status] != 'all'
+      base_query = base_query.where(payment_status: params[:status])
+    end
+
+    # Apply date range filter
+    if params[:date_from].present?
+      date_column = table_name == 'invoices' ? 'invoice_date' : 'invoice_date'
+      base_query = base_query.where("#{table_name}.#{date_column} >= ?", Date.parse(params[:date_from]))
+    end
+
+    if params[:date_to].present?
+      date_column = table_name == 'invoices' ? 'invoice_date' : 'invoice_date'
+      base_query = base_query.where("#{table_name}.#{date_column} <= ?", Date.parse(params[:date_to]))
+    end
+
+    base_query.order(created_at: :desc).limit(200) # Limit to prevent memory issues
+  end
+
+  def prepare_invoice_data(invoice, type)
+    {
+      id: invoice.id,
+      invoice_number: invoice.invoice_number,
+      customer_name: invoice.customer&.display_name || 'N/A',
+      customer_mobile: invoice.customer&.mobile,
+      total_amount: invoice.total_amount,
+      payment_status: invoice.payment_status,
+      status: invoice.status,
+      invoice_date: invoice.invoice_date || invoice.created_at&.to_date,
+      created_at: invoice.created_at,
+      type: type,
+      model_object: invoice,
+      booking_number: type == 'booking' ? invoice.booking&.booking_number : nil
+    }
+  end
+
+  def calculate_combined_invoice_stats
+    total_count = @all_invoices.count
+    total_amount = @all_invoices.sum { |inv| inv[:total_amount] || 0 }
+    paid_count = @all_invoices.count { |inv| ['paid', 'fully_paid'].include?(inv[:payment_status]) }
+    pending_count = total_count - paid_count
+
+    {
+      total_invoices: total_count,
+      total_amount: total_amount,
+      paid_invoices: paid_count,
+      pending_invoices: pending_count
+    }
+  end
+
+  def show
+    @invoice_items = @invoice&.invoice_items&.includes(:product, :milk_delivery_task) || []
+  end
+
+  def edit
+    @invoice_items = @invoice.invoice_items.includes(:product, :milk_delivery_task)
+  end
+
+  def update
+    if @invoice.update(invoice_params)
+      redirect_to admin_invoice_path(@invoice), notice: 'Invoice was successfully updated.'
+    else
+      @invoice_items = @invoice.invoice_items.includes(:product, :milk_delivery_task)
+      render :edit, alert: 'Failed to update invoice.'
+    end
+  end
+
+  def destroy
+    @invoice.destroy
+    redirect_to admin_invoices_path, notice: 'Invoice was successfully deleted.'
+  rescue => e
+    redirect_to admin_invoices_path, alert: "Error deleting invoice: #{e.message}"
+  end
+
+  def mark_as_paid
+    @invoice.update!(
+      payment_status: :fully_paid,
+      status: :paid,
+      paid_at: Time.current
+    )
+
+    redirect_to admin_invoices_path, notice: 'Invoice marked as paid successfully.'
+  rescue => e
+    redirect_to admin_invoices_path, alert: "Error marking invoice as paid: #{e.message}"
+  end
+
+  def bulk_mark_as_paid
+    invoice_ids = params[:invoice_ids]
+
+    if invoice_ids.blank? || !invoice_ids.is_a?(Array)
+      render json: { success: false, error: 'No invoice IDs provided' }, status: :bad_request
+      return
+    end
+
+    # Find invoices that are not already paid
+    invoices_to_update = Invoice.where(id: invoice_ids)
+                               .where.not(payment_status: 'fully_paid')
+
+    if invoices_to_update.empty?
+      render json: { success: false, error: 'No unpaid invoices found to update' }, status: :bad_request
+      return
+    end
+
+    updated_count = 0
+
+    Invoice.transaction do
+      invoices_to_update.find_each do |invoice|
+        invoice.update!(
+          payment_status: :fully_paid,
+          status: :paid,
+          paid_at: Time.current
+        )
+        updated_count += 1
+      end
+    end
+
+    render json: {
+      success: true,
+      updated_count: updated_count,
+      message: "Successfully marked #{updated_count} invoice(s) as paid"
+    }
+  rescue => e
+    Rails.logger.error "Bulk mark as paid error: #{e.message}"
+    render json: {
+      success: false,
+      error: "Error marking invoices as paid: #{e.message}"
+    }, status: :internal_server_error
+  end
+
+  private
+
   def set_invoice
     @invoice = Invoice.find(params[:id])
   end
@@ -270,7 +339,6 @@ class Admin::InvoicesController < Admin::ApplicationController
   def get_pending_items_summary(customer_selection, customer_ids, delivery_person_id)
     # Determine which customers to check based on selection criteria
     customers = []
-
     if customer_selection == 'all'
       customers = Customer.all
     elsif customer_selection == 'delivery_person' && delivery_person_id.present?
@@ -345,7 +413,7 @@ class Admin::InvoicesController < Admin::ApplicationController
 
   def generate_customer_invoice(customer, month, year)
     start_date = Date.new(year, month).beginning_of_month
-    end_date = Date.new(year, month).end_of_month
+    end_date = Date.today
 
     # Check if invoice already exists for this month
     existing_invoice = Invoice.where(customer: customer)
@@ -356,32 +424,31 @@ class Admin::InvoicesController < Admin::ApplicationController
 
     invoice_items_data = []
 
-    # 1. Find completed bookings for the customer in the specified month
-    completed_bookings = customer.bookings.includes(booking_items: :product)
-                               .where(booking_date: start_date..end_date)
-                               .where(status: ['completed', 'delivered'])
+    # 1. Find unpaid, not invoiced, completed bookings for the customer in the specified month
+    # Check only amount after discount as requested
+    unpaid_bookings = customer.bookings
+                             .where(booking_date: start_date..end_date)
+                             .where(status: ['completed', 'delivered'])
+                             .where(payment_status: 'unpaid')
+                             .where(invoice_generated: [false, nil])
+                             .where.not(id: BookingInvoice.select(:booking_id).where.not(booking_id: nil))
 
-    # Process completed bookings
-    completed_bookings.each do |booking|
-      booking.booking_items.each do |item|
-        product = item.product
-        next unless product
+    # Process unpaid bookings - add 1 line item per booking considering amount after discount
+    unpaid_bookings.each do |booking|
+      # Use final_amount_after_discount if available, otherwise calculate from items
+      amount_to_invoice = booking.final_amount_after_discount.present? ?
+                          booking.final_amount_after_discount :
+                          booking.total_amount
 
-        # Calculate proper unit price (base price excluding GST for GST products)
-        unit_price = if product.gst_enabled? && product.gst_percentage.present?
-          product.calculate_base_price
-        else
-          item.price || product.selling_price
-        end
+      next if amount_to_invoice.to_f <= 0
 
-        invoice_items_data << {
-          product: product,
-          quantity: item.quantity,
-          unit_price: unit_price,
-          description: "#{product.name} - Booking ##{booking.booking_number}",
-          booking_item: item
-        }
-      end
+      invoice_items_data << {
+        product: nil, # Single line item for whole booking
+        quantity: 1,
+        unit_price: amount_to_invoice,
+        description: "Booking ##{booking.booking_number} (#{booking.booking_date.strftime('%d %b %Y')}) - Amount after discount",
+        booking: booking
+      }
     end
 
     # 2. Find completed delivery tasks if MilkDeliveryTask model exists

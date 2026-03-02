@@ -558,9 +558,13 @@
       ← Back to Invoices
     <% end %>
 
+
     <%
+      # FIXED: Load items directly from the invoice to bypass any variable issues
+      invoice_items = @invoice&.invoice_items&.includes(:product) || []
+
       # Calculate if any product has GST (adapting for admin invoice structure)
-      has_gst = @invoice_items.any? { |item| item.product&.gst_enabled }
+      has_gst = invoice_items.any? { |item| item.product&.gst_enabled }
 
       # Calculate totals with proper GST breakdown
       subtotal_amount = 0
@@ -569,7 +573,7 @@
       total_sgst = 0
       total_igst = 0
 
-      @invoice_items.each do |item|
+      invoice_items.each do |item|
         # Base amount (quantity × unit_price)
         base_amount = item.quantity * (item.unit_price || 0)
 
@@ -691,7 +695,7 @@
           </tr>
         </thead>
         <tbody>
-          <% @invoice_items.each do |item| %>
+          <% invoice_items.each do |item| %>
             <tr>
               <td>
                 <div>
@@ -824,7 +828,7 @@
                 cgst_groups = {}
                 sgst_groups = {}
 
-                @invoice_items.each do |item|
+                invoice_items.each do |item|
                   if item.product&.gst_enabled
                     base_amount = item.quantity * (item.unit_price || 0)
 
@@ -878,7 +882,7 @@
                 end
               %>
               <% if total_igst > 0 %>
-                <% igst_rate = @invoice_items.sum { |item| item.product&.gst_enabled ? (item.product.igst_percentage || 0) : 0 } / @invoice_items.select { |item| item.product&.gst_enabled }.count rescue 0 %>
+                <% igst_rate = invoice_items.sum { |item| item.product&.gst_enabled ? (item.product.igst_percentage || 0) : 0 } / invoice_items.select { |item| item.product&.gst_enabled }.count rescue 0 %>
                 <div class="tax-line">
                   <span class="tax-label">IGST @<%= igst_rate %>%</span>
                   <span class="tax-amount">₹ <%= number_with_delimiter(total_igst.round(2), delimiter: ',') %></span>

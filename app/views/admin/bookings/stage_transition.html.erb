@@ -77,7 +77,7 @@
                                    else 'bg-secondary-subtle text-secondary'
                                    end %>
                 <span class="badge <%= payment_class %>">
-                  <%= @booking.payment_status&.humanize || 'Unknown' %>
+                  <%= @booking.payment_status_display %>
                 </span>
               </span>
             </div>

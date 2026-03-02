@@ -201,8 +201,22 @@
     <div class="d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Booking List</h5>
       <div class="d-flex gap-2">
-        <!-- Stage Filter -->
-        <%= form_with url: admin_bookings_path, method: :get, local: true, class: "d-flex gap-2 align-items-center" do |form| %>
+        <!-- Filters -->
+        <%= form_with url: admin_bookings_path, method: :get, local: true, class: "d-flex gap-2 align-items-center flex-wrap" do |form| %>
+          <!-- Customer Filter -->
+          <%= form.select :customer_id,
+              options_from_collection_for_select(@customers, :id, :display_name, params[:customer_id]),
+              { prompt: 'All Customers' },
+              {
+                class: "form-select customer-select",
+                style: "width: 200px;",
+                data: {
+                  placeholder: "Select Customer...",
+                  allow_clear: true
+                }
+              } %>
+
+          <!-- Stage Filter -->
           <%= form.select :status,
               options_for_select([
                 ['All Stages', ''],
@@ -250,9 +264,9 @@
             <tr>
               <th class="border-0 fw-semibold">Booking Details</th>
               <th class="border-0 fw-semibold">Customer</th>
-              <th class="border-0 fw-semibold">Store</th>
               <th class="border-0 fw-semibold">Items & Amount</th>
               <th class="border-0 fw-semibold">Payment</th>
+              <th class="border-0 fw-semibold">Invoiced</th>
               <th class="border-0 fw-semibold text-dark">Current Stage</th>
               <th class="border-0 fw-semibold">Progress</th>
               <th class="border-0 fw-semibold">Actions</th>
@@ -284,16 +298,6 @@
                   </div>
                 </td>
                 <td class="align-middle">
-                  <% if booking.store.present? %>
-                    <span class="badge bg-info">
-                      <i class="bi bi-shop me-1"></i>
-                      <%= booking.store.name %>
-                    </span>
-                  <% else %>
-                    <small class="text-muted">-</small>
-                  <% end %>
-                </td>
-                <td class="align-middle">
                   <div>
                     <span class="badge bg-info-subtle text-info">
                       <%= pluralize(booking.booking_items.size, 'item') %>
@@ -311,13 +315,34 @@
                                     else 'bg-secondary-subtle text-secondary'
                                     end %>
                   <span class="badge <%= payment_class %>">
-                    <%= booking.payment_status&.humanize || 'Unknown' %>
+                    <%= booking.payment_status_display %>
                   </span>
                   <% if booking.payment_method.present? %>
                     <div class="small text-muted mt-1">
                       <i class="bi bi-credit-card me-1"></i>
                       <%= booking.payment_method_display %>
                     </div>
+                  <% end %>
+                </td>
+                <td class="align-middle">
+                  <% if booking.invoice_generated? %>
+                    <% booking_invoice = booking.booking_invoices.first %>
+                    <% if booking_invoice %>
+                      <%= link_to admin_booking_invoice_path(booking_invoice), class: "badge bg-success-subtle text-success text-decoration-none", target: "_blank", title: "View Invoice ##{booking.invoice_number}" do %>
+                        <i class="bi bi-check-circle me-1"></i>
+                        <%= booking.invoice_number %>
+                      <% end %>
+                    <% else %>
+                      <span class="badge bg-warning-subtle text-warning">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        Generated
+                      </span>
+                    <% end %>
+                  <% else %>
+                    <span class="badge bg-secondary-subtle text-secondary">
+                      <i class="bi bi-x-circle me-1"></i>
+                      No
+                    </span>
                   <% end %>
                 </td>
                 <td class="align-middle">
@@ -427,9 +452,9 @@
                       <%= link_to edit_admin_booking_path(booking), class: "action-icon edit", title: "Edit Booking" do %>
                         <i class="bi bi-pencil"></i>
                       <% end %>
-                      <%= link_to admin_booking_path(booking), method: :delete, class: "action-icon delete", title: "Delete Booking", data: { confirm: "Are you sure?" } do %>
+                      <a href="#" class="action-icon delete" title="Delete Booking" onclick="confirmDelete(<%= booking.id %>, '<%= booking.booking_number %>', '<%= booking.customer&.display_name || 'Unknown' %>')">
                         <i class="bi bi-trash"></i>
-                      <% end %>
+                      </a>
                       <% if booking.invoice_generated? %>
                         <%= link_to invoice_admin_booking_path(booking), class: "action-icon invoice", title: "View Invoice", target: "_blank" do %>
                           <i class="bi bi-receipt"></i>
@@ -545,7 +570,61 @@
 <!-- Modal removed - using manage_stage page instead -->
 
 <script>
+// Delete confirmation function
+function confirmDelete(bookingId, bookingNumber, customerName) {
+  const confirmation = confirm(
+    `⚠️ DELETE BOOKING CONFIRMATION ⚠️\n\n` +
+    `Booking: ${bookingNumber}\n` +
+    `Customer: ${customerName}\n\n` +
+    `This will permanently delete:\n` +
+    `• The booking record\n` +
+    `• All booking items\n` +
+    `• Any associated invoices\n` +
+    `• Sale items and inventory records\n\n` +
+    `❌ This action CANNOT be undone!\n\n` +
+    `Are you absolutely sure you want to delete this booking?`
+  );
+
+  if (confirmation) {
+    // Create a form and submit it to delete the booking
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `/admin/bookings/${bookingId}`;
+
+    // Add CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'authenticity_token';
+    csrfInput.value = csrfToken;
+    form.appendChild(csrfInput);
+
+    // Add method override for DELETE
+    const methodInput = document.createElement('input');
+    methodInput.type = 'hidden';
+    methodInput.name = '_method';
+    methodInput.value = 'DELETE';
+    form.appendChild(methodInput);
+
+    // Submit the form
+    document.body.appendChild(form);
+    form.submit();
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+  // Initialize Select2 for customer dropdown
+  $('.customer-select').select2({
+    theme: 'bootstrap-5',
+    placeholder: 'Select Customer...',
+    allowClear: true,
+    width: '100%'
+  });
+
+  // Auto-submit form when customer selection changes
+  $('.customer-select').on('change', function() {
+    this.form.submit();
+  });
   // Real-time data functionality
   let realtimeInterval = null;
   const autoRefreshToggle = document.getElementById('autoRefreshToggle');
@@ -1347,6 +1426,18 @@ document.addEventListener('DOMContentLoaded', function() {
   letter-spacing: 0.5px;
 }
 
+/* Invoice link badge styling */
+.badge.bg-success-subtle.text-decoration-none:hover {
+  background-color: rgba(25, 135, 84, 0.2) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(25, 135, 84, 0.15);
+  transition: all 0.2s ease;
+}
+
+.badge.bg-success-subtle.text-decoration-none:active {
+  transform: translateY(0);
+}
+
 .table-hover tbody tr:hover {
   background-color: #f8f9fa;
   transform: translateY(-1px);
@@ -1742,6 +1833,55 @@ td .d-flex.gap-2 {
   to {
     transform: translateX(0);
     opacity: 1;
+  }
+}
+
+/* Select2 Customer Dropdown Styling */
+.select2-container--bootstrap-5 .select2-selection {
+  border-radius: 8px !important;
+  border: 1px solid #ced4da !important;
+  min-height: 38px !important;
+}
+
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+  line-height: 36px !important;
+}
+
+.select2-container--bootstrap-5.select2-container--focus .select2-selection {
+  border-color: #0d6efd !important;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25) !important;
+}
+
+.select2-dropdown {
+  border-radius: 8px !important;
+  border: 1px solid #ced4da !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+}
+
+.select2-results__option--highlighted {
+  background-color: #0d6efd !important;
+}
+
+/* Ensure proper spacing between filters */
+.d-flex.gap-2.align-items-center.flex-wrap > * {
+  margin-bottom: 8px;
+}
+
+@media (max-width: 768px) {
+  .customer-select {
+    width: 100% !important;
+    min-width: 200px !important;
+  }
+
+  .d-flex.gap-2.align-items-center.flex-wrap {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .d-flex.gap-2.align-items-center.flex-wrap > * {
+    width: 100% !important;
   }
 }
 </style>

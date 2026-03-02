@@ -1,25 +1,31 @@
-
 <!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="csrf-token" content="<%= form_authenticity_token %>">
-    <title>Invoice #<%= @booking.invoice_number || @booking.booking_number %></title>
+    <title>Invoice #<%= @invoice.invoice_number %></title>
     <style>
       body {
         font-family: Arial, sans-serif;
         margin: 0;
-        padding: 10px;
-        background-color: #f5f5f5;
-        font-size: 11px;
+        padding: 0;
+        background-color: white;
+        font-size: 12px;
+      }
+
+      .invoice-wrapper {
+        max-width: 210mm;
+        margin: 0 auto;
+        background-color: white;
       }
 
       .invoice-container {
-        max-width: 800px;
+        width: 210mm;
+        min-height: 297mm;
         margin: 0 auto;
         background-color: white;
-        padding: 15px;
-        border: 1px solid #ddd;
+        padding: 20mm;
+        box-sizing: border-box;
+        page-break-after: always;
       }
 
       /* Header section */
@@ -493,57 +499,6 @@
         font-weight: bold;
       }
 
-      /* Back button styling */
-      .back-button {
-        position: fixed;
-        top: 20px;
-        left: 20px;
-        background-color: #5a4ec9;
-        color: white;
-        padding: 10px 20px;
-        text-decoration: none;
-        border-radius: 5px;
-        font-weight: bold;
-        z-index: 1000;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-      }
-
-      .back-button:hover {
-        background-color: #4a3eb3;
-        color: white;
-        text-decoration: none;
-      }
-
-      /* Print styles */
-      @media print {
-        .back-button {
-          display: none;
-        }
-        body {
-          padding: 0;
-          background-color: white;
-          font-size: 10px;
-        }
-        .invoice-container {
-          border: none;
-          padding: 10px;
-        }
-        .logo {
-          width: 80px;
-        }
-        .company-name {
-          font-size: 18px;
-        }
-        .qr-image {
-          width: 50px;
-          height: 50px;
-        }
-        .signature-box {
-          height: 40px;
-          width: 100px;
-        }
-      }
-
       .float-right {
         float: right;
       }
@@ -554,42 +509,55 @@
     </style>
   </head>
   <body>
-    <!-- Back Button -->
-    <%= link_to admin_bookings_path, class: "back-button" do %>
-      ← Back to Bookings
-    <% end %>
-
     <%
-      # Calculate if any product has GST (adapting for booking structure)
-      has_gst = @booking.booking_items&.any? { |item| item.product&.gst_enabled }
+      # Get invoice items - adapt for public view (same logic as HTML template)
+      invoice_items = []
+      if @invoice.respond_to?(:invoice_items) && @invoice.invoice_items.any?
+        invoice_items = @invoice.invoice_items
+      elsif @invoice.respond_to?(:booking) && @invoice.booking&.order&.order_items&.any?
+        # For booking invoices, try to get items from order
+        invoice_items = @invoice.booking.order.order_items.map do |order_item|
+          # Create a struct to mimic invoice_item interface
+          OpenStruct.new(
+            description: order_item.product&.name || 'Product',
+            quantity: order_item.quantity || 1,
+            unit_price: order_item.unit_price || 0,
+            product: order_item.product
+          )
+        end
+      end
 
-      # Calculate totals with proper GST breakdown
+      # Calculate if any product has GST
+      has_gst = invoice_items.any? { |item| item.product&.gst_enabled }
+
+      # Calculate totals with proper GST breakdown (same logic as HTML template)
       subtotal_amount = 0
       taxable_amount = 0
       total_cgst = 0
       total_sgst = 0
       total_igst = 0
 
-      (@booking.booking_items || []).each do |item|
-        # Base amount (quantity × price)
-        base_amount = item.quantity * (item.price || 0)
+      invoice_items.each do |item|
+        # Base amount (quantity × unit_price) - rounded to 2 decimal places
+        base_amount = (item.quantity * (item.unit_price || 0)).round(2)
+
+        # Add to subtotal
+        subtotal_amount += base_amount
 
         if item.product&.gst_enabled
           # For GST applicable items, add to taxable amount and calculate GST
           taxable_amount += base_amount
 
           # Calculate individual tax components based on base amount
-          if item.product.cgst_percentage.present? && item.product.sgst_percentage.present?
-            cgst_rate = item.product.cgst_percentage
-            sgst_rate = item.product.sgst_percentage
-            igst_rate = item.product.igst_percentage || 0
-          elsif item.product.gst_percentage.present?
-            # Split total GST equally for intra-state transactions
-            cgst_rate = item.product.gst_percentage / 2.0
-            sgst_rate = item.product.gst_percentage / 2.0
-            igst_rate = 0
-          else
-            cgst_rate = sgst_rate = igst_rate = 0
+          cgst_rate = item.product.cgst_percentage || 0
+          sgst_rate = item.product.sgst_percentage || 0
+          igst_rate = item.product.igst_percentage || 0
+
+          # If individual rates are not set, use main gst_percentage split evenly between CGST and SGST
+          if cgst_rate == 0 && sgst_rate == 0 && igst_rate == 0 && item.product.gst_percentage.present?
+            main_gst_rate = item.product.gst_percentage
+            cgst_rate = main_gst_rate / 2
+            sgst_rate = main_gst_rate / 2
           end
 
           cgst_amount = (base_amount * cgst_rate / 100).round(2)
@@ -599,25 +567,22 @@
           total_cgst += cgst_amount
           total_sgst += sgst_amount
           total_igst += igst_amount
-
-          # Add GST-inclusive amount to subtotal
-          subtotal_amount += base_amount + cgst_amount + sgst_amount + igst_amount
-        else
-          # Add base amount for non-GST items
-          subtotal_amount += base_amount
         end
       end
 
       total_tax = total_cgst + total_sgst + total_igst
-      final_total = subtotal_amount
+      discount_amount = @invoice.respond_to?(:discount_amount) ? (@invoice.discount_amount || 0) : 0
+      final_total = subtotal_amount + total_tax - discount_amount
     %>
 
     <%
-      # Get business settings
-      business_settings = SystemSetting.business_settings
+      # Get business settings (same as HTML template)
+      business_settings = @business_settings || SystemSetting.business_settings
     %>
 
-    <div class="invoice-container">
+    <!-- Invoice Wrapper for A4 Format -->
+    <div class="invoice-wrapper">
+      <div class="invoice-container">
       <!-- Tax label and original recipient -->
       <div class="tax-label-container">
         <span class="tax-label"><%= has_gst ? 'TAX INVOICE' : 'BILL OF SUPPLY' %></span>
@@ -631,15 +596,15 @@
             <img class="logo" src="/logo1.jpeg" alt="Atma Nirbhar Farm Logo" />
           </td>
           <td class="company-info-cell">
-            <div class="company-name"><%= business_settings.business_name || 'Atma Nirbhar Farm' %></div>
+            <div class="company-name"><%= business_settings&.business_name || 'Atma Nirbhar Farm' %></div>
             <div class="address">
-              <%= business_settings.address || '#827 4th main 9th Block 2nd Stage Near Hanumagiri temple Nagarbhavi, Bangalore, Karnataka, 560072' %>
+              <%= business_settings&.address || '#827 4th main 9th Block 2nd Stage Near Hanumagiri temple Nagarbhavi, Bangalore, Karnataka, 560072' %>
             </div>
             <div class="contact">
-              <span class="highlight">Mobile:</span> <%= business_settings.mobile || '9972808044' %> &nbsp;&nbsp;
-              <span class="highlight">GSTIN:</span> <%= business_settings.gstin || '29AOIPT8113K1ZC' %> &nbsp;&nbsp;
-              <span class="highlight">PAN Number:</span> <%= business_settings.pan_number || 'AOIPT8113K' %><br />
-              <span class="highlight">Email:</span> <%= business_settings.email || 'atmanirbharfarm@gmail.com' %>
+              <span class="highlight">Mobile:</span> <%= business_settings&.mobile || '9972808044' %> &nbsp;&nbsp;
+              <span class="highlight">GSTIN:</span> <%= business_settings&.gstin || '29AOIPT8113K1ZC' %> &nbsp;&nbsp;
+              <span class="highlight">PAN Number:</span> <%= business_settings&.pan_number || 'AOIPT8113K' %><br />
+              <span class="highlight">Email:</span> <%= business_settings&.email || 'atmanirbharfarm@gmail.com' %>
             </div>
           </td>
         </tr>
@@ -651,9 +616,9 @@
       <!-- Invoice meta information -->
       <table class="invoice-meta-table">
         <tr>
-          <td>Invoice No.: <span><%= @booking.invoice_number || @booking.booking_number %></span></td>
-          <td>Invoice Date: <span><%= Date.current.strftime('%d/%m/%Y') %></span></td>
-          <td>Due Date: <span><%= (Date.current + 30.days).strftime('%d/%m/%Y') %></span></td>
+          <td>Invoice No.: <span><%= @invoice.invoice_number %></span></td>
+          <td>Invoice Date: <span><%= @invoice.invoice_date&.strftime('%d/%m/%Y') || @invoice.created_at&.strftime('%d/%m/%Y') %></span></td>
+          <td>Due Date: <span><%= @invoice.due_date&.strftime('%d/%m/%Y') || 1.month.from_now.strftime('%d/%m/%Y') %></span></td>
         </tr>
       </table>
 
@@ -665,16 +630,16 @@
         <tr>
           <td>
             <div class="bill-title">BILL TO</div>
-            <div class="client-name"><%= @booking.customer_name || @booking.customer&.display_name || 'Customer Name' %></div>
-            <div><%= @booking.delivery_address || @booking.customer&.address || 'Address' %></div>
-            <% if @booking.customer_phone.present? || @booking.customer&.mobile.present? %>
-              <div class="mobile">Mobile: <%= @booking.customer_phone || @booking.customer&.mobile %></div>
+            <div class="client-name"><%= @customer&.display_name || 'Customer Name' %></div>
+            <div><%= @customer&.address || 'Address' %></div>
+            <% if @customer&.mobile.present? %>
+              <div class="mobile">Mobile: <%= @customer.mobile %></div>
             <% end %>
           </td>
           <td>
             <div class="ship-title">SHIP TO</div>
-            <div class="client-name"><%= @booking.customer_name || @booking.customer&.display_name || 'Customer Name' %></div>
-            <div><%= @booking.delivery_address || @booking.customer&.address || 'Address' %></div>
+            <div class="client-name"><%= @customer&.display_name || 'Customer Name' %></div>
+            <div><%= @customer&.address || 'Address' %></div>
           </td>
         </tr>
       </table>
@@ -692,64 +657,72 @@
           </tr>
         </thead>
         <tbody>
-          <% (@booking.booking_items || []).each do |item| %>
-            <tr>
-              <td>
-                <div>
-                  <%= item.product&.name || 'Product' %>
-                  <% if item.product&.description.present? && item.product.description != (item.product&.name || 'Product') %>
-                    <br><span class="description"><%= item.product.description %></span>
-                  <% end %>
-                </div>
-              </td>
-              <td class="center-align"><%= item.product&.hsn_code || '-' %></td>
-              <td class="center-align"><%= item.quantity %> <%= item.product&.unit_type || 'PCS' %></td>
-              <td class="right-align">
-                <%
-                  # Display GST-inclusive unit price
-                  if item.product&.gst_enabled
-                    gst_rate = item.product.gst_percentage || 0
-                    unit_price_with_gst = (item.price || 0) * (1 + gst_rate/100)
-                  else
-                    unit_price_with_gst = item.price || 0
-                  end
-                %>
-                ₹<%= number_with_delimiter(sprintf('%.2f', unit_price_with_gst), delimiter: ',') %>
-              </td>
-              <td class="right-align">
-                <%
-                  base_amount = item.quantity * (item.price || 0)
-                  if item.product&.gst_enabled
-                    # Use individual tax percentages if available, otherwise split the total GST rate
-                    if item.product.cgst_percentage.present? || item.product.sgst_percentage.present?
+          <% if invoice_items.any? %>
+            <% invoice_items.each do |item| %>
+              <tr>
+                <td>
+                  <div>
+                    <%= item.product&.name || 'Product' %>
+                    <% if item.description.present? && item.description != (item.product&.name || 'Product') %>
+                      <br><span class="description"><%= item.description %></span>
+                    <% end %>
+                  </div>
+                </td>
+                <td class="center-align"><%= item.product&.hsn_code || '-' %></td>
+                <td class="center-align"><%= item.quantity %> <%= item.product&.unit_type || 'PCS' %></td>
+                <td class="right-align">
+                  <%
+                    # Display base unit price (without GST) - same logic as HTML template
+                    unit_price = item.unit_price || 0
+                  %>
+                  ₹<%= number_with_delimiter(sprintf('%.2f', unit_price), delimiter: ',') %>
+                </td>
+                <td class="right-align">
+                  <%
+                    base_amount = item.quantity * (item.unit_price || 0)
+                    if item.product&.gst_enabled
+                      # Get total GST rate - prioritize combined CGST+SGST+IGST, fallback to main gst_percentage
                       total_gst_rate = (item.product.cgst_percentage || 0) + (item.product.sgst_percentage || 0) + (item.product.igst_percentage || 0)
+                      total_gst_rate = item.product.gst_percentage || 0 if total_gst_rate == 0
+                      tax_amount = (base_amount * total_gst_rate) / 100
                     else
-                      # If individual rates not set, use main GST percentage
-                      total_gst_rate = item.product.gst_percentage || 0
+                      total_gst_rate = 0
+                      tax_amount = 0
                     end
-                    tax_amount = (base_amount * total_gst_rate) / 100
-                  else
-                    total_gst_rate = 0
-                    tax_amount = 0
-                  end
-                %>
-                ₹<%= number_with_delimiter(tax_amount.round(2), delimiter: ',') %><br />
-                <span class="tax-rate">(<%= total_gst_rate.to_i == total_gst_rate ? total_gst_rate.to_i : total_gst_rate %>%)</span>
-              </td>
-              <td class="right-align">
-                <%
-                  # Calculate final amount consistently with the rate display
-                  if item.product&.gst_enabled
-                    gst_rate = item.product.gst_percentage || 0
-                    unit_price_with_gst = (item.price || 0) * (1 + gst_rate/100)
-                    final_amount = item.quantity * unit_price_with_gst
-                  else
-                    final_amount = item.quantity * (item.price || 0)
-                  end
-                %>
-                ₹<%= number_with_delimiter(final_amount.round(2), delimiter: ',') %>
-              </td>
+                  %>
+                  ₹<%= number_with_delimiter(tax_amount.round(2), delimiter: ',') %><br />
+                  <span class="tax-rate">(<%= total_gst_rate.to_i == total_gst_rate ? total_gst_rate.to_i : total_gst_rate %>%)</span>
+                </td>
+                <td class="right-align">
+                  <%
+                    # The item.unit_price already includes GST, so this is the gross amount
+                    gross_amount = item.quantity * (item.unit_price || 0)
+
+                    # Apply proportional discount directly to the gross amount
+                    if discount_amount > 0 && invoice_items.length > 0
+                      # For single item invoices, apply full discount. For multiple items, apply proportionally
+                      total_gross = invoice_items.sum { |i| i.quantity * (i.unit_price || 0) }
+                      item_proportion = gross_amount / total_gross
+                      item_discount = discount_amount * item_proportion
+                      final_amount = gross_amount - item_discount
+                    else
+                      final_amount = gross_amount
+                    end
+                  %>
+                  ₹<%= number_with_delimiter(final_amount.round(2), delimiter: ',') %>
+                </td>
+              </tr>
+            <% end %>
+          <% else %>
+            <tr>
+              <td>Invoice Total</td>
+              <td class="center-align">-</td>
+              <td class="center-align">1</td>
+              <td class="right-align">₹<%= number_with_delimiter(@invoice.total_amount || 0, delimiter: ',') %></td>
+              <td class="right-align">₹0<br /><span class="tax-rate">(0%)</span></td>
+              <td class="right-align">₹<%= number_with_delimiter(@invoice.total_amount || 0, delimiter: ',') %></td>
             </tr>
+            <% subtotal_amount = @invoice.total_amount || 0 %>
           <% end %>
         </tbody>
       </table>
@@ -779,19 +752,19 @@
               <table class="bank-details-table">
                 <tr>
                   <td>Name:</td>
-                  <td><%= business_settings.account_holder_name || 'Atma Nirbhar Farm' %></td>
+                  <td><%= business_settings&.account_holder_name || 'Atma Nirbhar Farm' %></td>
                 </tr>
                 <tr>
                   <td>IFSC Code:</td>
-                  <td><%= business_settings.ifsc_code || 'CNRB0003194' %></td>
+                  <td><%= business_settings&.ifsc_code || 'CNRB0003194' %></td>
                 </tr>
                 <tr>
                   <td>Account No:</td>
-                  <td><%= business_settings.account_number || '3194201000718' %></td>
+                  <td><%= business_settings&.account_number || '3194201000718' %></td>
                 </tr>
                 <tr>
                   <td>Bank:</td>
-                  <td><%= business_settings.bank_name || 'Canara Bank' %></td>
+                  <td><%= business_settings&.bank_name || 'Canara Bank' %></td>
                 </tr>
               </table>
 
@@ -799,7 +772,7 @@
               <table class="payment-qr-table">
                 <tr>
                   <td>
-                    <p class="upi-id">UPI ID: <%= business_settings.upi_id || '9972808044@ybl' %></p>
+                    <p class="upi-id">UPI ID: <%= business_settings&.upi_id || '9972808044@ybl' %></p>
                     <div class="upi-icons">
                       <span class="phonepe">PhonePe</span>
                       <span class="gpay">Google Pay</span>
@@ -808,7 +781,7 @@
                     </div>
                   </td>
                   <td style="text-align: center;">
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=upi://pay?pa=<%= business_settings.upi_id || '9972808044@ybl' %>&pn=<%= CGI.escape(business_settings.business_name || 'Atma Nirbhar Farm') %>" alt="QR Code" class="qr-image" />
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=upi://pay?pa=<%= business_settings&.upi_id || '9972808044@ybl' %>&pn=<%= CGI.escape(business_settings&.business_name || 'Atma Nirbhar Farm') %>" alt="QR Code" class="qr-image" />
                   </td>
                 </tr>
               </table>
@@ -821,26 +794,22 @@
                 <span class="tax-amount">₹ <%= number_with_delimiter(taxable_amount.round(2), delimiter: ',') %></span>
               </div>
               <%
-                # Group tax amounts by individual tax rates
+                # Group tax amounts by individual tax rates (same logic as HTML template)
                 cgst_groups = {}
                 sgst_groups = {}
 
-                (@booking.booking_items || []).each do |item|
+                invoice_items.each do |item|
                   if item.product&.gst_enabled
-                    base_amount = item.quantity * (item.price || 0)
+                    base_amount = (item.quantity * (item.unit_price || 0)).round(2)
 
-                    # Handle CGST/SGST calculation
-                    if item.product.cgst_percentage.present? && item.product.sgst_percentage.present?
-                      # Use individual rates if available
-                      cgst_rate = item.product.cgst_percentage
-                      sgst_rate = item.product.sgst_percentage
-                    elsif item.product.gst_percentage.present?
-                      # If only total GST is set, split it equally for intra-state transactions
-                      cgst_rate = item.product.gst_percentage / 2.0
-                      sgst_rate = item.product.gst_percentage / 2.0
-                    else
-                      cgst_rate = 0
-                      sgst_rate = 0
+                    cgst_rate = item.product.cgst_percentage || 0
+                    sgst_rate = item.product.sgst_percentage || 0
+
+                    # If individual rates are not set, use main gst_percentage split evenly between CGST and SGST
+                    if cgst_rate == 0 && sgst_rate == 0 && item.product.gst_percentage.present?
+                      main_gst_rate = item.product.gst_percentage
+                      cgst_rate = main_gst_rate / 2
+                      sgst_rate = main_gst_rate / 2
                     end
 
                     if cgst_rate > 0
@@ -879,27 +848,33 @@
                 end
               %>
               <% if total_igst > 0 %>
-                <% igst_rate = (@booking.booking_items || []).sum { |item| item.product&.gst_enabled ? (item.product.igst_percentage || 0) : 0 } / (@booking.booking_items || []).select { |item| item.product&.gst_enabled }.count rescue 0 %>
+                <% igst_rate = invoice_items.sum { |item| item.product&.gst_enabled ? (item.product.igst_percentage || 0) : 0 } / invoice_items.select { |item| item.product&.gst_enabled }.count rescue 0 %>
                 <div class="tax-line">
                   <span class="tax-label">IGST @<%= igst_rate %>%</span>
                   <span class="tax-amount">₹ <%= number_with_delimiter(total_igst.round(2), delimiter: ',') %></span>
                 </div>
               <% end %>
+              <% if discount_amount > 0 %>
+                <div class="tax-line">
+                  <span class="tax-label">DISCOUNT</span>
+                  <span class="tax-amount">-₹ <%= number_with_delimiter(discount_amount.round(2), delimiter: ',') %></span>
+                </div>
+              <% end %>
               <div class="total">
                 <div class="tax-line">
                   <span class="tax-label">TOTAL AMOUNT</span>
-                  <span class="tax-amount">₹ <%= number_with_delimiter(subtotal_amount.round(2), delimiter: ',') %></span>
+                  <span class="tax-amount">₹ <%= number_with_delimiter(final_total.round(2), delimiter: ',') %></span>
                 </div>
                 <div class="tax-line" style="font-weight: normal; font-size: 10px;">
                   <span class="tax-label">Received Amount</span>
-                  <span class="tax-amount">₹ <%= @booking.payment_status_paid? ? number_with_delimiter(@booking.total_amount, delimiter: ',') : '0' %></span>
+                  <span class="tax-amount">₹ <%= @invoice.payment_status == 'paid' ? number_with_delimiter(@invoice.total_amount, delimiter: ',') : '0' %></span>
                 </div>
               </div>
               <div class="amount-words">
                 <h3>Total Amount (in words)</h3>
                 <%
-                  # Convert number to words - enhanced implementation
-                  total_amount_int = subtotal_amount.to_i
+                  # Convert number to words - enhanced implementation (same as HTML template)
+                  total_amount_int = final_total.to_i
                   ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"]
                   teens = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"]
                   tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"]
@@ -958,9 +933,9 @@
           <td class="terms-cell">
             <div class="terms">
               <h3>TERMS AND CONDITIONS</h3>
-              <% if business_settings.terms_and_conditions.present? %>
+              <% if business_settings&.terms_and_conditions.present? %>
                 <% formatted_terms = business_settings.formatted_terms_and_conditions %>
-                <% if formatted_terms.any? %>
+                <% if formatted_terms.respond_to?(:any?) && formatted_terms.any? %>
                   <ol>
                     <% formatted_terms.each do |term| %>
                       <li><%= term %></li>
@@ -980,10 +955,11 @@
           <td class="signature-cell">
             <div class="signature-box"></div>
             <div class="signature-label">AUTHORISED SIGNATORY FOR</div>
-            <div class="signature-name"><%= business_settings.business_name || 'Atma Nirbhar Farm' %></div>
+            <div class="signature-name"><%= business_settings&.business_name || 'Atma Nirbhar Farm' %></div>
           </td>
         </tr>
       </table>
+      </div>
     </div>
   </body>
 </html>
