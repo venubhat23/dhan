@@ -190,6 +190,16 @@ class Admin::InvoicesController < Admin::ApplicationController
     apply_search_filters(base_query, 'booking_invoices')
   end
 
+  def build_regular_invoices_query_for_stats
+    base_query = Invoice.includes(:customer)
+    apply_search_filters_for_stats(base_query, 'invoices')
+  end
+
+  def build_booking_invoices_query_for_stats
+    base_query = BookingInvoice.includes(:customer)
+    apply_search_filters_for_stats(base_query, 'booking_invoices')
+  end
+
   def apply_search_filters(base_query, table_name)
     # Apply search filters
     if params[:search].present?
@@ -201,6 +211,36 @@ class Admin::InvoicesController < Admin::ApplicationController
                                     customers.email ILIKE ? OR
                                     customers.mobile ILIKE ?",
                                    search_term, search_term, search_term, search_term, search_term)
+    end
+
+    # Apply delivery person filter based on milk subscriptions
+    if params[:delivery_person_id].present? && params[:delivery_person_id] != 'all'
+      delivery_person_id = params[:delivery_person_id].to_i
+
+      # Get customers associated with this delivery person through milk subscriptions
+      customer_ids_from_subscriptions = MilkSubscription.where(delivery_person_id: delivery_person_id)
+                                                       .distinct
+                                                       .pluck(:customer_id)
+                                                       .compact
+
+      # Also get customers from subscription templates
+      customer_ids_from_templates = []
+      if defined?(SubscriptionTemplate)
+        customer_ids_from_templates = SubscriptionTemplate.where(delivery_person_id: delivery_person_id)
+                                                         .distinct
+                                                         .pluck(:customer_id)
+                                                         .compact
+      end
+
+      # Combine all customer IDs from subscriptions
+      all_customer_ids = (customer_ids_from_subscriptions + customer_ids_from_templates).uniq
+
+      if all_customer_ids.any?
+        base_query = base_query.where(customer_id: all_customer_ids)
+      else
+        # If no customers found for this delivery person, return empty result
+        base_query = base_query.none
+      end
     end
 
     # Apply status filter
@@ -222,6 +262,69 @@ class Admin::InvoicesController < Admin::ApplicationController
     base_query.order(created_at: :desc).limit(200) # Limit to prevent memory issues
   end
 
+  def apply_search_filters_for_stats(base_query, table_name)
+    # Apply same search filters as above but without the limit for accurate stats
+    if params[:search].present?
+      search_term = "%#{params[:search]}%"
+      base_query = base_query.joins(:customer)
+                            .where("#{table_name}.invoice_number ILIKE ? OR
+                                    customers.first_name ILIKE ? OR
+                                    customers.last_name ILIKE ? OR
+                                    customers.email ILIKE ? OR
+                                    customers.mobile ILIKE ?",
+                                   search_term, search_term, search_term, search_term, search_term)
+    end
+
+    # Apply delivery person filter based on milk subscriptions
+    if params[:delivery_person_id].present? && params[:delivery_person_id] != 'all'
+      delivery_person_id = params[:delivery_person_id].to_i
+
+      # Get customers associated with this delivery person through milk subscriptions
+      customer_ids_from_subscriptions = MilkSubscription.where(delivery_person_id: delivery_person_id)
+                                                       .distinct
+                                                       .pluck(:customer_id)
+                                                       .compact
+
+      # Also get customers from subscription templates
+      customer_ids_from_templates = []
+      if defined?(SubscriptionTemplate)
+        customer_ids_from_templates = SubscriptionTemplate.where(delivery_person_id: delivery_person_id)
+                                                         .distinct
+                                                         .pluck(:customer_id)
+                                                         .compact
+      end
+
+      # Combine all customer IDs from subscriptions
+      all_customer_ids = (customer_ids_from_subscriptions + customer_ids_from_templates).uniq
+
+      if all_customer_ids.any?
+        base_query = base_query.where(customer_id: all_customer_ids)
+      else
+        # If no customers found for this delivery person, return empty result
+        base_query = base_query.none
+      end
+    end
+
+    # Apply status filter
+    if params[:status].present? && params[:status] != 'all'
+      base_query = base_query.where(payment_status: params[:status])
+    end
+
+    # Apply date range filter
+    if params[:date_from].present?
+      date_column = table_name == 'invoices' ? 'invoice_date' : 'invoice_date'
+      base_query = base_query.where("#{table_name}.#{date_column} >= ?", Date.parse(params[:date_from]))
+    end
+
+    if params[:date_to].present?
+      date_column = table_name == 'invoices' ? 'invoice_date' : 'invoice_date'
+      base_query = base_query.where("#{table_name}.#{date_column} <= ?", Date.parse(params[:date_to]))
+    end
+
+    # No limit here - we need all records for accurate stats
+    base_query
+  end
+
   def prepare_invoice_data(invoice, type)
     {
       id: invoice.id,
@@ -240,16 +343,44 @@ class Admin::InvoicesController < Admin::ApplicationController
   end
 
   def calculate_combined_invoice_stats
-    total_count = @all_invoices.count
-    total_amount = @all_invoices.sum { |inv| inv[:total_amount] || 0 }
-    paid_count = @all_invoices.count { |inv| ['paid', 'fully_paid'].include?(inv[:payment_status]) }
-    pending_count = total_count - paid_count
+    # Calculate stats from full database, not just paginated results
+    invoice_type = params[:type] || 'all'
+
+    # Get full queries without limits for accurate stats
+    regular_stats = { total_amount: 0, paid_amount: 0, pending_amount: 0, total_count: 0, paid_count: 0, pending_count: 0 }
+    booking_stats = { total_amount: 0, paid_amount: 0, pending_amount: 0, total_count: 0, paid_count: 0, pending_count: 0 }
+
+    if ['all', 'regular'].include?(invoice_type)
+      regular_query = build_regular_invoices_query_for_stats
+      regular_stats = {
+        total_count: regular_query.count,
+        total_amount: regular_query.sum(:total_amount) || 0,
+        paid_amount: regular_query.where(payment_status: ['paid', 'fully_paid']).sum(:total_amount) || 0,
+        pending_amount: regular_query.where(payment_status: ['unpaid', 'partially_paid']).sum(:total_amount) || 0,
+        paid_count: regular_query.where(payment_status: ['paid', 'fully_paid']).count,
+        pending_count: regular_query.where(payment_status: ['unpaid', 'partially_paid']).count
+      }
+    end
+
+    if ['all', 'booking'].include?(invoice_type)
+      booking_query = build_booking_invoices_query_for_stats
+      booking_stats = {
+        total_count: booking_query.count,
+        total_amount: booking_query.sum(:total_amount) || 0,
+        paid_amount: booking_query.where(payment_status: ['paid', 'fully_paid']).sum(:total_amount) || 0,
+        pending_amount: booking_query.where(payment_status: ['unpaid', 'partially_paid']).sum(:total_amount) || 0,
+        paid_count: booking_query.where(payment_status: ['paid', 'fully_paid']).count,
+        pending_count: booking_query.where(payment_status: ['unpaid', 'partially_paid']).count
+      }
+    end
 
     {
-      total_invoices: total_count,
-      total_amount: total_amount,
-      paid_invoices: paid_count,
-      pending_invoices: pending_count
+      total_invoices: regular_stats[:total_count] + booking_stats[:total_count],
+      total_amount: regular_stats[:total_amount] + booking_stats[:total_amount],
+      paid_amount: regular_stats[:paid_amount] + booking_stats[:paid_amount],
+      pending_amount: regular_stats[:pending_amount] + booking_stats[:pending_amount],
+      paid_count: regular_stats[:paid_count] + booking_stats[:paid_count],
+      pending_count: regular_stats[:pending_count] + booking_stats[:pending_count]
     }
   end
 

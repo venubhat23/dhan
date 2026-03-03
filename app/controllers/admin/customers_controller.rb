@@ -1,3 +1,5 @@
+require 'set'
+
 class Admin::CustomersController < Admin::ApplicationController
   include LocationData
   include ConfigurablePagination
@@ -58,10 +60,73 @@ class Admin::CustomersController < Admin::ApplicationController
       )
     end
 
-    # customer_type filtering removed - column doesn't exist in customers table
+    # Apply Select2 filters
+    if params[:customer_id].present?
+      @customers = @customers.where(id: params[:customer_id])
+      stats_scope = stats_scope.where(id: params[:customer_id])
+    end
 
-    # Status filtering removed - status column doesn't exist in customers table
-    # All customers are treated as active
+    # Status filtering
+    case params[:status]
+    when 'active'
+      if Customer.column_names.include?('status')
+        @customers = @customers.where(status: true)
+        stats_scope = stats_scope.where(status: true)
+      end
+    when 'inactive'
+      if Customer.column_names.include?('status')
+        @customers = @customers.where(status: false)
+        stats_scope = stats_scope.where(status: false)
+      end
+    end
+
+    # Delivery person filtering - check subscriptions and delivery tasks
+    if params[:delivery_person_id].present? && defined?(DeliveryPerson)
+      delivery_person_id = params[:delivery_person_id].to_i
+      @selected_delivery_person = DeliveryPerson.find_by(id: delivery_person_id)
+      customer_ids = Set.new
+
+      # Check milk_subscriptions
+      if ActiveRecord::Base.connection.table_exists?('milk_subscriptions')
+        subscription_customer_ids = ActiveRecord::Base.connection.execute(
+          "SELECT DISTINCT customer_id FROM milk_subscriptions WHERE delivery_person_id = #{delivery_person_id}"
+        ).map { |row| row['customer_id'] }.compact
+        customer_ids.merge(subscription_customer_ids)
+      end
+
+      # Check subscription_templates
+      if ActiveRecord::Base.connection.table_exists?('subscription_templates')
+        template_customer_ids = ActiveRecord::Base.connection.execute(
+          "SELECT DISTINCT customer_id FROM subscription_templates WHERE delivery_person_id = #{delivery_person_id}"
+        ).map { |row| row['customer_id'] }.compact
+        customer_ids.merge(template_customer_ids)
+      end
+
+      # Check milk_delivery_tasks
+      if ActiveRecord::Base.connection.table_exists?('milk_delivery_tasks')
+        task_customer_ids = ActiveRecord::Base.connection.execute(
+          "SELECT DISTINCT customer_id FROM milk_delivery_tasks WHERE delivery_person_id = #{delivery_person_id}"
+        ).map { |row| row['customer_id'] }.compact
+        customer_ids.merge(task_customer_ids)
+      end
+
+      # Check bookings
+      if ActiveRecord::Base.connection.table_exists?('bookings')
+        booking_customer_ids = ActiveRecord::Base.connection.execute(
+          "SELECT DISTINCT customer_id FROM bookings WHERE delivery_person_id = #{delivery_person_id}"
+        ).map { |row| row['customer_id'] }.compact
+        customer_ids.merge(booking_customer_ids)
+      end
+
+      if customer_ids.any?
+        @customers = @customers.where(id: customer_ids.to_a)
+        stats_scope = stats_scope.where(id: customer_ids.to_a)
+      else
+        # No customers found for this delivery person
+        @customers = @customers.none
+        stats_scope = stats_scope.none
+      end
+    end
 
     # Calculate filtered stats
     @stats = {

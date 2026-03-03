@@ -92,12 +92,13 @@
 <div class="card border-0 shadow-sm mb-4">
   <div class="card-body">
     <%= form_with url: admin_invoices_path, method: :get, local: true, class: "search-form" do |f| %>
-      <div class="row g-3 align-items-end">
-        <div class="col-lg-4 col-md-6">
+      <!-- First Row: Main Search and Status -->
+      <div class="row g-3 align-items-end mb-3">
+        <div class="col-lg-6 col-md-8">
           <%= f.text_field :search, value: params[:search], placeholder: "Search invoices, customers...",
                           class: "form-control", id: "searchInput" %>
         </div>
-        <div class="col-lg-2 col-md-6">
+        <div class="col-lg-3 col-md-4">
           <%= f.select :status, options_for_select([
                 ['All Status', 'all'],
                 ['Paid', 'fully_paid'],
@@ -105,26 +106,37 @@
                 ['Partially Paid', 'partially_paid']
               ], params[:status] || 'all'), {}, { class: "form-select" } %>
         </div>
-        <div class="col-lg-2 col-md-6">
+        <div class="col-lg-3 col-md-12">
+          <div class="d-flex gap-2">
+            <%= f.submit "Search", class: "btn btn-primary" %>
+            <%= link_to "Reset", admin_invoices_path, class: "btn btn-outline-secondary" %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Second Row: Additional Filters -->
+      <div class="row g-3 align-items-end">
+        <div class="col-lg-3 col-md-6">
           <%= f.select :type, options_for_select([
                 ['All Types', 'all'],
                 ['Regular Invoices', 'regular'],
                 ['Booking Invoices', 'booking']
               ], params[:type] || 'all'), {}, { class: "form-select" } %>
         </div>
-        <div class="col-lg-2 col-md-6">
+        <div class="col-lg-3 col-md-6">
+          <%= f.select :delivery_person_id,
+                options_for_select([['All Delivery Persons', 'all']] +
+                                 @delivery_persons.map { |dp| [dp.display_name, dp.id] },
+                                 params[:delivery_person_id] || 'all'),
+                {}, { class: "form-select" } %>
+        </div>
+        <div class="col-lg-3 col-md-6">
           <%= f.date_field :date_from, value: params[:date_from],
                           class: "form-control", placeholder: "From Date" %>
         </div>
-        <div class="col-lg-2 col-md-6">
+        <div class="col-lg-3 col-md-6">
           <%= f.date_field :date_to, value: params[:date_to],
                           class: "form-control", placeholder: "To Date" %>
-        </div>
-        <div class="col-lg-2 col-md-12">
-          <div class="d-flex gap-2">
-            <%= f.submit "Search", class: "btn btn-primary" %>
-            <%= link_to "Reset", admin_invoices_path, class: "btn btn-outline-secondary" %>
-          </div>
         </div>
       </div>
     <% end %>
@@ -1059,10 +1071,26 @@ document.addEventListener('DOMContentLoaded', function() {
   const statusSelect = document.querySelector('select[name="status"]');
   if (statusSelect) {
     statusSelect.addEventListener('change', function() {
-      if (this.value !== 'all') {
-        searchForm.classList.add('loading');
-        searchForm.submit();
-      }
+      searchForm.classList.add('loading');
+      searchForm.submit();
+    });
+  }
+
+  // Quick delivery person filter
+  const deliveryPersonSelect = document.querySelector('select[name="delivery_person_id"]');
+  if (deliveryPersonSelect) {
+    deliveryPersonSelect.addEventListener('change', function() {
+      searchForm.classList.add('loading');
+      searchForm.submit();
+    });
+  }
+
+  // Quick invoice type filter
+  const typeSelect = document.querySelector('select[name="type"]');
+  if (typeSelect) {
+    typeSelect.addEventListener('change', function() {
+      searchForm.classList.add('loading');
+      searchForm.submit();
     });
   }
 
