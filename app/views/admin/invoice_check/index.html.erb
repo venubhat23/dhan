@@ -1,0 +1,508 @@
+<!-- SweetAlert2 CDN -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1">Invoice Check</h2>
+    <p class="text-muted mb-0">Check subscription invoices by month and delivery person</p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to admin_invoices_path, class: "btn btn-outline-primary", title: "View All Invoices" do %>
+      <i class="bi bi-plus-circle me-1"></i>
+      Invoices
+    <% end %>
+    <span class="badge bg-info fs-6 px-3 py-2">
+      <i class="bi bi-calendar-month me-1"></i>
+      <%= Date::MONTHNAMES[@selected_month] %> <%= @selected_year %>
+    </span>
+  </div>
+</div>
+
+<!-- Filter Controls -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <%= form_with url: admin_invoice_check_check_path, method: :post, class: "row g-3", id: "invoiceCheckForm" do |f| %>
+      <div class="col-md-3">
+        <label for="month" class="form-label fw-semibold">
+          <i class="bi bi-calendar-month me-1 text-primary"></i>
+          Select Month
+        </label>
+        <%= f.select :month, @month_options,
+            { selected: @selected_month },
+            { class: "form-select", id: "month" } %>
+      </div>
+
+      <div class="col-md-3">
+        <label for="year" class="form-label fw-semibold">
+          <i class="bi bi-calendar-year me-1 text-success"></i>
+          Select Year
+        </label>
+        <%= f.select :year, options_for_select(@year_options.map { |y| [y, y] }, @selected_year),
+            {}, { class: "form-select", id: "year" } %>
+      </div>
+
+      <div class="col-md-4">
+        <label for="deliveryPersonSelect" class="form-label fw-semibold">
+          <i class="bi bi-truck me-1 text-warning"></i>
+          Select Delivery Person
+        </label>
+        <select id="deliveryPersonSelect" name="delivery_person_id" class="form-select delivery-person-select2">
+          <option value="">All Delivery Persons</option>
+          <% @delivery_persons.each do |dp| %>
+            <option value="<%= dp.id %>"
+                    <%= 'selected' if @selected_delivery_person_id == dp.id.to_s %>
+                    data-name="<%= dp.display_name %>"
+                    data-mobile="<%= dp.mobile %>"
+                    data-vehicle="<%= dp.vehicle_number %>">
+              <%= dp.display_name %> - <%= dp.mobile %> (<%= dp.vehicle_number %>)
+            </option>
+          <% end %>
+        </select>
+      </div>
+
+      <div class="col-md-2 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary w-100">
+          <i class="bi bi-search me-1"></i>Check
+        </button>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Invoice Statistics (Show after check) -->
+<% if @invoice_stats.present? %>
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm bg-primary text-white">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+              <h6 class="mb-1 text-white-50">Total Invoices</h6>
+              <h4 class="mb-0"><%= @invoice_stats[:total_count] %></h4>
+            </div>
+            <div>
+              <i class="bi bi-receipt-cutoff fs-2 text-white-50"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm bg-success text-white">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+              <h6 class="mb-1 text-white-50">Regular Invoices</h6>
+              <h4 class="mb-0"><%= @invoice_stats[:regular_invoices][:count] %></h4>
+            </div>
+            <div>
+              <i class="bi bi-file-earmark-text fs-2 text-white-50"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm bg-info text-white">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+              <h6 class="mb-1 text-white-50">Booking Invoices</h6>
+              <h4 class="mb-0"><%= @invoice_stats[:booking_invoices][:count] %></h4>
+            </div>
+            <div>
+              <i class="bi bi-cart-check fs-2 text-white-50"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm bg-warning text-white">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+              <h6 class="mb-1 text-white-50">Total Amount</h6>
+              <h4 class="mb-0">₹<%= number_with_precision(@invoice_stats[:total_amount], precision: 0) %></h4>
+            </div>
+            <div>
+              <i class="bi bi-currency-rupee fs-2 text-white-50"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<!-- Results Table -->
+<% if @customers_data.present? %>
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-transparent border-0">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+          <i class="bi bi-table me-2"></i>
+          Invoice Status Report
+        </h5>
+        <div class="d-flex gap-2">
+          <span class="badge bg-success">
+            <%= @customers_data.count { |data| data[:invoice_exists] } %> Invoiced
+          </span>
+          <span class="badge bg-warning">
+            <%= @customers_data.count { |data| !data[:invoice_exists] && data[:has_subscriptions] } %> Pending
+          </span>
+          <span class="badge bg-secondary">
+            <%= @customers_data.count { |data| !data[:has_subscriptions] } %> No Subscription
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="border-0 fw-semibold">Customer</th>
+              <th class="border-0 fw-semibold">Contact</th>
+              <th class="border-0 fw-semibold">Subscription Amount</th>
+              <th class="border-0 fw-semibold">Invoice Status</th>
+              <th class="border-0 fw-semibold">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @customers_data.each do |data| %>
+              <tr>
+                <td class="align-middle">
+                  <div class="d-flex align-items-center">
+                    <div class="avatar-sm bg-primary-subtle rounded-circle d-flex align-items-center justify-content-center me-3">
+                      <i class="bi bi-person text-primary"></i>
+                    </div>
+                    <div>
+                      <h6 class="mb-0"><%= data[:customer].display_name %></h6>
+                      <small class="text-muted">ID: #<%= data[:customer].id %></small>
+                    </div>
+                  </div>
+                </td>
+                <td class="align-middle">
+                  <div>
+                    <% if data[:customer].email.present? %>
+                      <div class="small">
+                        <i class="bi bi-envelope text-muted me-1"></i>
+                        <%= data[:customer].email %>
+                      </div>
+                    <% end %>
+                    <% if data[:customer].mobile.present? %>
+                      <div class="small">
+                        <i class="bi bi-telephone text-muted me-1"></i>
+                        <%= data[:customer].mobile %>
+                      </div>
+                    <% end %>
+                  </div>
+                </td>
+                <td class="align-middle">
+                  <% if data[:has_subscriptions] %>
+                    <span class="fw-semibold text-success">
+                      ₹<%= number_with_precision(data[:total_amount], precision: 2) %>
+                    </span>
+                  <% else %>
+                    <span class="text-muted">No Subscription</span>
+                  <% end %>
+                </td>
+                <td class="align-middle">
+                  <% if data[:invoice_exists] %>
+                    <span class="badge bg-success-subtle text-success">
+                      <i class="bi bi-check-circle me-1"></i>
+                      Yes
+                    </span>
+                  <% else %>
+                    <% if data[:has_subscriptions] %>
+                      <span class="badge bg-warning-subtle text-warning">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        No
+                      </span>
+                    <% else %>
+                      <span class="badge bg-secondary-subtle text-secondary">
+                        <i class="bi bi-dash-circle me-1"></i>
+                        N/A
+                      </span>
+                    <% end %>
+                  <% end %>
+                </td>
+                <td class="align-middle">
+                  <div class="d-flex gap-1">
+                    <% if data[:invoice_exists] && data[:invoice_link] %>
+                      <!-- Show invoice link -->
+                      <% if data[:invoice_link].class.name == "Invoice" %>
+                        <%= link_to admin_invoice_path(data[:invoice_link]),
+                            class: "btn btn-sm btn-outline-success",
+                            title: "View Invoice",
+                            target: "_blank" do %>
+                          <i class="bi bi-receipt"></i>
+                        <% end %>
+                      <% elsif data[:invoice_link].class.name == "BookingInvoice" %>
+                        <%= link_to admin_booking_invoice_path(data[:invoice_link]),
+                            class: "btn btn-sm btn-outline-success",
+                            title: "View Invoice",
+                            target: "_blank" do %>
+                          <i class="bi bi-receipt"></i>
+                        <% end %>
+                      <% end %>
+                    <% elsif data[:has_subscriptions] %>
+                      <!-- Show generate invoice button -->
+                      <%= link_to admin_invoice_check_generate_path(data[:customer].id),
+                          method: :post,
+                          params: {
+                            month: @selected_month,
+                            year: @selected_year,
+                            delivery_person_id: @selected_delivery_person_id
+                          },
+                          class: "btn btn-sm btn-outline-primary",
+                          title: "Generate Invoice",
+                          confirm: "Generate invoice for #{data[:customer].display_name} for #{Date::MONTHNAMES[@selected_month]} #{@selected_year}?" do %>
+                        <i class="bi bi-plus-circle"></i>
+                      <% end %>
+                    <% else %>
+                      <!-- No action available -->
+                      <span class="text-muted small">No Action</span>
+                    <% end %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+<% else %>
+  <div class="card border-0 shadow-sm">
+    <div class="card-body text-center py-5">
+      <div class="mb-3">
+        <i class="bi bi-search fs-1 text-muted"></i>
+      </div>
+      <h5 class="text-muted mb-3">No Data Found</h5>
+      <p class="text-muted mb-4">
+        <% if @selected_delivery_person_id.present? %>
+          No customers found with subscriptions for the selected delivery person in <%= Date::MONTHNAMES[@selected_month] %> <%= @selected_year %>.
+        <% else %>
+          Click "Check" button above to search for subscription data.
+        <% end %>
+      </p>
+    </div>
+  </div>
+<% end %>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize Select2 for delivery person dropdown
+  $('.delivery-person-select2').select2({
+    theme: 'bootstrap-5',
+    placeholder: 'Search and select delivery person...',
+    allowClear: true,
+    width: '100%',
+    templateResult: formatDeliveryPersonOption,
+    templateSelection: formatDeliveryPersonSelection,
+    escapeMarkup: function(markup) { return markup; }
+  });
+
+  // Show flash messages
+  <% if notice %>
+    Swal.fire({
+      title: 'Success!',
+      text: '<%= notice %>',
+      icon: 'success',
+      confirmButtonText: 'Got it!',
+      confirmButtonColor: '#198754'
+    });
+  <% end %>
+
+  <% if alert %>
+    Swal.fire({
+      title: 'Error!',
+      text: '<%= alert %>',
+      icon: 'error',
+      confirmButtonText: 'Understood',
+      confirmButtonColor: '#dc3545'
+    });
+  <% end %>
+});
+
+// Format delivery person option display
+function formatDeliveryPersonOption(option) {
+  if (!option.id) {
+    return option.text;
+  }
+
+  const $option = $(option.element);
+  const name = $option.data('name') || '';
+  const mobile = $option.data('mobile') || '';
+  const vehicle = $option.data('vehicle') || '';
+
+  return $(`
+    <div class="select2-option-content">
+      <div class="fw-semibold text-success">${name}</div>
+      <div class="small text-muted">
+        <i class="bi bi-telephone me-1"></i>${mobile} |
+        <i class="bi bi-truck me-1"></i>${vehicle}
+      </div>
+    </div>
+  `);
+}
+
+// Format delivery person selection display
+function formatDeliveryPersonSelection(option) {
+  if (!option.id) {
+    return option.text;
+  }
+
+  const $option = $(option.element);
+  const name = $option.data('name') || '';
+  const vehicle = $option.data('vehicle') || '';
+
+  return `${name} - ${vehicle}`;
+}
+</script>
+
+<style>
+/* Select2 Custom Styling */
+.select2-container--bootstrap-5 .select2-selection {
+  border-radius: 8px !important;
+  border: 1px solid #dee2e6 !important;
+  min-height: 38px !important;
+  background: white !important;
+  transition: all 0.3s ease !important;
+}
+
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+  line-height: 36px !important;
+  font-size: 0.875rem !important;
+  color: #495057 !important;
+}
+
+.select2-container--bootstrap-5.select2-container--focus .select2-selection {
+  border-color: #81c784 !important;
+  box-shadow: 0 0 0 0.2rem rgba(129, 199, 132, 0.15) !important;
+}
+
+.select2-container--bootstrap-5 .select2-selection:hover {
+  border-color: #adb5bd !important;
+}
+
+.select2-dropdown {
+  border-radius: 8px !important;
+  border: 1px solid #dee2e6 !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+  z-index: 1060 !important;
+}
+
+.select2-results__option--highlighted {
+  background-color: #e3f2fd !important;
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%) !important;
+  color: #1976d2 !important;
+}
+
+.select2-results__option {
+  font-size: 0.875rem !important;
+  padding: 8px 12px !important;
+}
+
+.select2-results__option--selected {
+  background-color: #f0f8ff !important;
+  color: #2196f3 !important;
+}
+
+/* Custom option content styling */
+.select2-option-content {
+  padding: 4px 0;
+}
+
+.select2-option-content .fw-semibold {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.select2-option-content .small {
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+/* Clear button styling */
+.select2-container--bootstrap-5 .select2-selection__clear {
+  color: #6c757d !important;
+  font-size: 1.2rem !important;
+  margin-right: 8px !important;
+}
+
+.select2-container--bootstrap-5 .select2-selection__clear:hover {
+  color: #dc3545 !important;
+}
+
+/* Search input styling in dropdown */
+.select2-search--dropdown .select2-search__field {
+  border: 1px solid #dee2e6 !important;
+  border-radius: 6px !important;
+  padding: 8px 12px !important;
+  font-size: 0.875rem !important;
+  margin: 8px !important;
+  width: calc(100% - 16px) !important;
+}
+
+/* Form styling */
+.form-label {
+  margin-bottom: 6px;
+  font-size: 0.875rem;
+}
+
+.form-select,
+.form-control {
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  font-size: 0.875rem;
+  transition: all 0.3s ease;
+}
+
+.form-select:focus,
+.form-control:focus {
+  border-color: #81c784;
+  box-shadow: 0 0 0 0.2rem rgba(129, 199, 132, 0.15);
+}
+
+/* Button styling */
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.875rem;
+}
+
+/* Badge styling */
+.badge {
+  font-size: 0.75rem;
+  padding: 4px 8px;
+}
+
+/* Table styling */
+.table th {
+  font-weight: 600;
+  color: #495057;
+}
+
+.avatar-sm {
+  width: 36px;
+  height: 36px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .select2-container {
+    width: 100% !important;
+  }
+
+  .select2-dropdown {
+    width: 100% !important;
+  }
+}
+</style>

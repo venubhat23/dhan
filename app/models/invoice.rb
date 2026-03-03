@@ -45,9 +45,43 @@ class Invoice < ApplicationRecord
   def generate_invoice_number
     return if invoice_number.present?
 
-    last_invoice = Invoice.order(:created_at).last
-    number = last_invoice ? last_invoice.invoice_number.split('-').last.to_i + 1 : 1
-    self.invoice_number = "INV-#{number.to_s.rjust(6, '0')}"
+    # Get the month from invoice_date or current date
+    invoice_month = (invoice_date || Date.current).month
+    month_prefix = invoice_month.to_s.rjust(2, '0')
+
+    # Get the next invoice number for this month
+    last_invoice = Invoice.where("invoice_number LIKE ?", "INV-#{month_prefix}-%")
+                         .order(created_at: :desc)
+                         .first
+
+    if last_invoice
+      # Extract the number part and increment
+      last_number = last_invoice.invoice_number.split('-').last.to_i
+      next_number = (last_number + 1).to_s.rjust(5, '0')
+    else
+      # Start from 00001 for this month
+      next_number = '00001'
+    end
+
+    self.invoice_number = "INV-#{month_prefix}-#{next_number}"
+  end
+
+  # Helper method to generate month-based invoice number for specific month
+  def self.generate_invoice_number_for_month(month)
+    month_prefix = month.to_s.rjust(2, '0')
+
+    last_invoice = where("invoice_number LIKE ?", "INV-#{month_prefix}-%")
+                   .order(created_at: :desc)
+                   .first
+
+    if last_invoice
+      last_number = last_invoice.invoice_number.split('-').last.to_i
+      next_number = (last_number + 1).to_s.rjust(5, '0')
+    else
+      next_number = '00001'
+    end
+
+    "INV-#{month_prefix}-#{next_number}"
   end
 
   def generate_share_token
