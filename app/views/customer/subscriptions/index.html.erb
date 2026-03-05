@@ -1,456 +1,276 @@
-<% content_for :title, "My Subscriptions - Dhanvantri Naturals" %>
+<% content_for :title, "My Subscriptions - Atma Nirbhar Farm" %>
 
-<style>
-:root {
-  --primary-purple: #8B5DFF;
-  --purple-light: #A983FF;
-  --purple-dark: #7048E8;
-  --purple-gradient: linear-gradient(135deg, #8B5DFF 0%, #A983FF 100%);
-}
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1">My Subscriptions</h2>
+    <p class="text-muted mb-0">Manage your recurring deliveries and subscription plans</p>
+  </div>
+  <div>
+    <%= link_to new_customer_subscription_path, class: "btn btn-primary" do %>
+      <i class="bi bi-plus-lg me-1"></i>
+      New Subscription
+    <% end %>
+  </div>
+</div>
 
-.subscriptions-page {
-  background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%);
-  min-height: 100vh;
-}
-
-.page-header {
-  background: var(--purple-gradient);
-  color: white;
-  padding: 2rem 0;
-  border-radius: 15px;
-  margin-bottom: 2rem;
-}
-
-.page-title {
-  font-size: 2rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
-
-.stats-card {
-  background: white;
-  border: none;
-  border-radius: 15px;
-  box-shadow: 0 4px 20px rgba(139, 93, 255, 0.1);
-  transition: all 0.3s ease;
-  overflow: hidden;
-}
-
-.stats-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 30px rgba(139, 93, 255, 0.15);
-}
-
-.stats-card .card-body {
-  padding: 1.5rem;
-}
-
-.stats-icon {
-  width: 50px;
-  height: 50px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-}
-
-.stats-icon.active { background: linear-gradient(135deg, #C8E6C9 0%, #66BB6A 100%); color: #2E7D32; }
-.stats-icon.paused { background: linear-gradient(135deg, #FFE082 0%, #FFCC02 100%); color: #F57C00; }
-.stats-icon.total { background: var(--purple-gradient); color: white; }
-
-.subscription-card {
-  background: white;
-  border: none;
-  border-radius: 15px;
-  box-shadow: 0 4px 20px rgba(139, 93, 255, 0.08);
-  transition: all 0.3s ease;
-  overflow: hidden;
-  margin-bottom: 1.5rem;
-}
-
-.subscription-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 30px rgba(139, 93, 255, 0.12);
-}
-
-.subscription-header {
-  background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
-  padding: 1.5rem;
-  border-bottom: 1px solid #f1f3f4;
-}
-
-.subscription-body {
-  padding: 1.5rem;
-}
-
-.product-info {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.product-image {
-  width: 60px;
-  height: 60px;
-  border-radius: 12px;
-  object-fit: cover;
-  border: 2px solid #f1f3f4;
-}
-
-.status-badge {
-  padding: 0.5rem 1rem;
-  border-radius: 25px;
-  font-weight: 500;
-  font-size: 0.875rem;
-}
-
-.status-badge.active { background: linear-gradient(135deg, #C8E6C9 0%, #66BB6A 100%); color: #2E7D32; }
-.status-badge.paused { background: linear-gradient(135deg, #FFE082 0%, #FFCC02 100%); color: #F57C00; }
-
-.action-btn {
-  border-radius: 10px;
-  padding: 0.5rem 1rem;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  border: none;
-  text-decoration: none;
-}
-
-.action-btn:hover {
-  transform: translateY(-2px);
-}
-
-.btn-primary {
-  background: var(--purple-gradient);
-  color: white;
-}
-
-.btn-primary:hover {
-  color: white;
-  box-shadow: 0 8px 20px rgba(139, 93, 255, 0.3);
-}
-
-.btn-outline-warning {
-  border: 2px solid #ffc107;
-  color: #ffc107;
-}
-
-.btn-outline-warning:hover {
-  background: #ffc107;
-  color: white;
-}
-
-.btn-outline-success {
-  border: 2px solid #28a745;
-  color: #28a745;
-}
-
-.btn-outline-success:hover {
-  background: #28a745;
-  color: white;
-}
-
-.btn-outline-danger {
-  border: 2px solid #dc3545;
-  color: #dc3545;
-}
-
-.btn-outline-danger:hover {
-  background: #dc3545;
-  color: white;
-}
-
-.subscription-details {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.detail-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.detail-label {
-  font-size: 0.875rem;
-  color: #666;
-  font-weight: 500;
-}
-
-.detail-value {
-  font-weight: 600;
-  color: #333;
-}
-
-.empty-state {
-  padding: 3rem 0;
-  text-align: center;
-  color: #888;
-}
-
-.empty-state i {
-  font-size: 4rem;
-  margin-bottom: 1.5rem;
-  color: var(--primary-purple);
-  opacity: 0.5;
-}
-
-.section-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
-  color: var(--purple-dark);
-}
-</style>
-
-<div class="subscriptions-page">
-  <!-- Page Header -->
-  <div class="page-header text-center">
-    <div class="container">
-      <h2 class="page-title">
-        <i class="fas fa-sync me-3"></i>
-        My Subscriptions
-      </h2>
-      <p class="mb-0 opacity-75">Manage your recurring deliveries and subscription plans</p>
+<!-- Stats Cards -->
+<div class="row mb-4">
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+          <div class="flex-grow-1">
+            <h6 class="text-muted mb-1">Active Subscriptions</h6>
+            <h4 class="mb-0"><%= @active_subscriptions.count %></h4>
+          </div>
+          <div class="text-success">
+            <i class="bi bi-check-circle fs-2"></i>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
-
-  <!-- Subscription Statistics Cards -->
-  <div class="container">
-    <div class="row mb-4">
-      <div class="col-lg-4 col-md-6 mb-3">
-        <div class="stats-card">
-          <div class="card-body">
-            <div class="d-flex align-items-center">
-              <div class="flex-grow-1">
-                <h6 class="text-muted mb-1 fw-normal">Active Subscriptions</h6>
-                <h4 class="mb-0 fw-bold"><%= @active_subscriptions.count %></h4>
-              </div>
-              <div class="stats-icon active">
-                <i class="fas fa-check-circle"></i>
-              </div>
-            </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+          <div class="flex-grow-1">
+            <h6 class="text-muted mb-1">Paused Subscriptions</h6>
+            <h4 class="mb-0"><%= @paused_subscriptions.count %></h4>
           </div>
-        </div>
-      </div>
-      <div class="col-lg-4 col-md-6 mb-3">
-        <div class="stats-card">
-          <div class="card-body">
-            <div class="d-flex align-items-center">
-              <div class="flex-grow-1">
-                <h6 class="text-muted mb-1 fw-normal">Paused Subscriptions</h6>
-                <h4 class="mb-0 fw-bold"><%= @paused_subscriptions.count %></h4>
-              </div>
-              <div class="stats-icon paused">
-                <i class="fas fa-pause-circle"></i>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="col-lg-4 col-md-6 mb-3">
-        <div class="stats-card">
-          <div class="card-body">
-            <div class="d-flex align-items-center">
-              <div class="flex-grow-1">
-                <h6 class="text-muted mb-1 fw-normal">Total Subscriptions</h6>
-                <h4 class="mb-0 fw-bold"><%= @active_subscriptions.count + @paused_subscriptions.count %></h4>
-              </div>
-              <div class="stats-icon total">
-                <i class="fas fa-list"></i>
-              </div>
-            </div>
+          <div class="text-warning">
+            <i class="bi bi-pause-circle fs-2"></i>
           </div>
         </div>
       </div>
     </div>
-
-    <!-- Add New Subscription Button -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h3 class="section-title mb-0">Active Subscriptions</h3>
-      <%= link_to new_customer_subscription_path, class: "btn btn-primary action-btn" do %>
-        <i class="fas fa-plus me-2"></i>
-        New Subscription
-      <% end %>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+          <div class="flex-grow-1">
+            <h6 class="text-muted mb-1">Total Subscriptions</h6>
+            <h4 class="mb-0"><%= @active_subscriptions.count + @paused_subscriptions.count %></h4>
+          </div>
+          <div class="text-primary">
+            <i class="bi bi-arrow-repeat fs-2"></i>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
+</div>
 
-    <!-- Active Subscriptions -->
+<!-- Active Subscriptions Section -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-transparent border-0">
+    <div class="d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Active Subscriptions</h5>
+    </div>
+  </div>
+  <div class="card-body p-0">
+
     <% if @active_subscriptions.any? %>
-      <% @active_subscriptions.each do |subscription| %>
-        <div class="subscription-card">
-          <div class="subscription-header">
-            <div class="d-flex justify-content-between align-items-start">
-              <div class="product-info">
-                <% if subscription.product.image.present? %>
-                  <%= image_tag subscription.product.image, alt: subscription.product.name, class: "product-image" %>
-                <% else %>
-                  <div class="product-image d-flex align-items-center justify-content-center bg-light">
-                    <i class="fas fa-image text-muted"></i>
-                  </div>
-                <% end %>
+      <% @active_subscriptions.each_with_index do |subscription, index| %>
+        <div class="p-3 <%= 'border-bottom' unless index == @active_subscriptions.count - 1 %>">
+          <div class="row align-items-center">
+            <div class="col-md-6">
+              <div class="d-flex align-items-center">
+                <div class="avatar-sm bg-success-subtle rounded-circle d-flex align-items-center justify-content-center me-3">
+                  <i class="bi bi-arrow-repeat text-success"></i>
+                </div>
                 <div>
-                  <h5 class="mb-1 fw-bold"><%= subscription.product.name %></h5>
-                  <p class="text-muted mb-0">
+                  <h6 class="mb-0"><%= subscription.product.name %></h6>
+                  <small class="text-muted">
                     <%= subscription.quantity %> <%= subscription.unit %>
                     <% if subscription.delivery_time.present? %>
                       • Delivery at <%= subscription.delivery_time %>
                     <% end %>
-                  </p>
+                  </small>
                 </div>
               </div>
-              <span class="status-badge active">
-                <i class="fas fa-circle me-1" style="font-size: 0.5rem;"></i>
+            </div>
+            <div class="col-md-2">
+              <div>
+                <div class="fw-semibold">₹<%= (subscription.product.price * subscription.quantity).to_f %></div>
+                <small class="text-muted">per delivery</small>
+              </div>
+            </div>
+            <div class="col-md-2">
+              <span class="badge bg-success-subtle text-success">
+                <i class="bi bi-check-circle me-1"></i>
                 Active
               </span>
             </div>
-          </div>
-          <div class="subscription-body">
-            <div class="subscription-details">
-              <div class="detail-item">
-                <span class="detail-label">Start Date</span>
-                <span class="detail-value"><%= subscription.start_date.strftime("%d %b %Y") %></span>
+            <div class="col-md-2">
+              <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                  <i class="bi bi-three-dots"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li><%= link_to customer_subscription_path(subscription), class: "dropdown-item" do %>
+                    <i class="bi bi-eye me-2"></i>View Details
+                  <% end %></li>
+                  <li><%= link_to edit_customer_subscription_path(subscription), class: "dropdown-item" do %>
+                    <i class="bi bi-pencil me-2"></i>Edit
+                  <% end %></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><%= link_to pause_customer_subscription_path(subscription), method: :patch, class: "dropdown-item text-warning" do %>
+                    <i class="bi bi-pause me-2"></i>Pause
+                  <% end %></li>
+                  <li><%= link_to cancel_customer_subscription_path(subscription), method: :delete,
+                      class: "dropdown-item text-danger",
+                      confirm: "Are you sure you want to cancel this subscription?" do %>
+                    <i class="bi bi-x-circle me-2"></i>Cancel
+                  <% end %></li>
+                </ul>
               </div>
-              <div class="detail-item">
-                <span class="detail-label">End Date</span>
-                <span class="detail-value">
-                  <% if subscription.end_date.present? %>
-                    <%= subscription.end_date.strftime("%d %b %Y") %>
-                  <% else %>
-                    <span class="text-muted">Ongoing</span>
-                  <% end %>
-                </span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Price per Unit</span>
-                <span class="detail-value">₹<%= subscription.product.price %></span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Total per Delivery</span>
-                <span class="detail-value">₹<%= (subscription.product.price * subscription.quantity).to_f %></span>
-              </div>
-            </div>
-            <div class="d-flex justify-content-end gap-2 mt-3">
-              <%= link_to customer_subscription_path(subscription), class: "action-btn btn btn-outline-primary btn-sm" do %>
-                <i class="fas fa-eye me-1"></i>
-                View
-              <% end %>
-              <%= link_to edit_customer_subscription_path(subscription), class: "action-btn btn btn-outline-secondary btn-sm" do %>
-                <i class="fas fa-edit me-1"></i>
-                Edit
-              <% end %>
-              <%= link_to pause_customer_subscription_path(subscription), method: :patch, class: "action-btn btn btn-outline-warning btn-sm" do %>
-                <i class="fas fa-pause me-1"></i>
-                Pause
-              <% end %>
-              <%= link_to cancel_customer_subscription_path(subscription), method: :delete,
-                  class: "action-btn btn btn-outline-danger btn-sm",
-                  confirm: "Are you sure you want to cancel this subscription?" do %>
-                <i class="fas fa-times me-1"></i>
-                Cancel
-              <% end %>
             </div>
           </div>
         </div>
       <% end %>
     <% else %>
-      <div class="subscription-card">
-        <div class="subscription-body">
-          <div class="empty-state">
-            <i class="fas fa-sync"></i>
-            <h4 class="mt-3 mb-2">No Active Subscriptions</h4>
-            <p class="text-muted mb-4">Start a subscription to get regular deliveries of your favorite products!</p>
-            <%= link_to new_customer_subscription_path, class: "btn btn-primary action-btn" do %>
-              <i class="fas fa-plus me-2"></i>
-              Create Your First Subscription
-            <% end %>
-          </div>
+      <div class="text-center py-5">
+        <div class="mb-3">
+          <i class="bi bi-arrow-repeat fs-1 text-muted"></i>
         </div>
+        <h5 class="text-muted mb-3">No Active Subscriptions</h5>
+        <p class="text-muted mb-4">Start a subscription to get regular deliveries of your favorite products!</p>
+        <%= link_to "Create Your First Subscription", new_customer_subscription_path, class: "btn btn-primary" %>
       </div>
     <% end %>
+  </div>
+</div>
 
-    <!-- Paused Subscriptions -->
-    <% if @paused_subscriptions.any? %>
-      <h3 class="section-title mt-5">Paused Subscriptions</h3>
-
-      <% @paused_subscriptions.each do |subscription| %>
-        <div class="subscription-card">
-          <div class="subscription-header">
-            <div class="d-flex justify-content-between align-items-start">
-              <div class="product-info">
-                <% if subscription.product.image.present? %>
-                  <%= image_tag subscription.product.image, alt: subscription.product.name, class: "product-image" %>
-                <% else %>
-                  <div class="product-image d-flex align-items-center justify-content-center bg-light">
-                    <i class="fas fa-image text-muted"></i>
-                  </div>
-                <% end %>
+<!-- Paused Subscriptions -->
+<% if @paused_subscriptions.any? %>
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent border-0">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Paused Subscriptions</h5>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <% @paused_subscriptions.each_with_index do |subscription, index| %>
+        <div class="p-3 <%= 'border-bottom' unless index == @paused_subscriptions.count - 1 %>">
+          <div class="row align-items-center">
+            <div class="col-md-6">
+              <div class="d-flex align-items-center">
+                <div class="avatar-sm bg-warning-subtle rounded-circle d-flex align-items-center justify-content-center me-3">
+                  <i class="bi bi-pause-circle text-warning"></i>
+                </div>
                 <div>
-                  <h5 class="mb-1 fw-bold"><%= subscription.product.name %></h5>
-                  <p class="text-muted mb-0">
+                  <h6 class="mb-0"><%= subscription.product.name %></h6>
+                  <small class="text-muted">
                     <%= subscription.quantity %> <%= subscription.unit %>
                     <% if subscription.delivery_time.present? %>
                       • Delivery at <%= subscription.delivery_time %>
                     <% end %>
-                  </p>
+                  </small>
                 </div>
               </div>
-              <span class="status-badge paused">
-                <i class="fas fa-circle me-1" style="font-size: 0.5rem;"></i>
+            </div>
+            <div class="col-md-2">
+              <div>
+                <div class="fw-semibold">₹<%= (subscription.product.price * subscription.quantity).to_f %></div>
+                <small class="text-muted">per delivery</small>
+              </div>
+            </div>
+            <div class="col-md-2">
+              <span class="badge bg-warning-subtle text-warning">
+                <i class="bi bi-pause-circle me-1"></i>
                 Paused
               </span>
             </div>
-          </div>
-          <div class="subscription-body">
-            <div class="subscription-details">
-              <div class="detail-item">
-                <span class="detail-label">Start Date</span>
-                <span class="detail-value"><%= subscription.start_date.strftime("%d %b %Y") %></span>
+            <div class="col-md-2">
+              <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                  <i class="bi bi-three-dots"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li><%= link_to customer_subscription_path(subscription), class: "dropdown-item" do %>
+                    <i class="bi bi-eye me-2"></i>View Details
+                  <% end %></li>
+                  <li><%= link_to edit_customer_subscription_path(subscription), class: "dropdown-item" do %>
+                    <i class="bi bi-pencil me-2"></i>Edit
+                  <% end %></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><%= link_to resume_customer_subscription_path(subscription), method: :patch, class: "dropdown-item text-success" do %>
+                    <i class="bi bi-play-circle me-2"></i>Resume
+                  <% end %></li>
+                  <li><%= link_to cancel_customer_subscription_path(subscription), method: :delete,
+                      class: "dropdown-item text-danger",
+                      confirm: "Are you sure you want to cancel this subscription?" do %>
+                    <i class="bi bi-x-circle me-2"></i>Cancel
+                  <% end %></li>
+                </ul>
               </div>
-              <div class="detail-item">
-                <span class="detail-label">End Date</span>
-                <span class="detail-value">
-                  <% if subscription.end_date.present? %>
-                    <%= subscription.end_date.strftime("%d %b %Y") %>
-                  <% else %>
-                    <span class="text-muted">Ongoing</span>
-                  <% end %>
-                </span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Price per Unit</span>
-                <span class="detail-value">₹<%= subscription.product.price %></span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Total per Delivery</span>
-                <span class="detail-value">₹<%= (subscription.product.price * subscription.quantity).to_f %></span>
-              </div>
-            </div>
-            <div class="d-flex justify-content-end gap-2 mt-3">
-              <%= link_to customer_subscription_path(subscription), class: "action-btn btn btn-outline-primary btn-sm" do %>
-                <i class="fas fa-eye me-1"></i>
-                View
-              <% end %>
-              <%= link_to edit_customer_subscription_path(subscription), class: "action-btn btn btn-outline-secondary btn-sm" do %>
-                <i class="fas fa-edit me-1"></i>
-                Edit
-              <% end %>
-              <%= link_to resume_customer_subscription_path(subscription), method: :patch, class: "action-btn btn btn-outline-success btn-sm" do %>
-                <i class="fas fa-play me-1"></i>
-                Resume
-              <% end %>
-              <%= link_to cancel_customer_subscription_path(subscription), method: :delete,
-                  class: "action-btn btn btn-outline-danger btn-sm",
-                  confirm: "Are you sure you want to cancel this subscription?" do %>
-                <i class="fas fa-times me-1"></i>
-                Cancel
-              <% end %>
             </div>
           </div>
         </div>
       <% end %>
-    <% end %>
+    </div>
   </div>
-</div>
+<% end %>
+
+<style>
+/* Avatar styling */
+.avatar-sm {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+/* Enhanced card styling */
+.card {
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+}
+
+/* Badge enhancements */
+.badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.375rem 0.75rem;
+}
+
+/* Button styling */
+.btn-sm {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+/* Dropdown styling */
+.dropdown-menu {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.dropdown-item {
+  padding: 0.5rem 1rem;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.dropdown-item:hover {
+  background-color: #f8f9fa;
+}
+
+.dropdown-item.text-warning:hover {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.dropdown-item.text-success:hover {
+  background-color: #d1edda;
+  color: #155724;
+}
+
+.dropdown-item.text-danger:hover {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+</style>

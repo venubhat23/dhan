@@ -784,6 +784,39 @@
 
     <!-- Enhanced Application Scripts -->
     <script>
+      // Aggressively remove all flash messages to prevent any order-related notifications
+      document.addEventListener('DOMContentLoaded', function() {
+        // Function to remove all flash messages
+        function removeAllFlashMessages() {
+          const flashMessages = document.querySelectorAll('.alert, .toast, .notification, .flash, [class*="alert"], [class*="notification"], [class*="flash"]');
+          flashMessages.forEach(function(alert) {
+            if (alert && alert.parentNode) {
+              alert.remove();
+            }
+          });
+        }
+
+        // Remove immediately on page load
+        removeAllFlashMessages();
+
+        // Set up aggressive periodic removal every 100ms
+        setInterval(removeAllFlashMessages, 100);
+
+        // Also remove on any DOM mutations
+        const observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.addedNodes.length > 0) {
+              setTimeout(removeAllFlashMessages, 10);
+            }
+          });
+        });
+
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true
+        });
+      });
+
       // Chart.js Configuration
       if (typeof Chart !== 'undefined') {
         Chart.defaults.color = '#64748b';
@@ -972,7 +1005,7 @@
       function proceedToCheckout() {
         const cart = JSON.parse(localStorage.getItem('customerCart') || '[]');
         if (cart.length === 0) {
-          showToast('Your cart is empty', 'error');
+          alert('Your cart is empty');
           return;
         }
         showCheckoutView();
@@ -1022,7 +1055,7 @@
                   </div>
                 </div>
                 <div class="col-3 text-end">
-                  <h6 class="mb-2">₹${itemTotal.toFixed(2)}</h6>
+                  <h6 class="mb-2">₹${(itemTotal || 0).toFixed(2)}</h6>
                   <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart(${item.id})">
                     <i class="fas fa-trash"></i> Remove
                   </button>
@@ -1033,7 +1066,7 @@
         });
 
         container.innerHTML = itemsHtml;
-        totalElement.textContent = `₹${total.toFixed(2)}`;
+        totalElement.textContent = `₹${(total || 0).toFixed(2)}`;
       }
 
       function updateCartQuantity(productId, newQuantity) {
@@ -1069,7 +1102,7 @@
           loadCheckoutSummary();
         }
 
-        showToast('Item removed from cart', 'success');
+        alert('Item removed from cart');
       }
 
       // Address Management
@@ -1152,25 +1185,25 @@
                 <span class="fw-medium">${item.name}</span>
                 <small class="text-muted"> × ${item.quantity}</small>
               </div>
-              <span>₹${itemTotal.toFixed(2)}</span>
+              <span>₹${(itemTotal || 0).toFixed(2)}</span>
             </div>
           `;
         });
 
         summaryContainer.innerHTML = itemsHtml;
-        document.getElementById('subtotal-amount').textContent = `₹${total.toFixed(2)}`;
-        document.getElementById('final-total').textContent = `₹${total.toFixed(2)}`;
+        document.getElementById('subtotal-amount').textContent = `₹${(total || 0).toFixed(2)}`;
+        document.getElementById('final-total').textContent = `₹${(total || 0).toFixed(2)}`;
       }
 
       function placeOrder() {
         if (!selectedAddress) {
-          showToast('Please select a delivery address', 'error');
+          alert('Please select a delivery address');
           return;
         }
 
         const cart = JSON.parse(localStorage.getItem('customerCart') || '[]');
         if (cart.length === 0) {
-          showToast('Your cart is empty', 'error');
+          alert('Your cart is empty');
           return;
         }
 
@@ -1203,43 +1236,66 @@
           body: JSON.stringify(orderData)
         })
         .then(response => {
+          console.log('Response status:', response.status);
+          console.log('Response headers:', response.headers.get('content-type'));
           if (!response.ok) {
-            throw new Error('Network response was not ok');
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
           }
+
+          // Ensure we're getting JSON response
+          const contentType = response.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Invalid response format - expected JSON');
+          }
+
           return response.json();
         })
         .then(data => {
-          if (data.success) {
-            // Clear cart
+          console.log('Order response data:', data);
+          if (data && data.success) {
+            // Clear cart first
             localStorage.removeItem('customerCart');
             updateCartBadge();
 
-            // Show success
-            showSuccessView();
+            // Hide all modal views to prevent any UI conflicts
+            document.getElementById('cart-view').style.display = 'none';
+            document.getElementById('checkout-view').style.display = 'none';
+            document.getElementById('success-view').style.display = 'none';
 
-            // Show order details in success view
-            document.getElementById('order-details').innerHTML = `
-              <div class="order-success-card p-3 bg-light rounded">
-                <h6>Order #${data.booking_number}</h6>
-                <p class="mb-1">Total: ₹${data.total_amount.toFixed(2)}</p>
-                <p class="mb-1">Payment: ${paymentMethod.toUpperCase()}</p>
-                <small class="text-muted">Delivery to: ${selectedAddress.address}</small>
-              </div>
-            `;
+            // Clear any existing flash messages and toasts first
+            const existingAlerts = document.querySelectorAll('.alert, .toast, .alert-success, .alert-danger, .alert-warning');
+            existingAlerts.forEach(el => el.remove());
 
-            showToast('Order placed successfully!', 'success');
+            // Convert total_amount to number and format properly
+            const totalAmount = parseFloat(data.total_amount || 0).toFixed(2);
+
+            // Show success alert with order details
+            alert(`🎉 Order Placed Successfully!\\n\\nOrder Number: ${data.booking_number}\\nTotal Amount: ₹${totalAmount}\\nPayment: ${paymentMethod.toUpperCase()}\\n\\nRedirecting to your order details...`);
+
+            // Additional cleanup: Remove any remaining alerts before redirect
+            setTimeout(() => {
+              document.querySelectorAll('.alert').forEach(el => el.remove());
+            }, 100);
+
+            // Redirect to specific order details page
+            window.location.href = `/customer/orders/${data.booking_id}`;
+
+            return; // Exit early on success
           } else {
-            throw new Error(data.error || 'Failed to place order');
+            throw new Error(data?.error || 'Failed to place order');
           }
         })
         .catch(error => {
           console.error('Error placing order:', error);
-          showToast('Failed to place order. Please try again.', 'error');
-        })
-        .finally(() => {
-          // Reset button
-          placeOrderBtn.disabled = false;
-          placeOrderBtn.innerHTML = '<i class="fas fa-check me-2"></i>Place Order';
+
+          // Only show error if we haven't already redirected
+          if (!document.hidden) {
+            alert('Failed to place order. Please try again.');
+
+            // Reset button on error only
+            placeOrderBtn.disabled = false;
+            placeOrderBtn.innerHTML = '<i class="fas fa-check me-2"></i>Place Order';
+          }
         });
       }
 

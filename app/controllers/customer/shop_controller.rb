@@ -6,24 +6,9 @@ class Customer::ShopController < Customer::BaseController
     # Get categories for filters
     @categories = Category.where(status: true).order(:display_order, :name)
 
-    # Optimized query with precomputed stock and review counts
+    # Simple query without complex SQL to avoid syntax errors
     @products = Product.active
-                      .select('products.*,
-                               COALESCE(stock_totals.total_stock, 0) as cached_stock,
-                               COALESCE(review_counts.review_count, 0) as review_count')
-                      .joins("LEFT JOIN (
-                               SELECT product_id, SUM(quantity_remaining) as total_stock
-                               FROM stock_batches
-                               WHERE status = 'active' AND quantity_remaining > 0
-                               GROUP BY product_id
-                             ) stock_totals ON stock_totals.product_id = products.id")
-                      .joins("LEFT JOIN (
-                               SELECT product_id, COUNT(*) as review_count
-                               FROM product_reviews
-                               WHERE status = 1
-                               GROUP BY product_id
-                             ) review_counts ON review_counts.product_id = products.id")
-                      .includes(:category)
+                      .includes(:category, :stock_batches, :product_reviews)
                       .order(:display_order, :name)
 
     # Apply search filter if present
