@@ -853,11 +853,15 @@
 
       // Toast Notifications
       function showToast(message, type = 'success') {
+        // Map 'error' to 'danger' for Bootstrap
+        const bootstrapType = type === 'error' ? 'danger' : type;
+        const icon = type === 'success' ? 'check-circle' : 'exclamation-triangle';
+
         const toastHtml = `
-          <div class="toast align-items-center text-white bg-${type} border-0" role="alert" style="position: fixed; top: 90px; right: 20px; z-index: 9999;">
+          <div class="toast align-items-center text-white bg-${bootstrapType} border-0" role="alert" style="position: fixed; top: 90px; right: 20px; z-index: 9999;">
             <div class="d-flex">
               <div class="toast-body">
-                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                <i class="fas fa-${icon} me-2"></i>
                 ${message}
               </div>
               <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
@@ -1172,12 +1176,15 @@
 
         const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
 
-        // Create order data
+        // Create order data for backend
         const orderData = {
-          items: cart,
-          address: selectedAddress,
+          customer_name: selectedAddress.name,
+          customer_phone: selectedAddress.mobile,
+          customer_email: '<%= current_customer&.email %>',
+          delivery_address: `${selectedAddress.address}, ${selectedAddress.city}, ${selectedAddress.state} - ${selectedAddress.pincode}`,
           payment_method: paymentMethod,
-          total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+          payment_status: paymentMethod === 'cod' ? 'unpaid' : 'paid',
+          cart_data: cart
         };
 
         // Show loading
@@ -1185,31 +1192,55 @@
         placeOrderBtn.disabled = true;
         placeOrderBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Placing Order...';
 
-        // Simulate API call to place order
-        setTimeout(() => {
-          // Clear cart
-          localStorage.removeItem('customerCart');
-          updateCartBadge();
+        // Make API call to place order
+        fetch('/customer/checkout/cart_order', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+          },
+          body: JSON.stringify(orderData)
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.success) {
+            // Clear cart
+            localStorage.removeItem('customerCart');
+            updateCartBadge();
 
-          // Show success
-          showSuccessView();
+            // Show success
+            showSuccessView();
 
-          // Show order details in success view
-          document.getElementById('order-details').innerHTML = `
-            <div class="order-success-card p-3 bg-light rounded">
-              <h6>Order #ORD${Date.now()}</h6>
-              <p class="mb-1">Total: ₹${orderData.total.toFixed(2)}</p>
-              <p class="mb-1">Payment: ${paymentMethod.toUpperCase()}</p>
-              <small class="text-muted">Delivery to: ${selectedAddress.address}</small>
-            </div>
-          `;
+            // Show order details in success view
+            document.getElementById('order-details').innerHTML = `
+              <div class="order-success-card p-3 bg-light rounded">
+                <h6>Order #${data.booking_number}</h6>
+                <p class="mb-1">Total: ₹${data.total_amount.toFixed(2)}</p>
+                <p class="mb-1">Payment: ${paymentMethod.toUpperCase()}</p>
+                <small class="text-muted">Delivery to: ${selectedAddress.address}</small>
+              </div>
+            `;
 
-          showToast('Order placed successfully!', 'success');
-
+            showToast('Order placed successfully!', 'success');
+          } else {
+            throw new Error(data.error || 'Failed to place order');
+          }
+        })
+        .catch(error => {
+          console.error('Error placing order:', error);
+          showToast('Failed to place order. Please try again.', 'error');
+        })
+        .finally(() => {
           // Reset button
           placeOrderBtn.disabled = false;
           placeOrderBtn.innerHTML = '<i class="fas fa-check me-2"></i>Place Order';
-        }, 2000);
+        });
       }
 
       // Success View Functions

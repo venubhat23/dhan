@@ -104,6 +104,90 @@ class Customer::CheckoutController < Customer::BaseController
     redirect_to customer_orders_path, alert: 'Order not found.'
   end
 
+  def cart_order
+    Rails.logger.info "=== CART ORDER API CALLED ==="
+    Rails.logger.info "Params: #{params.inspect}"
+
+    begin
+      # Parse cart data from frontend
+      cart_data = JSON.parse(request.body.read)
+      Rails.logger.info "Cart data: #{cart_data.inspect}"
+
+      # Validate required fields
+      if cart_data['cart_data'].blank?
+        render json: { success: false, error: 'Cart is empty' }, status: 400
+        return
+      end
+
+      # Create booking from frontend cart data
+      ActiveRecord::Base.transaction do
+        # Create booking attributes
+        booking_attributes = {
+          customer: current_customer,
+          booking_number: generate_booking_number,
+          booking_date: Time.current,
+          status: 'confirmed',
+          payment_method: cart_data['payment_method'] || 'cod',
+          customer_name: cart_data['customer_name'] || current_customer.full_name,
+          customer_email: cart_data['customer_email'] || current_customer.email,
+          customer_phone: cart_data['customer_phone'] || current_customer.mobile,
+          delivery_address: cart_data['delivery_address'],
+          payment_status: cart_data['payment_status'] || 'unpaid'
+        }
+
+        @booking = Booking.new(booking_attributes)
+
+        # Build booking items from cart data
+        cart_data['cart_data'].each do |item|
+          begin
+            product = Product.find(item['id'])
+            quantity = item['quantity'].to_f
+            price = item['price'].to_f
+
+            @booking.booking_items.build(
+              product: product,
+              quantity: quantity,
+              price: price
+            )
+
+            Rails.logger.info "Added booking item: #{product.name} x #{quantity} @ ₹#{price}"
+          rescue ActiveRecord::RecordNotFound => e
+            Rails.logger.error "Product not found: #{item['id']}"
+            raise ActiveRecord::Rollback, "Product not found: #{item['id']}"
+          end
+        end
+
+        if @booking.save
+          # Calculate totals
+          @booking.calculate_totals
+          @booking.save!
+
+          Rails.logger.info "Booking created successfully: #{@booking.booking_number}"
+
+          render json: {
+            success: true,
+            message: 'Order placed successfully',
+            booking_number: @booking.booking_number,
+            booking_id: @booking.id,
+            total_amount: @booking.total_amount
+          }
+        else
+          Rails.logger.error "Booking creation failed: #{@booking.errors.full_messages.join(', ')}"
+          raise ActiveRecord::Rollback, @booking.errors.full_messages.join(', ')
+        end
+      end
+
+    rescue ActiveRecord::Rollback => e
+      render json: { success: false, error: e.message || 'Failed to create order' }, status: 422
+    rescue JSON::ParserError => e
+      Rails.logger.error "JSON parse error: #{e.message}"
+      render json: { success: false, error: 'Invalid data format' }, status: 400
+    rescue => e
+      Rails.logger.error "Unexpected error in cart_order: #{e.message}\n#{e.backtrace.join('\n')}"
+      render json: { success: false, error: 'An unexpected error occurred' }, status: 500
+    end
+  end
+
   private
 
   def initialize_cart

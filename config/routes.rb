@@ -960,6 +960,7 @@ Rails.application.routes.draw do
         get :payment
         post :payment
         get :confirmation
+        post :cart_order
       end
     end
 
