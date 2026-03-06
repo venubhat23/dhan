@@ -59,6 +59,7 @@ class Affiliate < ApplicationRecord
 
   def create_user_account
     password = generate_secure_password
+    affiliate_role = Role.find_by(name: 'affiliate')
 
     user = User.create!(
       first_name: first_name,
@@ -68,9 +69,8 @@ class Affiliate < ApplicationRecord
       password: password,
       password_confirmation: password,
       user_type: 'affiliate',
-      role: 'affiliate',
-      status: true,
-      authenticatable: self
+      role: affiliate_role,
+      status: true
     )
 
     # Store the auto-generated password for display

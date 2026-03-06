@@ -27,8 +27,8 @@ class Admin::FranchisesController < Admin::ApplicationController
     @franchise = Franchise.new(franchise_params)
 
     if @franchise.save
-      # Create user account for franchise
-      password = create_franchise_user
+      # The model's after_create callback will handle user creation
+      password = @franchise.auto_generated_password
       flash[:success] = "Franchise created successfully! Login credentials - Username: #{@franchise.email}, Password: #{password}"
       redirect_to admin_franchises_path
     else
@@ -58,7 +58,7 @@ class Admin::FranchisesController < Admin::ApplicationController
   end
 
   def reset_password
-    new_password = generate_secure_password(@franchise)
+    new_password = Franchise.generate_random_password
 
     if @franchise.user&.update(password: new_password, password_confirmation: new_password)
       @franchise.update(auto_generated_password: new_password)
@@ -83,34 +83,4 @@ class Admin::FranchisesController < Admin::ApplicationController
     )
   end
 
-  def create_franchise_user
-    password = generate_secure_password(@franchise)
-
-    # Find or create franchise role
-    franchise_role = Role.find_or_create_by(name: 'franchise') do |r|
-      r.description = 'Franchise Partner Role'
-      r.status = true
-    end
-
-    user = User.create!(
-      first_name: @franchise.contact_person_name || @franchise.name,
-      last_name: 'Franchise',
-      email: @franchise.email,
-      mobile: @franchise.mobile,
-      password: password,
-      password_confirmation: password,
-      user_type: 'franchise',
-      role_id: franchise_role.id,
-      status: @franchise.status
-    )
-
-    @franchise.update(auto_generated_password: password, user: user)
-    password # Return the password for display
-  end
-
-  def generate_secure_password(franchise)
-    name_part = (franchise.contact_person_name || franchise.name)[0..3].upcase.ljust(4, 'X')
-    year_part = Date.current.year.to_s
-    "#{name_part}@#{year_part}"
-  end
 end

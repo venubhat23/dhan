@@ -24,16 +24,28 @@ module ExceptionHandler
 
   # JSON response with message; Status code 422 - unprocessable entity
   def four_twenty_two(e)
-    json_response({ message: e.message }, :unprocessable_entity)
+    if respond_to?(:json_response)
+      json_response({ message: e.message }, :unprocessable_entity)
+    else
+      redirect_back(fallback_location: root_path, alert: e.message)
+    end
   end
 
   # JSON response with message; Status code 401 - Unauthorized
   def unauthorized_request(e)
-    json_response({ message: e.message }, :unauthorized)
+    if respond_to?(:json_response)
+      json_response({ message: e.message }, :unauthorized)
+    else
+      redirect_back(fallback_location: root_path, alert: e.message)
+    end
   end
 
   # JSON response with message; Status code 498 - Invalid token
   def four_ninety_eight(e)
-    json_response({ message: e.message }, 498)
+    if respond_to?(:json_response)
+      json_response({ message: e.message }, 498)
+    else
+      redirect_back(fallback_location: root_path, alert: e.message)
+    end
   end
 end
