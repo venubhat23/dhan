@@ -435,4 +435,4 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-console.log('Atmanirbhar Farm website initialized successfully! 🌱');
+console.log('Marali Santhe website initialized successfully! 🌱');

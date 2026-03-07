@@ -1,4 +1,4 @@
-// ===== IMPROVED JAVASCRIPT FOR ATMANIRBHAR FARM =====
+// ===== IMPROVED JAVASCRIPT FOR MARALI SANTHE =====
 
 // Cart Management
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
@@ -737,5 +737,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    console.log('🌱 Atmanirbhar Farm website loaded successfully!');
+    console.log('🌱 Marali Santhe website loaded successfully!');
 });
