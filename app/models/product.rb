@@ -138,6 +138,27 @@ class Product < ApplicationRecord
     total_batch_stock
   end
 
+  def available_stock
+    available_quantity
+  end
+
+  def track_stock?
+    # Products track stock by default unless explicitly disabled
+    # You can add a track_stock attribute to products table if needed
+    true
+  end
+
+  def update_stock_for_invoice(qty_difference)
+    # Update stock when invoice items are modified
+    if qty_difference > 0
+      # Increasing quantity - reduce stock (use negative to reduce)
+      update_stock(-qty_difference, 'invoice_increase', Time.current.to_i, 'Stock reduced due to invoice quantity increase')
+    else
+      # Decreasing quantity - increase stock (use positive to increase)
+      update_stock(-qty_difference, 'invoice_decrease', Time.current.to_i, 'Stock increased due to invoice quantity decrease')
+    end
+  end
+
   def sold_quantity
     # Calculate sold quantity as initial_stock - available_quantity
     return 0 if initial_stock.nil? || initial_stock == 0

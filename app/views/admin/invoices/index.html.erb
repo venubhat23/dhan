@@ -207,6 +207,7 @@
                   customer_name = invoice_data[:customer_name]
                   customer_mobile = invoice_data[:customer_mobile]
                   total_amount = invoice_data[:total_amount]
+                  paid_amount = invoice_data[:paid_amount]
                   payment_status = invoice_data[:payment_status]
                   invoice_date = invoice_data[:invoice_date]
                   created_at = invoice_data[:created_at]
@@ -220,6 +221,7 @@
                   customer_name = invoice_data.customer&.display_name || 'Walk-in Customer'
                   customer_mobile = invoice_data.customer&.mobile
                   total_amount = invoice_data.total_amount
+                  paid_amount = invoice_data.paid_amount || 0
                   payment_status = invoice_data.payment_status
                   invoice_date = invoice_data.invoice_date
                   created_at = invoice_data.created_at
@@ -314,7 +316,7 @@
                       <% end %>
                       <% unless payment_status == 'fully_paid' %>
                         <button type="button" class="btn btn-sm btn-outline-warning"
-                               onclick="openPartialPaymentModal(<%= invoice_id %>, '<%= invoice_number %>', <%= total_amount %>, '<%= customer_name %>')"
+                               onclick="openPartialPaymentModal(<%= invoice_id %>, '<%= invoice_number %>', <%= total_amount %>, '<%= customer_name %>', <%= paid_amount || 0 %>)"
                                title="Partial Payment"
                                data-bs-toggle="tooltip">
                           <i class="bi bi-cash"></i>
@@ -1127,21 +1129,24 @@ document.addEventListener('keydown', function(e) {
 });
 
 // Partial Payment Modal Functions
-function openPartialPaymentModal(invoiceId, invoiceNumber, totalAmount, customerName) {
+function openPartialPaymentModal(invoiceId, invoiceNumber, totalAmount, customerName, paidAmount = 0) {
+  // Calculate remaining amount
+  const remainingAmount = totalAmount - paidAmount;
+
   // Set modal data
   document.getElementById('partialPaymentInvoiceId').value = invoiceId;
   document.getElementById('partialPaymentInvoiceNumber').textContent = invoiceNumber;
   document.getElementById('partialPaymentCustomerName').textContent = customerName;
   document.getElementById('partialPaymentTotalAmount').textContent = totalAmount.toFixed(2);
-  document.getElementById('partialPaymentRemainingAmount').textContent = totalAmount.toFixed(2);
+  document.getElementById('partialPaymentRemainingAmount').textContent = remainingAmount.toFixed(2);
 
   // Reset form
   document.getElementById('partialPaymentForm').reset();
   document.getElementById('partialPaymentInvoiceId').value = invoiceId; // Reset clears hidden fields too
 
-  // Set max amount for input
+  // Set max amount for input (should not exceed remaining amount)
   const amountInput = document.getElementById('partialPaymentAmount');
-  amountInput.max = totalAmount;
+  amountInput.max = remainingAmount;
 
   // Show modal
   const modal = document.getElementById('partialPaymentModal');
@@ -1178,15 +1183,16 @@ document.addEventListener('DOMContentLoaded', function() {
   const amountInput = document.getElementById('partialPaymentAmount');
   if (amountInput) {
     amountInput.addEventListener('input', function() {
-      const totalAmount = parseFloat(document.getElementById('partialPaymentTotalAmount').textContent);
+      // Get the original remaining amount that was set when modal opened
+      const maxAmount = parseFloat(this.max) || 0;
       const paymentAmount = parseFloat(this.value) || 0;
-      const remainingAmount = totalAmount - paymentAmount;
+      const newRemainingAmount = maxAmount - paymentAmount;
 
-      document.getElementById('partialPaymentRemainingAmount').textContent = remainingAmount.toFixed(2);
+      document.getElementById('partialPaymentRemainingAmount').textContent = newRemainingAmount.toFixed(2);
 
       // Update button text based on remaining amount
       const processBtn = document.getElementById('processPartialPaymentBtn');
-      if (remainingAmount <= 0) {
+      if (newRemainingAmount <= 0) {
         processBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Mark as Fully Paid';
         processBtn.className = 'btn btn-success';
       } else {

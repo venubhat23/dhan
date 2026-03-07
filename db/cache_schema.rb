@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_03_06_005034) do
+ActiveRecord::Schema[8.0].define(version: 2026_03_07_032837) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -206,6 +206,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_06_005034) do
     t.bigint "delivery_person_id"
     t.bigint "franchise_id"
     t.boolean "quick_invoice", default: false
+    t.string "booked_by", default: "admin"
+    t.index ["booked_by"], name: "index_bookings_on_booked_by"
     t.index ["booking_schedule_id"], name: "index_bookings_on_booking_schedule_id"
     t.index ["courier_service"], name: "index_bookings_on_courier_service"
     t.index ["delivery_person_id"], name: "index_bookings_on_delivery_person_id"
@@ -480,6 +482,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_06_005034) do
     t.integer "payment_status"
     t.string "share_token"
     t.boolean "quick_invoice", default: false
+    t.decimal "paid_amount", precision: 10, scale: 2, default: "0.0"
     t.index ["invoice_number"], name: "index_invoices_on_invoice_number", unique: true
     t.index ["share_token"], name: "index_invoices_on_share_token", unique: true
   end

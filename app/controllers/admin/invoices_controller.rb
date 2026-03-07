@@ -179,22 +179,74 @@ class Admin::InvoicesController < Admin::ApplicationController
   end
 
   def update
+    # Store original quantities for stock rollback if needed
+    original_quantities = {}
+    @invoice.invoice_items.each do |item|
+      original_quantities[item.id] = item.quantity if item.product
+    end
+
     @invoice.assign_attributes(invoice_params)
 
-    # Calculate new total based on invoice items
+    # Calculate new total based on invoice items and check stock availability
     new_total = 0
-    if @invoice.invoice_items_attributes
-      @invoice.invoice_items_attributes.each do |_, item_attrs|
+    stock_errors = []
+
+    # Check nested attributes from params
+    invoice_items_attributes = invoice_params[:invoice_items_attributes]
+    if invoice_items_attributes
+      invoice_items_attributes.each do |_, item_attrs|
         next if item_attrs['_destroy'] == '1'
+
         quantity = item_attrs['quantity'].to_f
         unit_price = item_attrs['unit_price'].to_f
         new_total += quantity * unit_price
+
+        # Check stock availability for products
+        if item_attrs['product_id'].present?
+          product = Product.find(item_attrs['product_id'])
+          item_id = item_attrs['id']
+
+          # Calculate quantity difference
+          original_qty = original_quantities[item_id.to_i] || 0
+          qty_difference = quantity - original_qty
+
+          # Only check stock if quantity is increasing
+          if qty_difference > 0 && product.respond_to?(:track_stock?) && product.track_stock?
+            if product.respond_to?(:available_stock)
+              available_stock = product.available_stock
+              if available_stock < qty_difference
+                stock_errors << "Insufficient stock for #{product.name}. Available: #{available_stock}, Required additional: #{qty_difference}"
+              end
+            end
+          end
+        end
       end
+    end
+
+    # If there are stock errors, don't save and show errors
+    unless stock_errors.empty?
+      @invoice.errors.add(:base, stock_errors.join(', '))
+      @invoice_items = @invoice.invoice_items.includes(:product, :milk_delivery_task)
+      render :edit, status: :unprocessable_entity
+      return
     end
 
     @invoice.total_amount = new_total
 
     if @invoice.save
+      # Update stock for products after successful save
+      @invoice.invoice_items.each do |item|
+        if item.product && item.product.respond_to?(:track_stock?) && item.product.track_stock?
+          original_qty = original_quantities[item.id] || 0
+          qty_difference = item.quantity - original_qty
+
+          # Only update stock if there's a quantity change
+          if qty_difference != 0 && item.product.respond_to?(:update_stock_for_invoice)
+            item.product.update_stock_for_invoice(qty_difference)
+          end
+        end
+      end
+
       redirect_to admin_invoice_path(@invoice), notice: 'Invoice was successfully updated.'
     else
       @invoice_items = @invoice.invoice_items.includes(:product, :milk_delivery_task)
@@ -501,6 +553,7 @@ class Admin::InvoicesController < Admin::ApplicationController
       customer_name: invoice.customer&.display_name || 'N/A',
       customer_mobile: invoice.customer&.mobile,
       total_amount: invoice.total_amount,
+      paid_amount: invoice.paid_amount || 0,
       payment_status: invoice.payment_status,
       status: invoice.status,
       invoice_date: invoice.invoice_date || invoice.created_at&.to_date,
@@ -643,7 +696,7 @@ class Admin::InvoicesController < Admin::ApplicationController
   end
 
   def invoice_params
-    params.require(:invoice).permit(:invoice_date, :due_date, :status, :payment_status, :notes, :total_amount,
+    params.require(:invoice).permit(:invoice_date, :due_date, :status, :payment_status, :total_amount, :notes,
                                    invoice_items_attributes: [:id, :product_id, :description, :quantity, :unit_price, :total_amount, :_destroy])
   end
 
