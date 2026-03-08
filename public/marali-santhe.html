@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Celebrations Organic – Celebrate Every Moment Naturally</title>
+<title>Marali Santhe – Fresh Organic Produce & Groceries</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,700&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -25,9 +25,10 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:0 52px
 .nav-links{display:flex;gap:34px;list-style:none;align-items:center}
 .nav-links a{text-decoration:none;color:var(--dark);font-size:11px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;transition:color .2s}
 .nav-links a:hover{color:var(--green)}
-.logo-circle{width:70px;height:70px;border-radius:50%;background:var(--green-dark);display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;flex-shrink:0;box-shadow:0 4px 20px rgba(27,94,32,.45)}
-.logo-circle .lico{font-size:22px;line-height:1}
-.logo-circle span{color:var(--white);font-family:'Cormorant Garamond',serif;font-size:9px;text-align:center;line-height:1.4;margin-top:2px}
+.logo-circle{width:70px;height:70px;border-radius:50%;background:var(--white);display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;flex-shrink:0;box-shadow:0 4px 20px rgba(27,94,32,.45);overflow:hidden;padding:5px}
+.logo-circle .lico{width:60px;height:60px;border-radius:50%;overflow:hidden}
+.logo-circle .lico img{width:100%;height:100%;object-fit:cover}
+.logo-circle span{color:var(--dark);font-family:'Cormorant Garamond',serif;font-size:9px;text-align:center;line-height:1.4;margin-top:2px;display:none}
 .nav-cart{background:var(--green-dark);color:var(--white)!important;padding:9px 20px;font-size:11px!important;letter-spacing:1px!important;border-radius:2px}
 
 /* ── BUTTONS ── */
@@ -251,8 +252,10 @@ footer{background:var(--dark);color:rgba(255,255,255,.62);padding:64px 52px 32px
     <li><a href="#">Wellness</a></li>
   </ul>
   <a class="logo-circle" href="#">
-    <div class="lico">🌿</div>
-    <span>Celebrations<br>Organic</span>
+    <div class="lico">
+      <img src="logo.jpeg" alt="Marali Santhe Logo" />
+    </div>
+    <span>Marali<br>Santhe</span>
   </a>
   <ul class="nav-links">
     <li><a href="#">Combos</a></li>
@@ -274,7 +277,7 @@ footer{background:var(--dark);color:rgba(255,255,255,.62);padding:64px 52px 32px
     <div class="hero-left">
       <p class="hero-eyebrow">100% Certified Organic</p>
       <h1>Celebrate<br>Every Moment<br>Naturally With</h1>
-      <span class="hero-script">Celebrations</span>
+      <span class="hero-script">Marali Santhe</span>
       <p class="hero-sub">From farm to your doorstep – pure organic foods, superfoods & wellness essentials for a healthier, happier life.</p>
       <a href="#" class="btn">Shop Now</a>
       <div class="hero-dots">
@@ -379,7 +382,7 @@ footer{background:var(--dark);color:rgba(255,255,255,.62);padding:64px 52px 32px
   <div class="banner-body">
     <span class="leaf">🌿</span>
     <h2>What makes our Products special?</h2>
-    <p>Celebrations Organic sources the finest produce directly from certified organic farms across India – free from pesticides, chemicals and artificial additives.</p>
+    <p>Marali Santhe sources the finest produce directly from certified organic farms across India – free from pesticides, chemicals and artificial additives.</p>
     <p>Every product is nurtured by nature, tested for purity and delivered with love.</p>
     <a href="#" class="btn-gold" style="margin-top:22px;display:inline-block">Explore All Products</a>
   </div>
@@ -446,7 +449,7 @@ footer{background:var(--dark);color:rgba(255,255,255,.62);padding:64px 52px 32px
   <div class="split-text">
     <div>
       <h2>From Our Farms,<br>To Your Table</h2>
-      <span class="split-quote">"Pure. Natural. Celebrations."</span>
+      <span class="split-quote">"Pure. Natural. Fresh."</span>
       <p>We work directly with certified organic farmers across India — no middlemen, no compromises. Every ingredient is traceable back to its source.</p>
       <p>Our products retain maximum nutrients, natural flavours and goodness because we believe food should nourish, not just fill.</p>
       <a href="#" class="btn" style="margin-top:8px;display:inline-block">Our Story</a>
@@ -483,7 +486,7 @@ footer{background:var(--dark);color:rgba(255,255,255,.62);padding:64px 52px 32px
     <div class="vid-right-inner">
       <h2>The Art of Living Organically</h2>
       <p>Our farmers and wellness experts work together to create the finest organic products – from soil to shelf, with zero compromise on quality.</p>
-      <p>Because when you nourish yourself with the best, every moment becomes a celebration.</p>
+      <p>Because when you nourish yourself with the best, every meal becomes special.</p>
       <a href="#" class="btn">Watch Our Story</a>
     </div>
   </div>
@@ -513,7 +516,7 @@ footer{background:var(--dark);color:rgba(255,255,255,.62);padding:64px 52px 32px
 
 <!-- NEW ARRIVALS -->
 <h2 class="sec-title">New Arrivals</h2>
-<p class="sec-sub">Fresh additions to the Celebrations Organic family</p>
+<p class="sec-sub">Fresh additions to the Marali Santhe family</p>
 <div class="arrivals">
   <div class="acard">
     <img src="https://images.pexels.com/photos/1132047/pexels-photo-1132047.jpeg?auto=compress&cs=tinysrgb&w=900" alt="Fruit Basket">
@@ -576,10 +579,12 @@ footer{background:var(--dark);color:rgba(255,255,255,.62);padding:64px 52px 32px
   <div class="footer-grid">
     <div class="fbrand">
       <a class="logo-circle" href="#" style="display:inline-flex;margin-bottom:20px">
-        <div class="lico">🌿</div>
-        <span>Celebrations<br>Organic</span>
+        <div class="lico">
+          <img src="logo.jpeg" alt="Marali Santhe Logo" />
+        </div>
+        <span>Marali<br>Santhe</span>
       </a>
-      <p>Bringing the goodness of certified organic farms directly to your table. Pure, natural and full of celebrations.</p>
+      <p>Bringing the goodness of certified organic farms directly to your table. Pure, natural and full of freshness.</p>
     </div>
     <div class="fcol">
       <h5>Shop</h5>
@@ -613,7 +618,7 @@ footer{background:var(--dark);color:rgba(255,255,255,.62);padding:64px 52px 32px
     </div>
   </div>
   <div class="footer-bottom">
-    <span>© 2024 Celebrations Organic. All rights reserved.</span>
+    <span>© 2024 Marali Santhe. All rights reserved.</span>
     <div class="socials">
       <a href="#">Facebook</a>
       <a href="#">Instagram</a>
