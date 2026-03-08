@@ -1,4 +1,4 @@
-# Customer Web Application - Marali Santhe
+# Customer Web Application - Dhanvantri Naturals
 
 ## 🎯 Complete Customer Web Portal with Admin-Style Design
 

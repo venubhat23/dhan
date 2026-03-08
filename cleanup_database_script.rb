@@ -1,10 +1,10 @@
 #!/usr/bin/env ruby
 
-# Database Cleanup Script for Marali Santhe
+# Database Cleanup Script for Dhanvantri Naturals
 # This script keeps only 2 customers and limits other records to 10
 # Run with: rails runner cleanup_database_script.rb
 
-puts "🧹 Starting Database Cleanup Script for Marali Santhe..."
+puts "🧹 Starting Database Cleanup Script for Dhanvantri Naturals..."
 puts "=" * 60
 
 # Step 1: Get the first 2 customers to keep
@@ -160,4 +160,4 @@ puts "Notifications: #{Notification.count}"
 puts
 
 puts "✅ Database cleanup completed successfully!"
-puts "🎉 Marali Santhe database is now optimized with clean data"
+puts "🎉 Dhanvantri Naturals database is now optimized with clean data"

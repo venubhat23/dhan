@@ -1,4 +1,4 @@
-// ===== IMPROVED JAVASCRIPT FOR MARALI SANTHE =====
+// ===== IMPROVED JAVASCRIPT FOR DHANVANTRI NATURALS =====
 
 // Cart Management
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
@@ -737,5 +737,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    console.log('🌱 Marali Santhe website loaded successfully!');
+    console.log('🌱 Dhanvantri Naturals website loaded successfully!');
 });

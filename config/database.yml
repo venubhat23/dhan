@@ -6,10 +6,10 @@ default: &default
 development:
   primary: &primary_development
     <<: *default
-    host: <%= ENV['DB_HOST'] || 'dpg-d6l4rgc50q8c73bmcnt0-a.oregon-postgres.render.com' %>
-    database: <%= ENV['DB_NAME'] || 'marali_sante' %>
-    username: <%= ENV['DB_USERNAME'] || 'marali_sante_user' %>
-    password: <%= ENV['DB_PASSWORD'] || '6Yeikjs3h6sEyoskxcmqsHmcRh9xgYHf' %>
+    host: <%= ENV['DB_HOST'] || 'dpg-d6mceedm5p6s73fo3ul0-a.virginia-postgres.render.com' %>
+    database: <%= ENV['DB_NAME'] || 'dhan02' %>
+    username: <%= ENV['DB_USERNAME'] || 'dhan02_user' %>
+    password: <%= ENV['DB_PASSWORD'] || 'moCc2BsPe3pOTbOK5hc6dOrydgae32Zq' %>
     port: <%= ENV['DB_PORT'] || 5432 %>
   cable:
     <<: *primary_development
@@ -32,11 +32,11 @@ test:
 production:
   primary: &primary_production
     <<: *default
-    url: <%= ENV['DATABASE_URL'] || 'postgresql://marali_sante_user:6Yeikjs3h6sEyoskxcmqsHmcRh9xgYHf@dpg-d6l4rgc50q8c73bmcnt0-a.oregon-postgres.render.com/marali_sante' %>
-    host: <%= ENV['DB_HOST'] || 'dpg-d6l4rgc50q8c73bmcnt0-a.oregon-postgres.render.com' %>
-    database: <%= ENV['DB_NAME'] || 'marali_sante' %>
-    username: <%= ENV['DB_USERNAME'] || 'marali_sante_user' %>
-    password: <%= ENV['DB_PASSWORD'] || '6Yeikjs3h6sEyoskxcmqsHmcRh9xgYHf' %>
+    url: <%= ENV['DATABASE_URL'] || 'postgresql://dhan02_user:moCc2BsPe3pOTbOK5hc6dOrydgae32Zq@dpg-d6mceedm5p6s73fo3ul0-a.virginia-postgres.render.com/dhan02' %>
+    host: <%= ENV['DB_HOST'] || 'dpg-d6mceedm5p6s73fo3ul0-a.virginia-postgres.render.com' %>
+    database: <%= ENV['DB_NAME'] || 'dhan02' %>
+    username: <%= ENV['DB_USERNAME'] || 'dhan02_user' %>
+    password: <%= ENV['DB_PASSWORD'] || 'moCc2BsPe3pOTbOK5hc6dOrydgae32Zq' %>
     port: <%= ENV['DB_PORT'] || 5432 %>
   cable:
     <<: *primary_production

@@ -1,10 +1,10 @@
 #!/usr/bin/env ruby
 
-# Safe Database Cleanup Script for Marali Santhe
+# Safe Database Cleanup Script for Dhanvantri Naturals
 # This script keeps only 2 customers and limits other records to 10
 # Run with: rails runner safe_cleanup_database.rb
 
-puts "🧹 Safe Database Cleanup Script for Marali Santhe"
+puts "🧹 Safe Database Cleanup Script for Dhanvantri Naturals"
 puts "=" * 60
 
 # First, show current database statistics
@@ -167,7 +167,7 @@ begin
   puts
 
   puts "✅ Database cleanup completed successfully!"
-  puts "🎉 Marali Santhe database is now clean and optimized"
+  puts "🎉 Dhanvantri Naturals database is now clean and optimized"
 
 rescue => e
   puts "❌ Error during cleanup: #{e.message}"
