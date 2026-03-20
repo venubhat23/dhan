@@ -10,10 +10,12 @@ class StockMovement < ApplicationRecord
   REFERENCE_TYPES = [
     ['vendor_purchase', 'Vendor Purchase'],
     ['booking', 'Booking'],
-    ['adjustment', 'Manual Adjustment']
+    ['adjustment', 'Manual Adjustment'],
+    ['store_transfer', 'Store Transfer']
   ].freeze
 
   belongs_to :product
+  belongs_to :store, optional: true
 
   validates :reference_type, presence: true, inclusion: { in: REFERENCE_TYPES.map(&:first) }
   validates :movement_type, presence: true, inclusion: { in: MOVEMENT_TYPES.map(&:first) }
@@ -35,6 +37,8 @@ class StockMovement < ApplicationRecord
   scope :from_bookings, -> { where(reference_type: 'booking') }
   scope :from_purchases, -> { where(reference_type: 'vendor_purchase') }
   scope :from_adjustments, -> { where(reference_type: 'adjustment') }
+  scope :from_transfers, -> { where(reference_type: 'store_transfer') }
+  scope :for_store, ->(store_id) { where(store_id: store_id) }
 
   # Get the reference object
   def reference_object
@@ -43,6 +47,8 @@ class StockMovement < ApplicationRecord
       VendorPurchase.find_by(id: reference_id)
     when 'booking'
       Booking.find_by(id: reference_id)
+    when 'store_transfer'
+      StoreInventoryTransfer.find_by(id: reference_id)
     else
       nil
     end
@@ -57,11 +63,18 @@ class StockMovement < ApplicationRecord
     when 'booking'
       booking = reference_object
       booking ? "Booking ##{booking.booking_number}" : "Booking ##{reference_id}"
+    when 'store_transfer'
+      transfer = reference_object
+      transfer ? "Transfer ##{transfer.transfer_reference_number}" : "Transfer ##{reference_id}"
     when 'adjustment'
       'Manual Adjustment'
     else
       reference_type.humanize
     end
+  end
+
+  def store_name
+    store&.name || 'Central Inventory'
   end
 
   # Get formatted quantity with direction

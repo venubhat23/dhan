@@ -49,7 +49,11 @@ class User < ApplicationRecord
   belongs_to :role, optional: true
   belongs_to :user_role, optional: true
   belongs_to :authenticatable, polymorphic: true, optional: true
+  belongs_to :assigned_store, class_name: 'Store', optional: true
   has_one :franchise, dependent: :destroy
+  has_one :managed_store, class_name: 'Store', foreign_key: 'store_admin_user_id', dependent: :nullify
+  has_many :initiated_transfers, class_name: 'StoreInventoryTransfer', foreign_key: 'initiated_by_id', dependent: :nullify
+  has_many :approved_transfers, class_name: 'StoreInventoryTransfer', foreign_key: 'approved_by_id', dependent: :nullify
   has_many_attached :profile_images
   has_many_attached :documents
   has_many :uploaded_documents, as: :documentable, class_name: 'Document', dependent: :destroy
@@ -59,11 +63,20 @@ class User < ApplicationRecord
   validates :last_name, presence: true
   validates :email, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :mobile, presence: true, uniqueness: true
-  validates :user_type, presence: true, inclusion: { in: ['admin', 'agent', 'sub_agent', 'customer', 'franchise', 'affiliate', 'delivery_person'] }
+  validates :user_type, presence: true, inclusion: { in: ['admin', 'agent', 'sub_agent', 'customer', 'franchise', 'affiliate', 'delivery_person', 'store_admin'] }
   # Note: role validation can be added later when roles are set up
 
   # Enums
-  enum :user_type, { admin: 'admin', agent: 'agent', sub_agent: 'sub_agent', customer: 'customer', franchise: 'franchise', affiliate: 'affiliate', delivery_person: 'delivery_person' }
+  enum :user_type, {
+    admin: 'admin',
+    agent: 'agent',
+    sub_agent: 'sub_agent',
+    customer: 'customer',
+    franchise: 'franchise',
+    affiliate: 'affiliate',
+    delivery_person: 'delivery_person',
+    store_admin: 'store_admin'
+  }
 
   # Callbacks
   after_update :role_changed_callback
@@ -234,8 +247,98 @@ class User < ApplicationRecord
     user_type == 'delivery_person'
   end
 
+  def store_admin?
+    user_type == 'store_admin'
+  end
+
   def super_admin?
     has_role?('super_admin')
+  end
+
+  # Store Admin specific methods
+  def can_access_store?(store)
+    return true if super_admin?
+    return true if admin? && !store_admin?
+    return false unless store_admin?
+
+    assigned_store == store || managed_store == store
+  end
+
+  def accessible_stores
+    return Store.all if super_admin? || (admin? && !store_admin?)
+    return Store.where(id: assigned_store_id) if store_admin? && assigned_store.present?
+    return Store.where(id: managed_store&.id) if store_admin? && managed_store.present?
+    Store.none
+  end
+
+  def primary_store
+    assigned_store || managed_store
+  end
+
+  def has_store_access?
+    accessible_stores.any?
+  end
+
+  def store_permissions_hash
+    return {} if store_permissions.blank?
+
+    begin
+      parsed = if store_permissions.is_a?(String)
+        JSON.parse(store_permissions)
+      else
+        store_permissions
+      end
+      parsed.is_a?(Hash) ? parsed : {}
+    rescue JSON::ParserError
+      {}
+    end
+  end
+
+  def has_store_permission?(permission_key)
+    return true if super_admin?
+    return true if admin? && !store_admin?
+
+    permissions = store_permissions_hash
+    permissions[permission_key.to_s] == true
+  end
+
+  def can_manage_inventory?
+    has_store_permission?('can_manage_inventory') || super_admin? || (admin? && !store_admin?)
+  end
+
+  def can_create_bookings?
+    has_store_permission?('can_create_bookings') || super_admin? || (admin? && !store_admin?)
+  end
+
+  def can_view_reports?
+    has_store_permission?('can_view_reports') || super_admin? || (admin? && !store_admin?)
+  end
+
+  def can_request_transfers?
+    has_store_permission?('can_request_transfers') || super_admin? || (admin? && !store_admin?)
+  end
+
+  def can_approve_transfers?
+    has_store_permission?('can_approve_transfers') || super_admin? || (admin? && !store_admin?)
+  end
+
+  def update_store_access_log!
+    return unless store_admin?
+
+    current_logs = store_access_logs.is_a?(Array) ? store_access_logs : []
+    current_logs << {
+      timestamp: Time.current.iso8601,
+      store_id: primary_store&.id,
+      store_name: primary_store&.name
+    }
+
+    # Keep only last 50 access logs
+    current_logs = current_logs.last(50)
+
+    update_columns(
+      last_store_access: Time.current,
+      store_access_logs: current_logs
+    )
   end
 
   # Clear abilities cache when role changes

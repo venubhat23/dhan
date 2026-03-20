@@ -1,0 +1,232 @@
+<% content_for :page_title, "Dashboard" %>
+
+<!-- Metrics Cards -->
+<div class="row mb-4">
+  <div class="col-md-3 mb-3">
+    <div class="card metric-card border-0 shadow-sm bg-primary text-white">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h5 class="card-title mb-1">Total Products</h5>
+            <h3 class="mb-0"><%= @inventory_summary[:total_products] %></h3>
+          </div>
+          <i class="bi bi-boxes fs-1 opacity-50"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3 mb-3">
+    <div class="card metric-card border-0 shadow-sm bg-warning text-white">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h5 class="card-title mb-1">Low Stock</h5>
+            <h3 class="mb-0"><%= @inventory_summary[:low_stock_count] %></h3>
+          </div>
+          <i class="bi bi-exclamation-triangle fs-1 opacity-50"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3 mb-3">
+    <div class="card metric-card border-0 shadow-sm bg-info text-white">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h5 class="card-title mb-1">Pending Transfers</h5>
+            <h3 class="mb-0"><%= @inventory_summary[:pending_incoming_transfers] %></h3>
+          </div>
+          <i class="bi bi-arrow-left-right fs-1 opacity-50"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3 mb-3">
+    <div class="card metric-card border-0 shadow-sm bg-success text-white">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h5 class="card-title mb-1">Inventory Value</h5>
+            <h3 class="mb-0">₹<%= number_with_delimiter(@inventory_summary[:total_stock_value]&.round || 0) %></h3>
+          </div>
+          <i class="bi bi-currency-rupee fs-1 opacity-50"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <!-- Low Stock Alert -->
+  <div class="col-md-6 mb-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold">
+          <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+          Low Stock Alert
+        </h6>
+        <% if @low_stock_products.any? %>
+          <%= link_to "View All", store_admin_inventory_low_stock_path, class: "btn btn-sm btn-outline-primary" %>
+        <% end %>
+      </div>
+      <div class="card-body">
+        <% if @low_stock_products.any? %>
+          <% @low_stock_products.each do |item| %>
+            <div class="d-flex justify-content-between align-items-center mb-3 p-2 rounded bg-light">
+              <div>
+                <strong><%= item[:product].name %></strong>
+                <div class="small text-muted">
+                  Category: <%= item[:product].category&.name %>
+                </div>
+              </div>
+              <div class="text-end">
+                <span class="badge bg-warning text-dark">
+                  <%= item[:available] %> left
+                </span>
+                <div class="small text-muted mt-1">
+                  Threshold: <%= item[:threshold] %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        <% else %>
+          <div class="text-center text-muted py-4">
+            <i class="bi bi-check-circle-fill fs-1 text-success"></i>
+            <p class="mt-2 mb-0">All products are well stocked!</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Bookings -->
+  <div class="col-md-6 mb-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold">
+          <i class="bi bi-cart-check text-primary me-2"></i>
+          Recent Bookings
+        </h6>
+        <%= link_to "View All", store_admin_bookings_path, class: "btn btn-sm btn-outline-primary" %>
+      </div>
+      <div class="card-body">
+        <% if @recent_bookings.any? %>
+          <% @recent_bookings.each do |booking| %>
+            <div class="d-flex justify-content-between align-items-center mb-3 p-2 rounded bg-light">
+              <div>
+                <strong><%= booking.booking_number %></strong>
+                <div class="small text-muted">
+                  <%= booking.customer&.full_name || booking.customer_name %>
+                </div>
+                <div class="small text-muted">
+                  <%= time_ago_in_words(booking.created_at) %> ago
+                </div>
+              </div>
+              <div class="text-end">
+                <span class="badge bg-<%= booking.status_color %>">
+                  <%= booking.status.humanize %>
+                </span>
+                <div class="small text-muted mt-1">
+                  ₹<%= number_with_delimiter(booking.total_amount&.round || 0) %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        <% else %>
+          <div class="text-center text-muted py-4">
+            <i class="bi bi-cart-x fs-1 text-muted"></i>
+            <p class="mt-2 mb-0">No recent bookings</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Pending Transfers and Recent Activity -->
+<div class="row">
+  <div class="col-md-6 mb-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold">
+          <i class="bi bi-arrow-down-circle text-info me-2"></i>
+          Pending Incoming Transfers
+        </h6>
+        <%= link_to "View All", store_admin_transfers_path(direction: 'incoming', status: 'pending'), class: "btn btn-sm btn-outline-primary" %>
+      </div>
+      <div class="card-body">
+        <% if @pending_incoming_transfers.any? %>
+          <% @pending_incoming_transfers.each do |transfer| %>
+            <div class="d-flex justify-content-between align-items-center mb-3 p-2 rounded bg-light">
+              <div>
+                <strong><%= transfer.product.name %></strong>
+                <div class="small text-muted">
+                  From: <%= transfer.from_store&.name || 'Central' %>
+                </div>
+                <div class="small text-muted">
+                  Requested: <%= time_ago_in_words(transfer.created_at) %> ago
+                </div>
+              </div>
+              <div class="text-end">
+                <span class="badge bg-warning text-dark">
+                  <%= transfer.quantity.to_i %> units
+                </span>
+                <div class="small text-muted mt-1">
+                  <%= transfer.transfer_reference_number %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        <% else %>
+          <div class="text-center text-muted py-4">
+            <i class="bi bi-check-circle-fill fs-1 text-success"></i>
+            <p class="mt-2 mb-0">No pending transfers</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6 mb-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold">
+          <i class="bi bi-activity text-secondary me-2"></i>
+          Recent Stock Movements
+        </h6>
+        <%= link_to "View All", store_admin_inventory_movements_path, class: "btn btn-sm btn-outline-primary" %>
+      </div>
+      <div class="card-body">
+        <% if @recent_stock_movements.any? %>
+          <% @recent_stock_movements.each do |movement| %>
+            <div class="d-flex justify-content-between align-items-center mb-3 p-2 rounded bg-light">
+              <div>
+                <strong><%= movement.product.name %></strong>
+                <div class="small text-muted">
+                  <%= movement.reference_description %>
+                </div>
+                <div class="small text-muted">
+                  <%= time_ago_in_words(movement.created_at) %> ago
+                </div>
+              </div>
+              <div class="text-end">
+                <span class="badge <%= movement.movement_type_badge_class %>">
+                  <i class="<%= movement.movement_type_icon %> me-1"></i>
+                  <%= movement.formatted_quantity %>
+                </span>
+              </div>
+            </div>
+          <% end %>
+        <% else %>
+          <div class="text-center text-muted py-4">
+            <i class="bi bi-activity fs-1 text-muted"></i>
+            <p class="mt-2 mb-0">No recent activity</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

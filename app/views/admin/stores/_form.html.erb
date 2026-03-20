@@ -11,58 +11,291 @@
     </div>
   <% end %>
 
-  <div class="row mb-3">
-    <div class="col-md-6">
-      <label class="form-label">Store Name <span class="text-danger">*</span></label>
-      <%= form.text_field :name, class: "form-control", placeholder: "Enter store name", required: true %>
+  <!-- Store Information Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="card-title mb-0">
+        <i class="ri-store-2-line me-2"></i>Store Information
+      </h5>
     </div>
-    <div class="col-md-6">
-      <label class="form-label">Contact Person <span class="text-danger">*</span></label>
-      <%= form.text_field :contact_person, class: "form-control", placeholder: "Enter contact person name", required: true %>
-    </div>
-  </div>
+    <div class="card-body">
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Store Name <span class="text-danger">*</span></label>
+          <%= form.text_field :name, class: "form-control", placeholder: "Enter store name", required: true %>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Contact Person <span class="text-danger">*</span></label>
+          <%= form.text_field :contact_person, class: "form-control", placeholder: "Enter contact person name", required: true %>
+        </div>
+      </div>
 
-  <div class="row mb-3">
-    <div class="col-md-6">
-      <label class="form-label">Contact Mobile <span class="text-danger">*</span></label>
-      <%= form.text_field :contact_mobile, class: "form-control", placeholder: "Enter 10-digit mobile number", required: true %>
-    </div>
-    <div class="col-md-6">
-      <label class="form-label">Status</label>
-      <div class="form-check form-switch mt-2">
-        <%= form.check_box :status, class: "form-check-input", checked: store.new_record? ? true : store.status %>
-        <label class="form-check-label">Active</label>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Contact Mobile <span class="text-danger">*</span></label>
+          <%= form.text_field :contact_mobile, class: "form-control", placeholder: "Enter 10-digit mobile number", required: true %>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Email</label>
+          <%= form.email_field :email, class: "form-control", placeholder: "Enter store email (optional)" %>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Address <span class="text-danger">*</span></label>
+        <%= form.text_area :address, class: "form-control", rows: 3, placeholder: "Enter complete address", required: true %>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-md-4">
+          <label class="form-label">City <span class="text-danger">*</span></label>
+          <%= form.text_field :city, class: "form-control", placeholder: "Enter city", required: true %>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">State <span class="text-danger">*</span></label>
+          <%= form.text_field :state, class: "form-control", placeholder: "Enter state", required: true %>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Pincode <span class="text-danger">*</span></label>
+          <%= form.text_field :pincode, class: "form-control", placeholder: "6-digit pincode", required: true %>
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Description</label>
+          <%= form.text_area :description, class: "form-control", rows: 3, placeholder: "Enter store description (optional)" %>
+        </div>
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label class="form-label">Status</label>
+            <div class="form-check form-switch mt-2">
+              <%= form.check_box :status, class: "form-check-input", checked: store.new_record? ? true : store.status %>
+              <label class="form-check-label">Active</label>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Inventory Management</label>
+            <div class="form-check form-switch mt-2">
+              <%= form.check_box :inventory_management_enabled, class: "form-check-input", checked: store.new_record? ? true : store.inventory_management_enabled %>
+              <label class="form-check-label">Enable Inventory Management</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Auto Transfer Threshold</label>
+          <%= form.number_field :auto_transfer_threshold, class: "form-control", placeholder: "Minimum stock level", min: 0 %>
+          <small class="text-muted">Automatic transfer requests when stock goes below this level</small>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">GST Number</label>
+          <%= form.text_field :gst_no, class: "form-control", placeholder: "Enter GST number (optional)" %>
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="mb-3">
-    <label class="form-label">Address</label>
-    <%= form.text_area :address, class: "form-control", rows: 3, placeholder: "Enter complete address" %>
-  </div>
+  <% if store.new_record? %>
+    <!-- Store Admin Setup Section -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="card-title mb-0">
+          <i class="ri-user-settings-line me-2"></i>Store Admin Setup
+        </h5>
+        <div class="form-check form-switch mt-2">
+          <%= form.check_box :create_admin_user, class: "form-check-input", checked: true, onchange: "toggleAdminSection()" %>
+          <label class="form-check-label">Create Store Admin Account</label>
+        </div>
+      </div>
+      <div class="card-body" id="admin-section">
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Admin Email <span class="text-danger">*</span></label>
+            <%= form.email_field :admin_email, class: "form-control", placeholder: "admin@example.com" %>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Admin Password <span class="text-danger">*</span></label>
+            <%= form.password_field :admin_password, class: "form-control", placeholder: "Minimum 6 characters" %>
+          </div>
+        </div>
 
-  <div class="row mb-3">
-    <div class="col-md-4">
-      <label class="form-label">City <span class="text-danger">*</span></label>
-      <%= form.text_field :city, class: "form-control", placeholder: "Enter city", required: true %>
-    </div>
-    <div class="col-md-4">
-      <label class="form-label">State <span class="text-danger">*</span></label>
-      <%= form.text_field :state, class: "form-control", placeholder: "Enter state", required: true %>
-    </div>
-    <div class="col-md-4">
-      <label class="form-label">Pincode <span class="text-danger">*</span></label>
-      <%= form.text_field :pincode, class: "form-control", placeholder: "6-digit pincode", required: true %>
-    </div>
-  </div>
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label">First Name <span class="text-danger">*</span></label>
+            <%= form.text_field :admin_first_name, class: "form-control", placeholder: "Enter first name" %>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Last Name <span class="text-danger">*</span></label>
+            <%= form.text_field :admin_last_name, class: "form-control", placeholder: "Enter last name" %>
+          </div>
+        </div>
 
-  <div class="mb-3">
-    <label class="form-label">Description</label>
-    <%= form.text_area :description, class: "form-control", rows: 3, placeholder: "Enter store description (optional)" %>
-  </div>
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Mobile Number <span class="text-danger">*</span></label>
+            <%= form.text_field :admin_mobile, class: "form-control", placeholder: "10-digit mobile number" %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Initial Inventory Allocation Section -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="card-title mb-0">
+          <i class="ri-box-3-line me-2"></i>Initial Inventory Allocation
+        </h5>
+        <small class="text-muted">Transfer products from central inventory to this new store</small>
+      </div>
+      <div class="card-body">
+        <% if @available_products&.any? %>
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Category</th>
+                  <th>Available in Central</th>
+                  <th>Unit</th>
+                  <th>Allocate to Store</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @available_products.each do |product| %>
+                  <% available_qty = @inventory_data[product.id][:available] %>
+                  <tr>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <strong><%= product.name %></strong>
+                        <br>
+                        <small class="text-muted">SKU: <%= product.sku %></small>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="badge bg-light text-dark"><%= @inventory_data[product.id][:category] %></span>
+                    </td>
+                    <td>
+                      <span class="badge bg-success">
+                        <%= available_qty %> <%= @inventory_data[product.id][:unit] %>
+                      </span>
+                    </td>
+                    <td><%= @inventory_data[product.id][:unit] %></td>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <%= number_field_tag "inventory_allocations[#{product.id}][quantity]",
+                            nil,
+                            class: "form-control me-2",
+                            placeholder: "0",
+                            min: 0,
+                            max: available_qty,
+                            step: 0.01,
+                            style: "width: 120px;",
+                            onchange: "updateAllocation(#{product.id}, this.value, #{available_qty})" %>
+                        <%= hidden_field_tag "inventory_allocations[#{product.id}][product_name]", product.name %>
+                        <%= hidden_field_tag "inventory_allocations[#{product.id}][unit]", @inventory_data[product.id][:unit] %>
+                        <span class="text-muted small" id="remaining-#{product.id}">
+                          Remaining: <span id="remaining-qty-#{product.id}"><%= available_qty %></span>
+                        </span>
+                      </div>
+                      <div class="invalid-feedback" id="error-#{product.id}" style="display: none;">
+                        Allocation cannot exceed available quantity
+                      </div>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="alert alert-info">
+            <i class="ri-information-line me-2"></i>
+            <strong>Note:</strong> Products will be transferred from central inventory to this store immediately upon creation.
+            Remaining quantities will stay in central inventory for future allocations.
+          </div>
+
+          <div class="mt-3">
+            <h6>Allocation Summary</h6>
+            <div id="allocation-summary" class="text-muted">
+              No products allocated yet
+            </div>
+          </div>
+        <% else %>
+          <div class="alert alert-warning">
+            <i class="ri-alert-line me-2"></i>
+            <strong>No Products Available:</strong> There are no products with available inventory in central storage to allocate to this store.
+            You can add products later through the inventory transfer system.
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
 
   <div class="pt-4">
-    <%= form.submit store.new_record? ? "Create Store" : "Update Store", class: "btn btn-primary me-2" %>
+    <%= form.submit store.new_record? ? "Create Store & Setup" : "Update Store", class: "btn btn-primary me-2" %>
     <%= link_to "Cancel", admin_stores_path, class: "btn btn-label-secondary" %>
   </div>
+
+  <script>
+    function toggleAdminSection() {
+      const checkbox = document.querySelector('input[name="store[create_admin_user]"]');
+      const section = document.getElementById('admin-section');
+      const inputs = section.querySelectorAll('input[required]');
+
+      if (checkbox.checked) {
+        section.style.display = 'block';
+        inputs.forEach(input => input.required = true);
+      } else {
+        section.style.display = 'none';
+        inputs.forEach(input => input.required = false);
+      }
+    }
+
+    function updateAllocation(productId, allocatedQty, availableQty) {
+      const remaining = availableQty - parseFloat(allocatedQty || 0);
+      const remainingSpan = document.getElementById(`remaining-qty-${productId}`);
+      const errorDiv = document.getElementById(`error-${productId}`);
+      const input = document.querySelector(`input[name="inventory_allocations[${productId}][quantity]"]`);
+
+      if (remaining < 0) {
+        errorDiv.style.display = 'block';
+        input.classList.add('is-invalid');
+        remainingSpan.textContent = availableQty;
+      } else {
+        errorDiv.style.display = 'none';
+        input.classList.remove('is-invalid');
+        remainingSpan.textContent = remaining;
+      }
+
+      updateAllocationSummary();
+    }
+
+    function updateAllocationSummary() {
+      const summaryDiv = document.getElementById('allocation-summary');
+      const allocations = [];
+
+      document.querySelectorAll('input[name*="inventory_allocations"][name*="[quantity]"]').forEach(input => {
+        const qty = parseFloat(input.value || 0);
+        if (qty > 0) {
+          const productId = input.name.match(/\[(\d+)\]/)[1];
+          const productName = document.querySelector(`input[name="inventory_allocations[${productId}][product_name]"]`).value;
+          const unit = document.querySelector(`input[name="inventory_allocations[${productId}][unit]"]`).value;
+          allocations.push(`${productName}: ${qty} ${unit}`);
+        }
+      });
+
+      if (allocations.length > 0) {
+        summaryDiv.innerHTML = '<strong>Will be transferred:</strong><br>' + allocations.join('<br>');
+      } else {
+        summaryDiv.innerHTML = 'No products allocated yet';
+      }
+    }
+
+    // Initialize admin section visibility
+    document.addEventListener('DOMContentLoaded', function() {
+      toggleAdminSection();
+    });
+  </script>
 <% end %>

@@ -1,4 +1,43 @@
 Rails.application.routes.draw do
+  # Store Admin Routes
+  namespace :store_admin do
+    root 'dashboard#index'
+
+    resources :inventory, only: [:index, :show] do
+      member do
+        get :adjust_stock
+        patch :update_stock
+      end
+      collection do
+        get :low_stock
+        get :movements
+      end
+    end
+
+    resources :bookings do
+      member do
+        patch :update_status
+        patch :cancel
+      end
+      collection do
+        get :daily_summary
+      end
+    end
+
+    resources :transfers, path: 'inventory-transfers' do
+      member do
+        patch :cancel
+        patch :receive
+      end
+      collection do
+        get :check_availability
+      end
+    end
+
+    resources :customers, only: [:index, :show, :new, :create]
+    resources :reports, only: [:index, :show]
+  end
+
   # Vendor invoice public view
   get '/vendor_invoice/:token', to: 'vendor_invoices#public_view', as: 'vendor_invoice_public'
   # Product Reviews
@@ -317,6 +356,27 @@ Rails.application.routes.draw do
     resources :stores do
       member do
         patch :toggle_status
+        get :assign_admin
+        patch :update_admin
+        get :inventory
+        get :transfer_inventory
+      end
+      collection do
+        get :get_product_availability
+      end
+    end
+
+    # Store Inventory Transfer Management
+    resources :inventory_transfers, path: 'store-transfers' do
+      member do
+        patch :approve
+        patch :reject
+        patch :cancel
+        patch :update_shipping
+      end
+      collection do
+        patch :bulk_approve
+        get :analytics
       end
     end
 

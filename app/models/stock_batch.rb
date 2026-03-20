@@ -2,6 +2,7 @@ class StockBatch < ApplicationRecord
   belongs_to :product
   belongs_to :vendor
   belongs_to :vendor_purchase, optional: true
+  belongs_to :store, optional: true
   has_many :sale_items, dependent: :restrict_with_error
 
   validates :quantity_purchased, presence: true, numericality: { greater_than: 0 }
@@ -14,6 +15,8 @@ class StockBatch < ApplicationRecord
   scope :exhausted, -> { where(status: 'exhausted') }
   scope :expired, -> { where(status: 'expired') }
   scope :by_fifo, -> { order(:batch_date, :created_at) }
+  scope :for_store, ->(store_id) { where(store_id: store_id) }
+  scope :available_in_store, ->(store_id) { active.for_store(store_id).where('quantity_remaining > 0') }
 
   before_save :update_status
   after_update :mark_as_exhausted_if_needed
@@ -113,6 +116,41 @@ class StockBatch < ApplicationRecord
       fulfilled: remaining_needed <= 0,
       shortage: remaining_needed > 0 ? remaining_needed : 0
     }
+  end
+
+  # Store-specific FIFO allocation
+  def self.fifo_allocation_for_store(product_id, store_id, requested_quantity)
+    batches = where(product_id: product_id, store_id: store_id, status: 'active')
+             .where('quantity_remaining > 0')
+             .order(:batch_date, :created_at)
+
+    allocation = []
+    remaining_quantity = requested_quantity
+
+    batches.each do |batch|
+      break if remaining_quantity <= 0
+
+      allocate_from_batch = [batch.quantity_remaining, remaining_quantity].min
+
+      allocation << {
+        batch: batch,
+        quantity: allocate_from_batch,
+        purchase_price: batch.purchase_price,
+        selling_price: batch.selling_price
+      }
+
+      remaining_quantity -= allocate_from_batch
+    end
+
+    if remaining_quantity > 0
+      raise StandardError, "Insufficient stock in store. Need #{remaining_quantity} more units."
+    end
+
+    allocation
+  end
+
+  def store_name
+    store&.name || 'Central Inventory'
   end
 
   private

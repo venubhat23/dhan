@@ -549,6 +549,44 @@ class Product < ApplicationRecord
     "₹#{yesterday_price}"
   end
 
+  # Store-specific inventory methods
+  def available_in_store(store_id)
+    stock_batches.available_in_store(store_id).sum(:quantity_remaining)
+  end
+
+  def stores_with_inventory
+    Store.joins(:stock_batches)
+         .where(stock_batches: { product_id: id, status: 'active' })
+         .where('stock_batches.quantity_remaining > 0')
+         .distinct
+  end
+
+  def store_inventory_breakdown
+    stores_with_inventory.map do |store|
+      {
+        store: store,
+        available: available_in_store(store.id),
+        batches_count: stock_batches.available_in_store(store.id).count,
+        total_value: stock_batches.available_in_store(store.id).sum { |b| b.quantity_remaining * b.purchase_price }
+      }
+    end
+  end
+
+  def total_inventory_across_stores
+    stores_with_inventory.sum { |store| available_in_store(store.id) }
+  end
+
+  def store_with_most_inventory
+    breakdown = store_inventory_breakdown
+    return nil if breakdown.empty?
+
+    breakdown.max_by { |item| item[:available] }[:store]
+  end
+
+  def can_fulfill_from_store?(store_id, quantity)
+    available_in_store(store_id) >= quantity
+  end
+
   # Vendor Management Methods
   def total_batch_stock
     # Use cached value if available (from controller query)
