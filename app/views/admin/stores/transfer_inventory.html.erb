@@ -1,0 +1,583 @@
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1">Transfer Inventory</h2>
+    <p class="text-muted mb-0">Transfer products between stores</p>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><%= link_to "Stores", admin_stores_path %></li>
+        <li class="breadcrumb-item"><%= link_to @store.name, admin_store_path(@store) %></li>
+        <li class="breadcrumb-item active">Transfer Inventory</li>
+      </ol>
+    </nav>
+  </div>
+  <div>
+    <%= link_to admin_store_path(@store), class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-arrow-left me-1"></i>Back to Store
+    <% end %>
+  </div>
+</div>
+
+<!-- Transfer Form with Sidebar -->
+<div class="row">
+  <!-- Main Content -->
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="bi bi-box-arrow-right me-2"></i>Select Products to Transfer
+        </h5>
+        <small class="text-muted">Choose products and destination store for transfer</small>
+      </div>
+      <div class="card-body">
+        <%= form_with url: admin_inventory_transfers_path, method: :post, local: true, id: "transfer-form" do |form| %>
+          <%= hidden_field_tag "transfer[from_store_id]", @store.id %>
+
+          <!-- Target Store Selection -->
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <label class="form-label">Transfer To Store <span class="text-danger">*</span></label>
+              <%= select_tag "transfer[to_store_id]",
+                  options_from_collection_for_select(@other_stores, :id, :display_name),
+                  {
+                    include_blank: "Select destination store...",
+                    class: "form-select",
+                    required: true,
+                    onchange: "updateDestinationStore(this.value)"
+                  } %>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Transfer Notes</label>
+              <%= text_area_tag "transfer[notes]", nil,
+                  class: "form-control",
+                  rows: 2,
+                  placeholder: "Optional notes for this transfer..." %>
+            </div>
+          </div>
+
+          <!-- Search and Filter Controls -->
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" id="product-search" class="form-control" placeholder="Search products by name or SKU...">
+              </div>
+            </div>
+            <div class="col-md-3">
+              <select id="category-filter" class="form-select">
+                <option value="">All Categories</option>
+                <% @products.includes(:category).map(&:category).uniq.compact.each do |category| %>
+                  <option value="<%= category.name %>"><%= category.name %></option>
+                <% end %>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-primary btn-sm" onclick="selectAllProducts()">
+                  <i class="bi bi-check-all me-1"></i>Select All
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearAllProducts()">
+                  <i class="bi bi-x me-1"></i>Clear All
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Products Grid -->
+          <div class="row g-3" id="products-grid">
+            <% @products.each do |product| %>
+              <% available_qty = @store.available_inventory(product.id) %>
+              <div class="col-md-6 col-lg-4 product-card"
+                   data-product-name="<%= product.name.downcase %>"
+                   data-product-sku="<%= product.sku.downcase %>"
+                   data-category="<%= product.category&.name || 'Uncategorized' %>"
+                   data-price="<%= product.price || 0 %>"
+                   data-available="<%= available_qty %>">
+                <div class="card h-100" id="product-card-<%= product.id %>">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                      <div class="form-check">
+                        <input class="form-check-input product-checkbox"
+                               type="checkbox"
+                               id="select-<%= product.id %>"
+                               onchange="toggleProductTransfer(<%= product.id %>)">
+                        <label class="form-check-label fw-bold" for="select-<%= product.id %>">
+                          <%= product.name %>
+                        </label>
+                      </div>
+                      <span class="badge bg-light text-dark"><%= product.category&.name || 'No Category' %></span>
+                    </div>
+
+                    <div class="text-muted small mb-2">
+                      <i class="bi bi-upc me-1"></i>SKU: <%= product.sku %>
+                    </div>
+
+                    <div class="row align-items-center mb-3">
+                      <div class="col">
+                        <% if available_qty > 0 %>
+                          <span class="text-success fw-semibold">
+                            <i class="bi bi-boxes me-1"></i><%= available_qty %> <%= product.unit_type %>
+                          </span>
+                          <small class="text-muted d-block">Available in this store</small>
+                        <% else %>
+                          <span class="text-danger fw-semibold">
+                            <i class="bi bi-x-circle me-1"></i>Out of Stock
+                          </span>
+                          <small class="text-muted d-block">No inventory available</small>
+                        <% end %>
+                      </div>
+                      <% if product.price && product.price > 0 %>
+                        <div class="col-auto text-end">
+                          <div class="fw-bold text-primary">₹<%= number_with_delimiter(product.price) %></div>
+                          <small class="text-muted">per <%= product.unit_type %></small>
+                        </div>
+                      <% end %>
+                    </div>
+
+                    <!-- Transfer Controls (hidden by default) -->
+                    <div id="transfer-controls-<%= product.id %>" class="transfer-controls" style="display: none;">
+                      <hr class="my-2">
+                      <div class="bg-light p-3 rounded">
+                        <h6 class="text-primary mb-2">
+                          <i class="bi bi-arrow-right me-1"></i>Transfer Quantity
+                        </h6>
+                        <div class="row align-items-end">
+                          <div class="col-7">
+                            <%= number_field_tag "transfer_items[#{product.id}][quantity]",
+                                nil,
+                                class: "form-control form-control-sm",
+                                placeholder: "Quantity",
+                                min: 0,
+                                max: available_qty,
+                                step: 0.01,
+                                id: "qty-#{product.id}",
+                                onchange: "updateTransferQuantity(#{product.id}, this.value, #{available_qty})",
+                                disabled: available_qty <= 0 %>
+                            <%= hidden_field_tag "transfer_items[#{product.id}][product_id]", product.id %>
+                          </div>
+                          <div class="col-5">
+                            <button type="button"
+                                    class="btn btn-outline-primary btn-sm w-100"
+                                    onclick="setMaxTransferQuantity(<%= product.id %>, <%= available_qty %>)"
+                                    <%= "disabled" if available_qty <= 0 %>>
+                              <i class="bi bi-arrow-up me-1"></i>Max
+                            </button>
+                          </div>
+                        </div>
+                        <div class="mt-2">
+                          <small class="text-muted" id="remaining-<%= product.id %>">
+                            Remaining after transfer: <span id="remaining-qty-<%= product.id %>"><%= available_qty %></span> <%= product.unit_type %>
+                          </small>
+                        </div>
+                        <div class="invalid-feedback" id="error-<%= product.id %>" style="display: none;">
+                          Transfer quantity cannot exceed available inventory
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+
+          <!-- No Products Message -->
+          <div id="no-products-message" class="text-center py-4" style="display: none;">
+            <i class="bi bi-search text-muted" style="font-size: 2rem;"></i>
+            <p class="text-muted mt-2">No products found matching your search criteria</p>
+          </div>
+
+          <!-- Transfer Summary -->
+          <div class="mt-4 p-3 bg-light rounded">
+            <h6 class="mb-2">Transfer Summary</h6>
+            <div id="transfer-summary" class="text-muted">
+              No products selected for transfer
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <div class="mt-4">
+            <button type="submit" class="btn btn-primary" id="submit-transfer" disabled>
+              <i class="bi bi-send me-1"></i>Create Transfer Request
+            </button>
+            <%= link_to "Cancel", admin_store_path(@store), class: "btn btn-secondary ms-2" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar Transfer Tracker -->
+  <div class="col-lg-4">
+    <div class="card mb-4 sticky-top" style="top: 20px;">
+      <div class="card-header bg-primary text-white">
+        <h6 class="mb-0">
+          <i class="bi bi-arrow-left-right me-2"></i>Transfer Manager
+        </h6>
+      </div>
+      <div class="card-body p-0">
+        <!-- Store Information -->
+        <div class="p-3 border-bottom">
+          <h6 class="text-muted mb-2">
+            <i class="bi bi-shop me-1"></i>Source Store
+          </h6>
+          <div class="fw-semibold"><%= @store.name %></div>
+          <small class="text-muted"><%= @store.city %>, <%= @store.state %></small>
+          <div class="mt-2">
+            <span class="badge bg-success">
+              <%= @products.count %> products available
+            </span>
+          </div>
+        </div>
+
+        <!-- Destination Store Info -->
+        <div class="p-3 border-bottom" id="destination-info" style="display: none;">
+          <h6 class="text-muted mb-2">
+            <i class="bi bi-geo-alt me-1"></i>Destination Store
+          </h6>
+          <div id="destination-name" class="fw-semibold">Select a destination store</div>
+          <div id="destination-location" class="text-muted small"></div>
+        </div>
+
+        <!-- Transfer Summary -->
+        <div class="p-3 border-bottom">
+          <h6 class="text-muted mb-2">
+            <i class="bi bi-list-check me-1"></i>Transfer Summary
+          </h6>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span>Selected Products:</span>
+            <span class="badge bg-warning" id="selected-count">0</span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span>Total Quantity:</span>
+            <span class="badge bg-info" id="total-quantity">0</span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <span>Total Value:</span>
+            <span class="badge bg-success" id="transfer-value">₹0</span>
+          </div>
+        </div>
+
+        <!-- Selected Items List -->
+        <div class="selected-items-list" style="max-height: 300px; overflow-y: auto;">
+          <div class="p-3">
+            <h6 class="text-muted mb-3">Selected Items</h6>
+            <div id="selected-items-container">
+              <div class="text-center text-muted py-3" id="no-items-selected">
+                <i class="bi bi-box fs-4"></i>
+                <p class="small mb-0 mt-2">No items selected</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="p-3 border-top">
+          <div class="d-grid gap-2">
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="selectAllProducts()">
+              <i class="bi bi-check-all me-1"></i>Select All Available
+            </button>
+            <button type="button" class="btn btn-outline-danger btn-sm" onclick="clearAllProducts()">
+              <i class="bi bi-x me-1"></i>Clear Selection
+            </button>
+            <button type="button" class="btn btn-outline-info btn-sm" onclick="autoSelectLowStock()">
+              <i class="bi bi-exclamation-triangle me-1"></i>Auto-Select Low Stock
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Store Stats -->
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0">
+          <i class="bi bi-bar-chart me-1"></i>Store Statistics
+        </h6>
+      </div>
+      <div class="card-body">
+        <div class="row text-center">
+          <div class="col-6">
+            <div class="border-end">
+              <div class="h5 text-primary mb-1"><%= @products.count %></div>
+              <small class="text-muted">Total Products</small>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="h5 text-success mb-1">
+              ₹<%= number_with_delimiter(@products.joins(:stock_batches).where(stock_batches: { store: @store, status: 'active' }).sum('stock_batches.quantity_remaining * stock_batches.selling_price').round) %>
+            </div>
+            <small class="text-muted">Inventory Value</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Transfer management functions
+  function updateDestinationStore(storeId) {
+    const destinationInfo = document.getElementById('destination-info');
+    const destinationName = document.getElementById('destination-name');
+    const destinationLocation = document.getElementById('destination-location');
+
+    if (storeId) {
+      // Find store info from the select options
+      const selectElement = document.querySelector('select[name="transfer[to_store_id]"]');
+      const selectedOption = selectElement.options[selectElement.selectedIndex];
+      const storeName = selectedOption.text;
+
+      destinationName.textContent = storeName;
+      destinationLocation.textContent = 'Destination selected';
+      destinationInfo.style.display = 'block';
+    } else {
+      destinationInfo.style.display = 'none';
+    }
+
+    updateSubmitButton();
+  }
+
+  function toggleProductTransfer(productId) {
+    const checkbox = document.getElementById(`select-${productId}`);
+    const controls = document.getElementById(`transfer-controls-${productId}`);
+    const card = document.getElementById(`product-card-${productId}`);
+
+    if (checkbox.checked) {
+      controls.style.display = 'block';
+      card.classList.add('border-primary');
+    } else {
+      controls.style.display = 'none';
+      card.classList.remove('border-primary');
+      // Clear quantity
+      const qtyInput = document.getElementById(`qty-${productId}`);
+      if (qtyInput) {
+        qtyInput.value = '';
+      }
+    }
+
+    updateTransferSummary();
+  }
+
+  function updateTransferQuantity(productId, quantity, availableQty) {
+    const remaining = availableQty - parseFloat(quantity || 0);
+    const remainingSpan = document.getElementById(`remaining-qty-${productId}`);
+    const errorDiv = document.getElementById(`error-${productId}`);
+    const input = document.getElementById(`qty-${productId}`);
+
+    if (remaining < 0) {
+      errorDiv.style.display = 'block';
+      input.classList.add('is-invalid');
+    } else {
+      errorDiv.style.display = 'none';
+      input.classList.remove('is-invalid');
+      remainingSpan.textContent = remaining.toFixed(2);
+    }
+
+    updateTransferSummary();
+  }
+
+  function setMaxTransferQuantity(productId, maxQty) {
+    const qtyInput = document.getElementById(`qty-${productId}`);
+    if (qtyInput) {
+      qtyInput.value = maxQty;
+      updateTransferQuantity(productId, maxQty, maxQty);
+    }
+  }
+
+  function updateTransferSummary() {
+    const summaryDiv = document.getElementById('transfer-summary');
+    const selectedContainer = document.getElementById('selected-items-container');
+    const noItemsSelected = document.getElementById('no-items-selected');
+
+    const transfers = [];
+    let totalValue = 0;
+    let totalQuantity = 0;
+    let selectedCount = 0;
+
+    // Clear container
+    selectedContainer.innerHTML = '';
+
+    document.querySelectorAll('.product-checkbox:checked').forEach(checkbox => {
+      const productId = checkbox.id.replace('select-', '');
+      const qtyInput = document.getElementById(`qty-${productId}`);
+      const qty = parseFloat(qtyInput.value || 0);
+
+      if (qty > 0) {
+        selectedCount++;
+        totalQuantity += qty;
+
+        const productCard = document.querySelector(`[data-product-name]#product-card-${productId}`).closest('.product-card');
+        const productName = checkbox.nextElementSibling.textContent.trim();
+        const pricePerUnit = parseFloat(productCard.dataset.price || 0);
+        const itemValue = qty * pricePerUnit;
+        totalValue += itemValue;
+
+        transfers.push(`${productName}: ${qty} units`);
+
+        // Add to sidebar
+        const item = document.createElement('div');
+        item.className = 'border rounded p-2 mb-2 bg-light';
+        item.innerHTML = `
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="flex-grow-1">
+              <div class="fw-semibold small">${productName}</div>
+              <div class="text-muted small">${qty} units</div>
+            </div>
+            <div class="text-end">
+              <div class="small text-success">₹${itemValue.toFixed(2)}</div>
+            </div>
+          </div>
+        `;
+        selectedContainer.appendChild(item);
+      }
+    });
+
+    // Update summary
+    if (transfers.length > 0) {
+      summaryDiv.innerHTML = `<strong>Items to transfer:</strong><br>${transfers.join('<br>')}`;
+      noItemsSelected.style.display = 'none';
+    } else {
+      summaryDiv.innerHTML = 'No products selected for transfer';
+      noItemsSelected.style.display = 'block';
+    }
+
+    // Update sidebar badges
+    document.getElementById('selected-count').textContent = selectedCount;
+    document.getElementById('total-quantity').textContent = totalQuantity.toFixed(2);
+    document.getElementById('transfer-value').textContent = `₹${totalValue.toFixed(2)}`;
+
+    updateSubmitButton();
+  }
+
+  function updateSubmitButton() {
+    const submitBtn = document.getElementById('submit-transfer');
+    const destinationSelected = document.querySelector('select[name="transfer[to_store_id]"]').value;
+    const itemsSelected = document.querySelectorAll('.product-checkbox:checked').length > 0;
+    const hasValidQuantities = Array.from(document.querySelectorAll('.product-checkbox:checked')).some(checkbox => {
+      const productId = checkbox.id.replace('select-', '');
+      const qtyInput = document.getElementById(`qty-${productId}`);
+      return parseFloat(qtyInput.value || 0) > 0;
+    });
+
+    submitBtn.disabled = !(destinationSelected && itemsSelected && hasValidQuantities);
+  }
+
+  function selectAllProducts() {
+    document.querySelectorAll('.product-checkbox').forEach(checkbox => {
+      const productCard = checkbox.closest('.card');
+      const available = parseInt(productCard.closest('.product-card').dataset.available);
+
+      if (available > 0 && !checkbox.checked) {
+        checkbox.checked = true;
+        const productId = checkbox.id.replace('select-', '');
+        toggleProductTransfer(productId);
+      }
+    });
+  }
+
+  function clearAllProducts() {
+    document.querySelectorAll('.product-checkbox:checked').forEach(checkbox => {
+      checkbox.checked = false;
+      const productId = checkbox.id.replace('select-', '');
+      toggleProductTransfer(productId);
+    });
+  }
+
+  function autoSelectLowStock() {
+    clearAllProducts();
+
+    document.querySelectorAll('.product-checkbox').forEach(checkbox => {
+      const productCard = checkbox.closest('.card');
+      const available = parseInt(productCard.closest('.product-card').dataset.available);
+
+      // Select items with less than 20 units
+      if (available > 0 && available < 20) {
+        checkbox.checked = true;
+        const productId = checkbox.id.replace('select-', '');
+        toggleProductTransfer(productId);
+
+        // Set quantity to available amount
+        setMaxTransferQuantity(productId, available);
+      }
+    });
+  }
+
+  // Search and filter functionality
+  function filterProducts() {
+    const searchTerm = document.getElementById('product-search').value.toLowerCase();
+    const categoryFilter = document.getElementById('category-filter').value;
+    const productCards = document.querySelectorAll('.product-card');
+    let visibleCount = 0;
+
+    productCards.forEach(card => {
+      const productName = card.dataset.productName;
+      const productSku = card.dataset.productSku;
+      const category = card.dataset.category;
+
+      const matchesSearch = searchTerm === '' || productName.includes(searchTerm) || productSku.includes(searchTerm);
+      const matchesCategory = categoryFilter === '' || category === categoryFilter;
+
+      if (matchesSearch && matchesCategory) {
+        card.style.display = 'block';
+        visibleCount++;
+      } else {
+        card.style.display = 'none';
+      }
+    });
+
+    const noProductsMessage = document.getElementById('no-products-message');
+    if (visibleCount === 0) {
+      noProductsMessage.style.display = 'block';
+    } else {
+      noProductsMessage.style.display = 'none';
+    }
+  }
+
+  // Initialize event listeners
+  document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('product-search').addEventListener('input', filterProducts);
+    document.getElementById('category-filter').addEventListener('change', filterProducts);
+  });
+</script>
+
+<style>
+  .transfer-controls {
+    animation: slideDown 0.3s ease;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .card.border-primary {
+    border-color: #0d6efd !important;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+  }
+
+  .selected-items-list::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .selected-items-list::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 2px;
+  }
+
+  .sticky-top {
+    position: -webkit-sticky !important;
+    position: sticky !important;
+  }
+
+  @media (max-width: 991px) {
+    .sticky-top {
+      position: relative !important;
+    }
+  }
+</style>

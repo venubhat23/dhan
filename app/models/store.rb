@@ -12,7 +12,7 @@ class Store < ApplicationRecord
   has_many :incoming_transfers, class_name: 'StoreInventoryTransfer', foreign_key: 'to_store_id', dependent: :destroy
 
   # Virtual attributes for store creation form
-  attr_accessor :admin_email, :admin_password, :admin_first_name, :admin_last_name, :admin_mobile
+  attr_accessor :admin_username, :admin_email, :admin_password, :admin_first_name, :admin_last_name, :admin_mobile
   attr_accessor :create_admin_user, :initial_inventory_allocations
 
   # Validations
@@ -21,7 +21,8 @@ class Store < ApplicationRecord
   validates :city, presence: true, length: { maximum: 50 }
   validates :state, presence: true, length: { maximum: 50 }
   validates :pincode, presence: true, format: { with: /\A\d{6}\z/, message: "should be 6 digits" }
-  validates :contact_mobile, presence: true, format: { with: /\A[6-9]\d{9}\z/, message: "should be a valid Indian mobile number" }
+  validates :contact_mobile, presence: true
+  validate :validate_indian_mobile_number
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
   validates :contact_person, presence: true, length: { maximum: 100 }
   validates :description, length: { maximum: 1000 }, allow_blank: true
@@ -30,6 +31,9 @@ class Store < ApplicationRecord
   validate :check_maximum_stores_limit, on: :create
   validate :validate_admin_details, if: :create_admin_user
   validate :validate_inventory_allocations
+
+  # Callbacks
+  before_validation :normalize_contact_mobile
 
   # Scopes
   scope :active, -> { where(status: true) }
@@ -141,6 +145,8 @@ class Store < ApplicationRecord
 
   # Store creation with admin and inventory
   def create_with_admin_and_inventory!
+    return false unless valid?
+
     ActiveRecord::Base.transaction do
       # Save the store first
       save!
@@ -155,6 +161,20 @@ class Store < ApplicationRecord
         transfer_initial_inventory!
       end
     end
+
+    true
+  rescue ActiveRecord::RecordInvalid => e
+    # Add errors from failed saves to this object
+    if e.record == self
+      false
+    else
+      # If the error is from another model (like User), add a generic error
+      errors.add(:base, "Failed to create store: #{e.message}")
+      false
+    end
+  rescue StandardError => e
+    errors.add(:base, "An error occurred while creating the store: #{e.message}")
+    false
   end
 
   def available_products_for_allocation
@@ -169,6 +189,13 @@ class Store < ApplicationRecord
   def central_inventory_for_product(product_id)
     StockBatch.where(product_id: product_id, store_id: nil, status: 'active')
               .sum(:quantity_remaining)
+  end
+
+  def store_inventory_for_product(product_id)
+    return 0 if new_record?
+
+    stock_batches.where(product_id: product_id, status: 'active')
+                 .sum(:quantity_remaining)
   end
 
   private
@@ -187,18 +214,36 @@ class Store < ApplicationRecord
 
   def validate_admin_details
     if create_admin_user
-      errors.add(:admin_email, "can't be blank") if admin_email.blank?
+      errors.add(:admin_username, "can't be blank") if admin_username.blank?
       errors.add(:admin_password, "can't be blank") if admin_password.blank?
       errors.add(:admin_first_name, "can't be blank") if admin_first_name.blank?
       errors.add(:admin_last_name, "can't be blank") if admin_last_name.blank?
       errors.add(:admin_mobile, "can't be blank") if admin_mobile.blank?
 
+      # Create email from username for validation if admin_email is blank
+      if admin_username.present? && admin_email.blank?
+        self.admin_email = "#{admin_username}@#{name.downcase.gsub(/\s+/, '')}.store"
+      end
+
+      if admin_email.blank?
+        errors.add(:admin_email, "can't be blank after auto-generation")
+      end
+
       if admin_email.present? && User.exists?(email: admin_email)
         errors.add(:admin_email, "already exists")
       end
 
-      if admin_mobile.present? && User.exists?(mobile: admin_mobile)
-        errors.add(:admin_mobile, "already exists")
+      # Normalize and validate admin mobile
+      if admin_mobile.present?
+        normalized_admin_mobile = normalize_mobile_number(admin_mobile)
+        if normalized_admin_mobile.nil? || !normalized_admin_mobile.match?(/\A[6-9]\d{9}\z/)
+          errors.add(:admin_mobile, "should be a valid Indian mobile number")
+        elsif User.exists?(mobile: normalized_admin_mobile)
+          errors.add(:admin_mobile, "already exists")
+        else
+          # Store the normalized version
+          self.admin_mobile = normalized_admin_mobile
+        end
       end
 
       if admin_password.present? && admin_password.length < 6
@@ -229,6 +274,25 @@ class Store < ApplicationRecord
   end
 
   def create_store_admin_user!
+    # Comprehensive sidebar permissions for admin access
+    sidebar_permissions = {
+      'dashboard' => { 'view' => true },
+      'stores' => { 'view' => true, 'create' => true, 'update' => true, 'delete' => true },
+      'products' => { 'view' => true, 'create' => true, 'update' => true, 'delete' => true },
+      'categories' => { 'view' => true, 'create' => true, 'update' => true, 'delete' => true },
+      'inventory' => { 'view' => true, 'create' => true, 'update' => true, 'delete' => true },
+      'stock_batches' => { 'view' => true, 'create' => true, 'update' => true, 'delete' => true },
+      'stock_movements' => { 'view' => true, 'create' => true, 'update' => true, 'delete' => true },
+      'vendors' => { 'view' => true, 'create' => true, 'update' => true, 'delete' => true },
+      'bookings' => { 'view' => true, 'create' => true, 'update' => true, 'delete' => true },
+      'orders' => { 'view' => true, 'create' => true, 'update' => true, 'delete' => true },
+      'customers' => { 'view' => true, 'create' => true, 'update' => true, 'delete' => true },
+      'invoices' => { 'view' => true, 'create' => true, 'update' => true, 'delete' => true },
+      'reports' => { 'view' => true },
+      'settings' => { 'view' => true, 'update' => true },
+      'users' => { 'view' => true, 'create' => true, 'update' => true, 'delete' => true }
+    }
+
     user = User.create!(
       first_name: admin_first_name,
       last_name: admin_last_name,
@@ -236,15 +300,20 @@ class Store < ApplicationRecord
       mobile: admin_mobile,
       password: admin_password,
       password_confirmation: admin_password,
-      user_type: 'store_admin',
+      user_type: 'admin',  # Changed from 'store_admin' to 'admin' for full access
       assigned_store: self,
+      sidebar_permissions: sidebar_permissions.to_json,
+      permissions: 'all',  # Full permissions
       store_permissions: {
         'can_manage_inventory' => true,
         'can_create_bookings' => true,
         'can_view_reports' => true,
         'can_request_transfers' => true,
-        'can_approve_transfers' => false
-      }
+        'can_approve_transfers' => true  # Give full permissions
+      },
+      status: true,
+      is_active: true,
+      is_verified: true
     )
 
     update!(store_admin_user: user)
@@ -356,5 +425,44 @@ class Store < ApplicationRecord
       stock_after: quantity,
       notes: "Received #{quantity} units from central inventory"
     )
+  end
+
+  def normalize_contact_mobile
+    return unless contact_mobile.present?
+    self.contact_mobile = normalize_mobile_number(contact_mobile)
+  end
+
+  def normalize_mobile_number(mobile)
+    return nil unless mobile.present?
+
+    # Remove all non-digit characters
+    normalized = mobile.gsub(/\D/, '')
+
+    # Handle various formats
+    case normalized.length
+    when 10
+      # Already 10 digits, return as is
+      normalized
+    when 11
+      # Starts with 0 (remove the leading 0)
+      normalized.start_with?('0') ? normalized[1..10] : nil
+    when 12
+      # Starts with 91 (remove country code)
+      normalized.start_with?('91') ? normalized[2..11] : nil
+    when 13
+      # Starts with +91 format
+      normalized.start_with?('91') ? normalized[2..11] : nil
+    else
+      nil
+    end
+  end
+
+  def validate_indian_mobile_number
+    return unless contact_mobile.present?
+
+    # After normalization, check if it's a valid 10-digit Indian number
+    unless contact_mobile.match?(/\A[6-9]\d{9}\z/)
+      errors.add(:contact_mobile, "should be a valid Indian mobile number")
+    end
   end
 end

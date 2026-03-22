@@ -2,6 +2,7 @@ class Admin::StoresController < Admin::ApplicationController
   before_action :authenticate_user!
   before_action :set_store, only: [:show, :edit, :update, :destroy, :toggle_status, :assign_admin, :update_admin, :inventory, :transfer_inventory]
   before_action :check_collect_from_store_enabled, only: [:index, :new, :create]
+  skip_before_action :verify_authenticity_token, only: [:get_product_availability]
 
   def index
     @stores = Store.all.order(:name)
@@ -172,29 +173,61 @@ class Admin::StoresController < Admin::ApplicationController
 
   def prepare_inventory_data
     @inventory_data = {}
+    @total_inventory_value = 0
+
     @available_products&.each do |product|
+      available_qty = @store.central_inventory_for_product(product.id)
+      product_value = available_qty * (product.price || 0)
+      @total_inventory_value += product_value
+
       @inventory_data[product.id] = {
         name: product.name,
         category: product.category&.name,
-        available: @store.central_inventory_for_product(product.id),
-        unit: product.unit_type
+        available: available_qty,
+        unit: product.unit_type,
+        price: product.price || 0,
+        total_value: product_value
       }
     end
+
+    # Round to 2 decimal places
+    @total_inventory_value = @total_inventory_value.round(2)
   end
 
   def get_product_availability
     product_id = params[:product_id]
+    store_id = params[:store_id] # For checking existing store inventory if needed
+
     if product_id.present?
       product = Product.find(product_id)
-      available = Store.new.central_inventory_for_product(product_id)
+      store = store_id.present? ? Store.find(store_id) : Store.new
+
+      # Get central inventory availability
+      central_available = store.central_inventory_for_product(product_id)
+
+      # Get store inventory if store exists
+      store_available = store_id.present? ? store.store_inventory_for_product(product_id) : 0
 
       render json: {
-        available: available,
-        unit: product.unit_type,
-        name: product.name
+        success: true,
+        product: {
+          id: product.id,
+          name: product.name,
+          sku: product.sku,
+          unit: product.unit_type,
+          price: product.price || 0,
+          category: product.category&.name
+        },
+        inventory: {
+          central_available: central_available,
+          store_available: store_available,
+          total_available: central_available + store_available
+        }
       }
     else
-      render json: { error: 'Product ID required' }, status: :bad_request
+      render json: { success: false, error: 'Product ID required' }, status: :bad_request
     end
+  rescue ActiveRecord::RecordNotFound
+    render json: { success: false, error: 'Product or Store not found' }, status: :not_found
   end
 end

@@ -1,9 +1,7 @@
 class AddStoreAdminToUsers < ActiveRecord::Migration[8.0]
   def up
-    # Add store_admin to user_type enum
-    execute <<-SQL
-      ALTER TYPE user_type_enum ADD VALUE IF NOT EXISTS 'store_admin';
-    SQL
+    # Note: user_type is a string column, not an enum
+    # No need to alter enum - 'store_admin' can be used directly
 
     # Add additional fields for store admin functionality
     add_column :users, :store_permissions, :json, default: {}
@@ -16,9 +14,9 @@ class AddStoreAdminToUsers < ActiveRecord::Migration[8.0]
       'daily_reports' => false
     }
 
-    # Add indexes
-    add_index :users, :user_type, name: 'index_users_on_user_type'
-    add_index :users, :assigned_store_id, name: 'index_users_on_assigned_store'
+    # Add indexes (only if they don't exist)
+    add_index :users, :user_type, name: 'index_users_on_user_type' unless index_exists?(:users, :user_type, name: 'index_users_on_user_type')
+    add_index :users, :assigned_store_id, name: 'index_users_on_assigned_store' unless index_exists?(:users, :assigned_store_id, name: 'index_users_on_assigned_store')
   end
 
   def down

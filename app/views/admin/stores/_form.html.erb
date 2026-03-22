@@ -113,101 +113,234 @@
       <div class="card-body" id="admin-section">
         <div class="row mb-3">
           <div class="col-md-6">
-            <label class="form-label">Admin Email <span class="text-danger">*</span></label>
-            <%= form.email_field :admin_email, class: "form-control", placeholder: "admin@example.com" %>
+            <label class="form-label">Username <span class="text-danger">*</span></label>
+            <%= form.text_field :admin_username, class: "form-control", placeholder: "admin_username", id: "admin_username" %>
           </div>
           <div class="col-md-6">
             <label class="form-label">Admin Password <span class="text-danger">*</span></label>
-            <%= form.password_field :admin_password, class: "form-control", placeholder: "Minimum 6 characters" %>
+            <%= form.password_field :admin_password, class: "form-control", placeholder: "Minimum 6 characters", id: "admin_password" %>
+          </div>
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Admin Email</label>
+            <%= form.email_field :admin_email, class: "form-control", placeholder: "Will be auto-generated if empty", id: "admin_email" %>
+            <small class="text-muted">Leave empty to auto-generate from username</small>
           </div>
         </div>
 
         <div class="row mb-3">
           <div class="col-md-6">
             <label class="form-label">First Name <span class="text-danger">*</span></label>
-            <%= form.text_field :admin_first_name, class: "form-control", placeholder: "Enter first name" %>
+            <%= form.text_field :admin_first_name, class: "form-control", placeholder: "Enter first name", id: "admin_first_name" %>
           </div>
           <div class="col-md-6">
             <label class="form-label">Last Name <span class="text-danger">*</span></label>
-            <%= form.text_field :admin_last_name, class: "form-control", placeholder: "Enter last name" %>
+            <%= form.text_field :admin_last_name, class: "form-control", placeholder: "Enter last name", id: "admin_last_name" %>
           </div>
         </div>
 
         <div class="row mb-3">
           <div class="col-md-6">
             <label class="form-label">Mobile Number <span class="text-danger">*</span></label>
-            <%= form.text_field :admin_mobile, class: "form-control", placeholder: "10-digit mobile number" %>
+            <%= form.text_field :admin_mobile, class: "form-control", placeholder: "10-digit mobile number", id: "admin_mobile" %>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Initial Inventory Allocation Section -->
-    <div class="card mb-4">
-      <div class="card-header">
-        <h5 class="card-title mb-0">
-          <i class="ri-box-3-line me-2"></i>Initial Inventory Allocation
-        </h5>
-        <small class="text-muted">Transfer products from central inventory to this new store</small>
-      </div>
-      <div class="card-body">
+    <div class="row">
+      <!-- Main Content -->
+      <div class="col-12">
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">
+              <i class="ri-box-3-line me-2"></i>Initial Inventory Allocation
+            </h5>
+            <small class="text-muted">Choose and transfer products from central inventory to this new store</small>
+          </div>
+          <div class="card-body">
         <% if @available_products&.any? %>
-          <div class="table-responsive">
-            <table class="table table-hover">
-              <thead>
-                <tr>
-                  <th>Product</th>
-                  <th>Category</th>
-                  <th>Available in Central</th>
-                  <th>Unit</th>
-                  <th>Allocate to Store</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% @available_products.each do |product| %>
-                  <% available_qty = @inventory_data[product.id][:available] %>
-                  <tr>
-                    <td>
-                      <div class="d-flex align-items-center">
-                        <strong><%= product.name %></strong>
-                        <br>
-                        <small class="text-muted">SKU: <%= product.sku %></small>
-                      </div>
-                    </td>
-                    <td>
-                      <span class="badge bg-light text-dark"><%= @inventory_data[product.id][:category] %></span>
-                    </td>
-                    <td>
-                      <span class="badge bg-success">
-                        <%= available_qty %> <%= @inventory_data[product.id][:unit] %>
-                      </span>
-                    </td>
-                    <td><%= @inventory_data[product.id][:unit] %></td>
-                    <td>
-                      <div class="d-flex align-items-center">
-                        <%= number_field_tag "inventory_allocations[#{product.id}][quantity]",
-                            nil,
-                            class: "form-control me-2",
-                            placeholder: "0",
-                            min: 0,
-                            max: available_qty,
-                            step: 0.01,
-                            style: "width: 120px;",
-                            onchange: "updateAllocation(#{product.id}, this.value, #{available_qty})" %>
-                        <%= hidden_field_tag "inventory_allocations[#{product.id}][product_name]", product.name %>
-                        <%= hidden_field_tag "inventory_allocations[#{product.id}][unit]", @inventory_data[product.id][:unit] %>
-                        <span class="text-muted small" id="remaining-#{product.id}">
-                          Remaining: <span id="remaining-qty-#{product.id}"><%= available_qty %></span>
-                        </span>
-                      </div>
-                      <div class="invalid-feedback" id="error-#{product.id}" style="display: none;">
-                        Allocation cannot exceed available quantity
-                      </div>
-                    </td>
-                  </tr>
+          <!-- Search and Filter Controls -->
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="input-group">
+                <span class="input-group-text"><i class="ri-search-line"></i></span>
+                <input type="text" id="product-search" class="form-control" placeholder="Search products by name or SKU...">
+              </div>
+            </div>
+            <div class="col-md-3">
+              <select id="category-filter" class="form-select">
+                <option value="">All Categories</option>
+                <% @available_products.includes(:category).map(&:category).uniq.each do |category| %>
+                  <option value="<%= category.name %>"><%= category.name %></option>
                 <% end %>
-              </tbody>
-            </table>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-primary btn-sm" onclick="selectAllProducts()">
+                  <i class="ri-checkbox-multiple-line me-1"></i>Select All
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearAllProducts()">
+                  <i class="ri-checkbox-blank-line me-1"></i>Clear All
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Product Cards Grid - Booking Style -->
+          <div class="row g-3" id="products-grid">
+            <% @available_products.each do |product| %>
+              <% available_qty = @inventory_data[product.id][:available] %>
+              <% current_stock = available_qty.to_i %>
+              <div class="col-md-4 col-lg-3 product-card" data-product-name="<%= product.name.downcase %>" data-product-sku="<%= product.sku.downcase %>" data-category="<%= @inventory_data[product.id][:category] %>" data-price="<%= product.price || 0 %>" data-product-id="<%= product.id %>">
+                <div class="card h-100 border-0 shadow-sm hover-lift" id="product-card-<%= product.id %>">
+
+                  <!-- Product Image with Overlay -->
+                  <div class="position-relative">
+                    <% if product.image_url.present? %>
+                      <img src="<%= product.image_url %>" class="card-img-top product-image" style="height: 200px; object-fit: cover;" alt="<%= product.name %>">
+                    <% elsif product.respond_to?(:images) && product.images.respond_to?(:attached?) && product.images.attached? && product.images.any? %>
+                      <%= image_tag product.images.first, class: "card-img-top product-image", style: "height: 200px; object-fit: cover;" %>
+                    <% else %>
+                      <div class="card-img-top bg-gradient d-flex align-items-center justify-content-center" style="height: 200px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <div class="text-center text-white">
+                          <i class="ri-box-3-line" style="font-size: 3rem; opacity: 0.7;"></i>
+                          <div class="mt-2 fw-semibold"><%= product.category&.name || 'Product' %></div>
+                        </div>
+                      </div>
+                    <% end %>
+
+                    <!-- Selection Overlay -->
+                    <div class="position-absolute top-0 start-0 w-100 h-100 selection-overlay d-flex align-items-center justify-content-center" style="background: rgba(13, 110, 253, 0.8); opacity: 0; transition: opacity 0.3s;">
+                      <div class="text-white text-center">
+                        <i class="ri-checkbox-circle-line" style="font-size: 3rem;"></i>
+                        <div class="mt-2 fw-bold">SELECTED</div>
+                      </div>
+                    </div>
+
+                    <!-- Stock Badge -->
+                    <% if current_stock == 0 %>
+                      <span class="position-absolute top-0 end-0 badge bg-danger m-2">
+                        <i class="ri-close-circle-line me-1"></i>Out of Stock
+                      </span>
+                    <% elsif current_stock < 20 %>
+                      <span class="position-absolute top-0 end-0 badge bg-warning text-dark m-2">
+                        <i class="ri-error-warning-line me-1"></i>Low Stock (<%= current_stock %> left)
+                      </span>
+                    <% else %>
+                      <span class="position-absolute top-0 end-0 badge bg-success m-2">
+                        <i class="ri-check-circle-line me-1"></i><%= current_stock %> in stock
+                      </span>
+                    <% end %>
+
+                    <!-- Price Badge -->
+                    <% if product.price && product.price > 0 %>
+                      <span class="position-absolute bottom-0 start-0 badge bg-dark m-2">
+                        <i class="ri-price-tag-3-line me-1"></i>₹<%= number_with_delimiter(product.price) %>
+                      </span>
+                    <% end %>
+
+                    <!-- Selection Checkbox -->
+                    <div class="position-absolute top-0 start-0 m-3">
+                      <div class="form-check">
+                        <input class="form-check-input product-checkbox" type="checkbox" id="select-<%= product.id %>" onchange="toggleProductAllocation(<%= product.id %>)" style="transform: scale(1.3);">
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Product Details -->
+                  <div class="card-body d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                      <small class="text-muted text-uppercase fw-semibold tracking-wide"><%= @inventory_data[product.id][:category] || 'Uncategorized' %></small>
+                    </div>
+
+                    <!-- Product Name -->
+                    <h6 class="card-title mb-2 fw-bold" style="line-height: 1.3;">
+                      <label for="select-<%= product.id %>" class="cursor-pointer text-decoration-none text-dark">
+                        <%= product.name %>
+                      </label>
+                    </h6>
+
+                    <!-- SKU -->
+                    <div class="text-muted small mb-3 d-flex align-items-center">
+                      <i class="ri-barcode-line me-2 text-primary"></i>
+                      <span>SKU: <%= product.sku %></span>
+                    </div>
+
+                    <!-- Stock Info -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                      <div class="text-success fw-semibold">
+                        <i class="ri-database-line me-1"></i><%= available_qty %> <%= @inventory_data[product.id][:unit] %>
+                        <small class="d-block text-muted">Available</small>
+                      </div>
+                      <% if product.price && product.price > 0 %>
+                        <div class="text-end">
+                          <div class="fw-bold text-primary">₹<%= number_with_delimiter(product.price) %></div>
+                          <small class="text-muted">per <%= @inventory_data[product.id][:unit] %></small>
+                        </div>
+                      <% end %>
+                    </div>
+
+                    <!-- Allocation Controls (hidden by default) -->
+                    <div id="allocation-controls-<%= product.id %>" class="allocation-controls mt-auto" style="display: none;">
+                      <hr class="my-3">
+                      <div class="bg-light p-3 rounded-3">
+                        <h6 class="text-primary mb-3">
+                          <i class="ri-settings-3-line me-2"></i>Allocation Settings
+                        </h6>
+
+                        <div class="row align-items-end">
+                          <div class="col-8">
+                            <label class="form-label small text-muted mb-1">Quantity to Transfer</label>
+                            <%= number_field_tag "inventory_allocations[#{product.id}][quantity]",
+                                nil,
+                                class: "form-control",
+                                placeholder: "0",
+                                min: 0,
+                                max: available_qty,
+                                step: 0.01,
+                                id: "qty-#{product.id}",
+                                onchange: "updateAllocation(#{product.id}, this.value, #{available_qty})" %>
+                            <%= hidden_field_tag "inventory_allocations[#{product.id}][product_name]", product.name %>
+                            <%= hidden_field_tag "inventory_allocations[#{product.id}][unit]", @inventory_data[product.id][:unit] %>
+                          </div>
+                          <div class="col-4">
+                            <button type="button" class="btn btn-primary btn-sm w-100" onclick="setMaxQuantity(<%= product.id %>, <%= available_qty %>)">
+                              <i class="ri-arrow-up-line me-1"></i>Max
+                            </button>
+                          </div>
+                        </div>
+
+                        <div class="mt-2 d-flex justify-content-between align-items-center">
+                          <small class="text-success" id="remaining-<%= product.id %>">
+                            <i class="ri-check-line me-1"></i>Remaining: <span id="remaining-qty-<%= product.id %>"><%= available_qty %></span> <%= @inventory_data[product.id][:unit] %>
+                          </small>
+                          <% if product.price && product.price > 0 %>
+                            <small class="text-primary fw-semibold" id="value-<%= product.id %>">
+                              Value: ₹<span id="transfer-value-<%= product.id %>">0</span>
+                            </small>
+                          <% end %>
+                        </div>
+
+                        <div class="invalid-feedback" id="error-<%= product.id %>" style="display: none;">
+                          <i class="ri-error-warning-line me-1"></i>Allocation cannot exceed available quantity
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+
+          <!-- No Products Found Message -->
+          <div id="no-products-message" class="text-center py-4" style="display: none;">
+            <i class="ri-search-line text-muted" style="font-size: 2rem;"></i>
+            <p class="text-muted mt-2">No products found matching your search criteria</p>
           </div>
 
           <div class="alert alert-info">
@@ -229,7 +362,10 @@
             You can add products later through the inventory transfer system.
           </div>
         <% end %>
+          </div>
+        </div>
       </div>
+
     </div>
   <% end %>
 
@@ -242,14 +378,20 @@
     function toggleAdminSection() {
       const checkbox = document.querySelector('input[name="store[create_admin_user]"]');
       const section = document.getElementById('admin-section');
-      const inputs = section.querySelectorAll('input[required]');
+      const adminFields = ['admin_username', 'admin_email', 'admin_password', 'admin_first_name', 'admin_last_name', 'admin_mobile'];
 
       if (checkbox.checked) {
         section.style.display = 'block';
-        inputs.forEach(input => input.required = true);
+        adminFields.forEach(fieldId => {
+          const field = document.getElementById(fieldId);
+          if (field) field.required = true;
+        });
       } else {
         section.style.display = 'none';
-        inputs.forEach(input => input.required = false);
+        adminFields.forEach(fieldId => {
+          const field = document.getElementById(fieldId);
+          if (field) field.required = false;
+        });
       }
     }
 
@@ -258,6 +400,7 @@
       const remainingSpan = document.getElementById(`remaining-qty-${productId}`);
       const errorDiv = document.getElementById(`error-${productId}`);
       const input = document.querySelector(`input[name="inventory_allocations[${productId}][quantity]"]`);
+      const transferValueSpan = document.getElementById(`transfer-value-${productId}`);
 
       if (remaining < 0) {
         errorDiv.style.display = 'block';
@@ -266,7 +409,15 @@
       } else {
         errorDiv.style.display = 'none';
         input.classList.remove('is-invalid');
-        remainingSpan.textContent = remaining;
+        remainingSpan.textContent = remaining.toFixed(2);
+      }
+
+      // Update transfer value if price is available
+      if (transferValueSpan) {
+        const productCard = document.getElementById(`product-card-${productId}`);
+        const pricePerUnit = parseFloat(productCard.dataset.price || 0);
+        const transferValue = (parseFloat(allocatedQty || 0) * pricePerUnit).toFixed(2);
+        transferValueSpan.textContent = transferValue;
       }
 
       updateAllocationSummary();
@@ -275,27 +426,525 @@
     function updateAllocationSummary() {
       const summaryDiv = document.getElementById('allocation-summary');
       const allocations = [];
+      let totalValue = 0;
+      let selectedCount = 0;
 
       document.querySelectorAll('input[name*="inventory_allocations"][name*="[quantity]"]').forEach(input => {
         const qty = parseFloat(input.value || 0);
         if (qty > 0) {
+          selectedCount++;
           const productId = input.name.match(/\[(\d+)\]/)[1];
           const productName = document.querySelector(`input[name="inventory_allocations[${productId}][product_name]"]`).value;
           const unit = document.querySelector(`input[name="inventory_allocations[${productId}][unit]"]`).value;
-          allocations.push(`${productName}: ${qty} ${unit}`);
+
+          // Get product price from data attribute or calculate from available data
+          const productCard = document.getElementById(`product-card-${productId}`);
+          const pricePerUnit = parseFloat(productCard.dataset.price || 0);
+          const itemValue = qty * pricePerUnit;
+          totalValue += itemValue;
+
+          allocations.push(`${productName}: ${qty} ${unit} (₹${itemValue.toFixed(2)})`);
         }
       });
 
+      // Update summary in main section
       if (allocations.length > 0) {
-        summaryDiv.innerHTML = '<strong>Will be transferred:</strong><br>' + allocations.join('<br>');
+        summaryDiv.innerHTML = `
+          <strong>Selected Products (${selectedCount}):</strong><br>
+          ${allocations.join('<br>')}
+          <hr>
+          <strong>Total Transfer Value: ₹${totalValue.toFixed(2)}</strong>
+        `;
       } else {
         summaryDiv.innerHTML = 'No products allocated yet';
       }
     }
 
-    // Initialize admin section visibility
+
+    function optimizeAllocation() {
+      // Smart allocation: Select products with low stock first, allocate 50% of available
+      clearAllProducts();
+
+      document.querySelectorAll('.product-checkbox').forEach(checkbox => {
+        const productId = checkbox.id.replace('select-', '');
+        const qtyInput = document.getElementById(`qty-${productId}`);
+        const maxQty = parseFloat(qtyInput.max);
+
+        // Only select if available quantity > 5
+        if (maxQty > 5) {
+          checkbox.checked = true;
+          toggleProductAllocation(productId);
+
+          // Allocate 30% of available stock (rounded)
+          const smartQty = Math.round(maxQty * 0.3);
+          qtyInput.value = Math.max(1, smartQty);
+          updateAllocation(productId, qtyInput.value, maxQty);
+        }
+      });
+
+      updateAllocationSummary();
+    }
+
+    // Enhanced inventory allocation functions with visual effects
+    function toggleProductAllocation(productId) {
+      const checkbox = document.getElementById(`select-${productId}`);
+      const controls = document.getElementById(`allocation-controls-${productId}`);
+      const card = document.getElementById(`product-card-${productId}`);
+      const overlay = card.querySelector('.selection-overlay');
+
+      if (checkbox.checked) {
+        // Show allocation controls with animation
+        controls.style.display = 'block';
+        setTimeout(() => {
+          controls.style.opacity = '1';
+          controls.style.transform = 'translateY(0)';
+        }, 10);
+
+        // Add visual effects
+        card.classList.add('border-primary', 'selected-card');
+        if (overlay) {
+          overlay.style.opacity = '0.9';
+        }
+
+        // Add selection glow effect
+        card.style.boxShadow = '0 0 0 3px rgba(13, 110, 253, 0.25), 0 4px 12px rgba(0,0,0,0.15)';
+
+      } else {
+        // Hide allocation controls
+        controls.style.opacity = '0';
+        controls.style.transform = 'translateY(-10px)';
+        setTimeout(() => {
+          controls.style.display = 'none';
+        }, 300);
+
+        // Remove visual effects
+        card.classList.remove('border-primary', 'selected-card');
+        if (overlay) {
+          overlay.style.opacity = '0';
+        }
+        card.style.boxShadow = '';
+
+        // Clear the quantity input
+        const qtyInput = document.getElementById(`qty-${productId}`);
+        if (qtyInput) {
+          qtyInput.value = '';
+          // Update transfer value
+          const transferValueSpan = document.getElementById(`transfer-value-${productId}`);
+          if (transferValueSpan) {
+            transferValueSpan.textContent = '0';
+          }
+          // Update allocation summary
+          updateAllocationSummary();
+        }
+      }
+    }
+
+    function setMaxQuantity(productId, maxQty) {
+      const qtyInput = document.getElementById(`qty-${productId}`);
+      if (qtyInput) {
+        qtyInput.value = maxQty;
+        updateAllocation(productId, maxQty, maxQty);
+      }
+    }
+
+    function selectAllProducts() {
+      document.querySelectorAll('.product-checkbox:not(:checked)').forEach(checkbox => {
+        checkbox.checked = true;
+        const productId = checkbox.id.replace('select-', '');
+        toggleProductAllocation(productId);
+      });
+    }
+
+    function clearAllProducts() {
+      document.querySelectorAll('.product-checkbox:checked').forEach(checkbox => {
+        checkbox.checked = false;
+        const productId = checkbox.id.replace('select-', '');
+        toggleProductAllocation(productId);
+      });
+    }
+
+    function filterProducts() {
+      const searchTerm = document.getElementById('product-search').value.toLowerCase();
+      const categoryFilter = document.getElementById('category-filter').value;
+      const productCards = document.querySelectorAll('.product-card');
+      let visibleCount = 0;
+
+      productCards.forEach(card => {
+        const productName = card.dataset.productName;
+        const productSku = card.dataset.productSku;
+        const category = card.dataset.category;
+
+        const matchesSearch = searchTerm === '' ||
+                            productName.includes(searchTerm) ||
+                            productSku.includes(searchTerm);
+        const matchesCategory = categoryFilter === '' || category === categoryFilter;
+
+        if (matchesSearch && matchesCategory) {
+          card.style.display = 'block';
+          visibleCount++;
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      // Show/hide no products message
+      const noProductsMessage = document.getElementById('no-products-message');
+      if (visibleCount === 0) {
+        noProductsMessage.style.display = 'block';
+      } else {
+        noProductsMessage.style.display = 'none';
+      }
+    }
+
+    // Load products for a specific store (for editing existing stores)
+    function loadStoreProducts(storeId) {
+      if (!storeId) return;
+
+      fetch(`/admin/stores/get_product_availability?store_id=${storeId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          updateProductCards(data.products);
+          updateSidebarStats(data.summary);
+        } else {
+          console.error('Error loading products:', data.error);
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching products:', error);
+      });
+    }
+
+    // Update product cards with fresh inventory data
+    function updateProductCards(products) {
+      products.forEach(product => {
+        const card = document.getElementById(`product-card-${product.id}`);
+        if (card) {
+          const availableSpan = card.querySelector('.text-success');
+          if (availableSpan) {
+            availableSpan.innerHTML = `<i class="ri-package-line me-1"></i>${product.central_available} ${product.unit}`;
+          }
+        }
+      });
+    }
+
+    // Refresh all inventory data
+    function refreshInventoryData() {
+      const loadingOverlay = document.createElement('div');
+      loadingOverlay.className = 'position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center';
+      loadingOverlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
+      loadingOverlay.style.zIndex = '9999';
+      loadingOverlay.innerHTML = `
+        <div class="bg-white p-4 rounded shadow">
+          <div class="text-center">
+            <div class="spinner-border text-primary mb-2" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <div>Refreshing inventory data...</div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(loadingOverlay);
+
+      // Simulate refresh (in real implementation, this would fetch fresh data)
+      setTimeout(() => {
+        document.body.removeChild(loadingOverlay);
+        updateAllocationSummary(); // Refresh the summary
+      }, 1500);
+    }
+
+    // Initialize admin section visibility and add event listeners
     document.addEventListener('DOMContentLoaded', function() {
       toggleAdminSection();
+
+      // Add event listeners for search and filter
+      const searchInput = document.getElementById('product-search');
+      const categoryFilter = document.getElementById('category-filter');
+
+      if (searchInput) {
+        searchInput.addEventListener('input', filterProducts);
+      }
+
+      if (categoryFilter) {
+        categoryFilter.addEventListener('change', filterProducts);
+      }
+
     });
   </script>
+
+  <style>
+    /* Enhanced Product Card Styles - Booking Page Style */
+    .product-card .card {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 2px solid transparent;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .product-card .card:hover:not(.selected-card) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+    }
+
+    .product-card .card.selected-card {
+      border-color: #0d6efd !important;
+      transform: translateY(-3px);
+      background: linear-gradient(145deg, #ffffff 0%, #f8f9ff 100%);
+    }
+
+    /* Product Image Enhancements */
+    .product-image {
+      transition: transform 0.3s ease;
+    }
+
+    .product-card:hover .product-image {
+      transform: scale(1.05);
+    }
+
+    .selection-overlay {
+      transition: opacity 0.3s ease;
+      backdrop-filter: blur(2px);
+    }
+
+    /* Hover lift effect like booking page */
+    .hover-lift {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .hover-lift:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+
+    /* Badge styling matching booking page */
+    .badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.025em;
+      border-radius: 0.375rem;
+      padding: 0.375rem 0.75rem;
+      backdrop-filter: blur(10px);
+    }
+
+    .badge.bg-success {
+      background: rgba(25, 135, 84, 0.9) !important;
+      color: white;
+      box-shadow: 0 2px 4px rgba(25, 135, 84, 0.3);
+    }
+
+    .badge.bg-warning {
+      background: rgba(255, 193, 7, 0.9) !important;
+      color: #212529;
+      box-shadow: 0 2px 4px rgba(255, 193, 7, 0.3);
+    }
+
+    .badge.bg-danger {
+      background: rgba(220, 53, 69, 0.9) !important;
+      color: white;
+      box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
+    }
+
+    .badge.bg-dark {
+      background: rgba(33, 37, 41, 0.9) !important;
+      color: white;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Allocation controls styling */
+    .allocation-controls {
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: all 0.3s ease;
+    }
+
+    .allocation-controls .bg-light {
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+      border: 1px solid rgba(13, 110, 253, 0.1);
+    }
+
+    /* Enhanced form controls */
+    .form-control:focus {
+      border-color: #86b7fe;
+      box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+    }
+
+    /* Checkbox styling */
+    .form-check-input {
+      border: 2px solid #dee2e6;
+      transition: all 0.2s ease;
+    }
+
+    .form-check-input:checked {
+      background-color: #0d6efd;
+      border-color: #0d6efd;
+      box-shadow: 0 2px 4px rgba(13, 110, 253, 0.3);
+    }
+
+    /* Text styling enhancements */
+    .tracking-wide {
+      letter-spacing: 0.025em;
+    }
+
+    .cursor-pointer {
+      cursor: pointer;
+    }
+
+    /* Gradient backgrounds for placeholder images */
+    .bg-gradient {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    /* Sidebar Stock Tracker Styles */
+    .sticky-top {
+      position: -webkit-sticky !important;
+      position: sticky !important;
+    }
+
+    .selected-products-list {
+      border-top: 1px solid #e9ecef;
+    }
+
+    .selected-products-list::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .selected-products-list::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+
+    .selected-products-list::-webkit-scrollbar-thumb {
+      background: #888;
+      border-radius: 2px;
+    }
+
+    .selected-products-list::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+
+    /* Search and filter enhancements */
+    .input-group-text {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+    }
+
+    .form-select:focus {
+      border-color: #86b7fe;
+      box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+
+    /* Button enhancements */
+    .btn {
+      border-radius: 0.5rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0d6efd 0%, #0056b3 100%);
+      border: none;
+      box-shadow: 0 2px 4px rgba(13, 110, 253, 0.3);
+    }
+
+    .btn-outline-primary:hover,
+    .btn-outline-danger:hover,
+    .btn-outline-info:hover,
+    .btn-outline-success:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    /* Sidebar card styling */
+    .card .card-header.bg-primary {
+      background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%) !important;
+    }
+
+    /* Animation keyframes */
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.7;
+      }
+    }
+
+    /* Loading states */
+    .loading-overlay {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(4px);
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 991px) {
+      .sidebar-stock-tracker {
+        margin-top: 2rem;
+      }
+
+      .sticky-top {
+        position: relative !important;
+      }
+
+      .product-card .col-md-4 {
+        padding: 0.75rem;
+      }
+    }
+
+    /* Success/error states */
+    .inventory-success {
+      border-left: 4px solid #198754;
+      background: linear-gradient(135deg, #d1e7dd 0%, #c3e6cb 100%);
+    }
+
+    .inventory-warning {
+      border-left: 4px solid #ffc107;
+      background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    }
+
+    .inventory-error {
+      border-left: 4px solid #dc3545;
+      background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+    }
+
+    /* Enhanced card title */
+    .card-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #212529;
+    }
+
+    /* Price styling */
+    .text-primary {
+      color: #0d6efd !important;
+      font-weight: 600;
+    }
+
+    /* Category badge styling */
+    .text-uppercase {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #6c757d;
+    }
+  </style>
 <% end %>
