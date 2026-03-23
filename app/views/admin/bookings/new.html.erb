@@ -121,8 +121,10 @@
                       if product.gst_enabled && product.gst_percentage.present? && product.gst_percentage > 0
                         gst_rate = product.gst_percentage
                         # selling_price includes GST, so extract base price
-                        base_price = selling_price / (1 + (gst_rate / 100.0))
-                        gst_amount = selling_price - base_price
+                        # Round GST amount to whole number for cleaner display
+                        calculated_gst = (selling_price * gst_rate) / (100 + gst_rate)
+                        gst_amount = calculated_gst.round
+                        base_price = selling_price - gst_amount
                         final_price = selling_price
                       else
                         base_price = selling_price
@@ -728,14 +730,15 @@ function updateCartDisplay() {
     `;
   }
 
-  // Calculate GST based on individual products
+  // Calculate GST based on individual products with rounding
   let totalGST = 0;
   for (const [productId, item] of Object.entries(cart)) {
     const itemGSTRate = item.gstRate || 0;
     if (itemGSTRate > 0) {
-      const itemBasePrice = item.basePrice || item.price;
-      const itemSubtotal = itemBasePrice * item.quantity;
-      totalGST += itemSubtotal * itemGSTRate / 100;
+      const finalPricePerUnit = item.price; // Final price includes GST
+      const calculatedGSTPerUnit = (finalPricePerUnit * itemGSTRate) / (100 + itemGSTRate);
+      const roundedGSTPerUnit = Math.round(calculatedGSTPerUnit);
+      totalGST += roundedGSTPerUnit * item.quantity;
     }
   }
 
@@ -931,9 +934,14 @@ function updateCheckoutDisplay() {
     let itemGSTAmount = 0;
 
     if (itemGSTRate > 0) {
-      // Product has GST enabled
-      const itemSubtotal = itemBasePrice * item.quantity;
-      itemGSTAmount = itemSubtotal * itemGSTRate / 100;
+      // Product has GST enabled - use same rounding logic as product display
+      const finalPricePerUnit = item.price; // Final price includes GST
+      const calculatedGSTPerUnit = (finalPricePerUnit * itemGSTRate) / (100 + itemGSTRate);
+      const roundedGSTPerUnit = Math.round(calculatedGSTPerUnit);
+      const basePricePerUnit = finalPricePerUnit - roundedGSTPerUnit;
+
+      const itemSubtotal = basePricePerUnit * item.quantity;
+      itemGSTAmount = roundedGSTPerUnit * item.quantity;
       itemTotal = itemSubtotal + itemGSTAmount;
       subtotal += itemSubtotal;
     } else {
@@ -998,15 +1006,19 @@ function updateCheckoutTotals() {
   let subtotal = 0;
   let totalGST = 0;
 
-  // Calculate subtotal and GST based on each product's GST configuration
+  // Calculate subtotal and GST based on each product's GST configuration with rounding
   for (const [productId, item] of Object.entries(cart)) {
-    const itemBasePrice = item.basePrice || item.price;
     const itemGSTRate = item.gstRate || 0;
 
     if (itemGSTRate > 0) {
-      // Product has GST enabled
-      const itemSubtotal = itemBasePrice * item.quantity;
-      const itemGST = itemSubtotal * itemGSTRate / 100;
+      // Product has GST enabled - use same rounding logic as product display
+      const finalPricePerUnit = item.price; // Final price includes GST
+      const calculatedGSTPerUnit = (finalPricePerUnit * itemGSTRate) / (100 + itemGSTRate);
+      const roundedGSTPerUnit = Math.round(calculatedGSTPerUnit);
+      const basePricePerUnit = finalPricePerUnit - roundedGSTPerUnit;
+
+      const itemSubtotal = basePricePerUnit * item.quantity;
+      const itemGST = roundedGSTPerUnit * item.quantity;
       subtotal += itemSubtotal;
       totalGST += itemGST;
     } else {

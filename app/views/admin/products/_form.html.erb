@@ -204,11 +204,16 @@
           </div>
 
           <div class="col-md-6">
-            <%= form.label :price, "Selling Price", class: "form-label" %>
-            <span class="text-danger">*</span>
+            <%= form.label :price, class: "form-label", id: "price_label" do %>
+              <span id="price_label_text">Base Price (Excluding GST)</span>
+              <span class="text-danger">*</span>
+            <% end %>
             <div class="input-group">
               <span class="input-group-text">₹</span>
-              <%= form.number_field :price, class: "form-control", step: 0.01, min: 0, placeholder: "0.00", required: true, id: "product_price" %>
+              <%= form.number_field :price, class: "form-control", step: 0.01, min: 0, placeholder: "95.24", required: true, id: "product_price" %>
+            </div>
+            <div class="form-text">
+              <small id="price_help_text">Price before adding GST</small>
             </div>
           </div>
 
@@ -468,7 +473,7 @@
                         <div class="row g-3">
                           <div class="col-md-3">
                             <div class="text-center">
-                              <small class="text-muted d-block">Selling Price (Base)</small>
+                              <small class="text-muted d-block">Base Price (Excluding GST)</small>
                               <span class="fw-bold fs-6" id="gst_base_price">₹0.00</span>
                             </div>
                           </div>
@@ -3005,7 +3010,7 @@ function previewImage(src, filename) {
   const gstTypeRadios = document.querySelectorAll('input[name="gst_type"]');
 
   // Price fields for calculations
-  const sellingPriceField = document.getElementById('product_price');
+  const basePriceField = document.getElementById('product_price'); // This is the base price (excluding GST)
   const buyingPriceField = document.getElementById('product_buying_price');
   const discountToggle = document.getElementById('discount_toggle');
   const discountType = document.getElementById('discount_type');
@@ -3015,6 +3020,7 @@ function previewImage(src, filename) {
     // Handle GST enable/disable
     gstToggle.addEventListener('change', function() {
       const isEnabled = this.checked;
+      updatePriceLabels(isEnabled);
 
       if (isEnabled) {
         gstConfig.style.display = 'block';
@@ -3056,9 +3062,9 @@ function previewImage(src, filename) {
     });
 
     // Listen for price changes to recalculate GST
-    if (sellingPriceField) {
-      sellingPriceField.addEventListener('input', calculateGst);
-      sellingPriceField.addEventListener('blur', calculateGst);
+    if (basePriceField) {
+      basePriceField.addEventListener('input', calculateGst);
+      basePriceField.addEventListener('blur', calculateGst);
     }
     if (discountToggle) {
       discountToggle.addEventListener('change', calculateGst);
@@ -3070,9 +3076,10 @@ function previewImage(src, filename) {
       discountValue.addEventListener('input', calculateGst);
     }
 
-    // Initial GST calculation if GST is enabled and values exist
+    // Initial setup - set correct labels and calculate if needed
     setTimeout(() => {
-      if (gstToggle.checked && sellingPriceField?.value && totalGstRate?.value) {
+      updatePriceLabels(gstToggle.checked);
+      if (gstToggle.checked && basePriceField?.value && totalGstRate?.value) {
         calculateGst();
       }
     }, 500);
@@ -3094,6 +3101,22 @@ function previewImage(src, filename) {
       if (cgstRate) cgstRate.value = '0.00';
       if (sgstRate) sgstRate.value = '0.00';
       if (igstRate) igstRate.value = '0.00';
+    }
+  }
+
+  function updatePriceLabels(gstEnabled) {
+    const priceLabelText = document.getElementById('price_label_text');
+    const priceHelpText = document.getElementById('price_help_text');
+    const priceInput = document.getElementById('product_price');
+
+    if (gstEnabled) {
+      if (priceLabelText) priceLabelText.textContent = 'Base Price (Excluding GST)';
+      if (priceHelpText) priceHelpText.textContent = 'Price before adding GST';
+      if (priceInput) priceInput.placeholder = '95.00';
+    } else {
+      if (priceLabelText) priceLabelText.textContent = 'Selling Price';
+      if (priceHelpText) priceHelpText.textContent = 'Final selling price to customer';
+      if (priceInput) priceInput.placeholder = '100.00';
     }
   }
 
@@ -3120,17 +3143,20 @@ function previewImage(src, filename) {
       return;
     }
 
-    const sellingPrice = parseFloat(sellingPriceField?.value) || 0;
+    const basePrice = parseFloat(basePriceField?.value) || 0;
     const gstRate = parseFloat(totalGstRate?.value) || 0;
 
-    if (sellingPrice <= 0 || gstRate <= 0) {
+    if (basePrice <= 0 || gstRate <= 0) {
       resetGstCalculations();
       return;
     }
 
-    // Calculate base price (selling price is the base price, GST will be added on top)
-    // Base Price = Selling Price (GST will be calculated and added to this)
-    const basePrice = sellingPrice;
+    // Calculate GST amounts from base price (GST-exclusive calculation)
+    // GST Amount = Base Price × GST Rate / 100
+    const totalGstAmount = (basePrice * gstRate) / 100;
+    const cgstAmount = totalGstAmount / 2;
+    const sgstAmount = totalGstAmount / 2;
+    const igstAmount = totalGstAmount;
 
     // Calculate discount if enabled
     let discountAmount = 0;
@@ -3149,14 +3175,9 @@ function previewImage(src, filename) {
       discountedPrice = Math.max(0, basePrice - discountAmount);
     }
 
-    // Calculate GST amounts
-    const totalGstAmount = (discountedPrice * gstRate) / 100;
-    const cgstAmount = totalGstAmount / 2;
-    const sgstAmount = totalGstAmount / 2;
-    const igstAmount = totalGstAmount;
-
-    // Final price with GST
-    const finalPrice = discountedPrice + totalGstAmount;
+    // Final price includes base price + GST
+    // Final Price = Base Price + GST Amount
+    const finalPrice = basePrice + totalGstAmount;
 
     // Update GST amount fields
     updateGstAmountFields(cgstAmount, sgstAmount, igstAmount, totalGstAmount);

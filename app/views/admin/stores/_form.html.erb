@@ -153,181 +153,255 @@
     <!-- Initial Inventory Allocation Section -->
     <div class="row">
       <!-- Main Content -->
-      <div class="col-12">
-        <div class="card mb-4">
-          <div class="card-header">
-            <h5 class="card-title mb-0">
-              <i class="ri-box-3-line me-2"></i>Initial Inventory Allocation
-            </h5>
-            <small class="text-muted">Choose and transfer products from central inventory to this new store</small>
+      <div class="col-lg-8">
+        <div class="card mb-4 inventory-allocation-card">
+          <div class="card-header bg-gradient-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h5 class="card-title mb-0">
+                  <i class="ri-box-3-line me-2"></i>Initial Inventory Allocation
+                </h5>
+                <small class="text-white-50">Choose and transfer products from central inventory to this new store</small>
+              </div>
+              <div class="text-end">
+                <button type="button" class="btn btn-light btn-sm me-2" onclick="refreshInventoryData()" title="Refresh Inventory">
+                  <i class="ri-refresh-line me-1"></i>Refresh
+                </button>
+                <button type="button" class="btn btn-outline-light btn-sm" onclick="optimizeAllocation()" title="Smart Auto-Select">
+                  <i class="ri-magic-line me-1"></i>Smart Select
+                </button>
+              </div>
+            </div>
           </div>
           <div class="card-body">
         <% if @available_products&.any? %>
-          <!-- Search and Filter Controls -->
-          <div class="row mb-4">
-            <div class="col-md-6">
-              <div class="input-group">
-                <span class="input-group-text"><i class="ri-search-line"></i></span>
-                <input type="text" id="product-search" class="form-control" placeholder="Search products by name or SKU...">
+          <!-- Enhanced Search and Filter Controls -->
+          <div class="inventory-controls bg-light p-4 rounded-3 mb-4">
+            <div class="row g-3">
+              <div class="col-lg-5">
+                <label class="form-label text-muted fw-semibold mb-1">Search Products</label>
+                <div class="input-group input-group-lg">
+                  <span class="input-group-text bg-white border-end-0">
+                    <i class="ri-search-line text-muted"></i>
+                  </span>
+                  <input type="text" id="product-search" class="form-control border-start-0 ps-0" placeholder="Search by name, SKU, or category...">
+                  <button class="btn btn-outline-secondary" type="button" onclick="document.getElementById('product-search').value=''; filterProducts();">
+                    <i class="ri-close-line"></i>
+                  </button>
+                </div>
               </div>
-            </div>
-            <div class="col-md-3">
-              <select id="category-filter" class="form-select">
-                <option value="">All Categories</option>
-                <% @available_products.includes(:category).map(&:category).uniq.each do |category| %>
-                  <option value="<%= category.name %>"><%= category.name %></option>
-                <% end %>
-              </select>
-            </div>
-            <div class="col-md-3">
-              <div class="d-flex gap-2">
-                <button type="button" class="btn btn-outline-primary btn-sm" onclick="selectAllProducts()">
-                  <i class="ri-checkbox-multiple-line me-1"></i>Select All
-                </button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearAllProducts()">
-                  <i class="ri-checkbox-blank-line me-1"></i>Clear All
-                </button>
+              <div class="col-lg-3">
+                <label class="form-label text-muted fw-semibold mb-1">Filter by Category</label>
+                <select id="category-filter" class="form-select form-select-lg">
+                  <option value="">All Categories</option>
+                  <% @available_products.includes(:category).map(&:category).uniq.each do |category| %>
+                    <option value="<%= category.name %>"><%= category.name %></option>
+                  <% end %>
+                </select>
+              </div>
+              <div class="col-lg-4">
+                <label class="form-label text-muted fw-semibold mb-1">Quick Actions</label>
+                <div class="d-flex gap-2">
+                  <button type="button" class="btn btn-primary btn-lg flex-fill" onclick="selectAllProducts()">
+                    <i class="ri-checkbox-multiple-line me-1"></i>Select All
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary btn-lg flex-fill" onclick="clearAllProducts()">
+                    <i class="ri-checkbox-blank-line me-1"></i>Clear All
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- Product Cards Grid - Booking Style -->
-          <div class="row g-3" id="products-grid">
+          <!-- Enhanced Product Grid -->
+          <div class="products-grid-container">
+            <div class="row g-4" id="products-grid">
             <% @available_products.each do |product| %>
               <% available_qty = @inventory_data[product.id][:available] %>
               <% current_stock = available_qty.to_i %>
-              <div class="col-md-4 col-lg-3 product-card" data-product-name="<%= product.name.downcase %>" data-product-sku="<%= product.sku.downcase %>" data-category="<%= @inventory_data[product.id][:category] %>" data-price="<%= product.price || 0 %>" data-product-id="<%= product.id %>">
-                <div class="card h-100 border-0 shadow-sm hover-lift" id="product-card-<%= product.id %>">
+              <div class="col-lg-4 col-md-6 col-sm-12 product-card" data-product-name="<%= product.name.downcase %>" data-product-sku="<%= product.sku.downcase %>" data-category="<%= @inventory_data[product.id][:category] %>" data-price="<%= product.price || 0 %>" data-product-id="<%= product.id %>">
+                <div class="card h-100 border-0 shadow-hover modern-product-card" id="product-card-<%= product.id %>">
 
-                  <!-- Product Image with Overlay -->
-                  <div class="position-relative">
+                  <!-- Enhanced Product Image with Gradient Overlay -->
+                  <div class="position-relative product-image-container">
                     <% if product.image_url.present? %>
-                      <img src="<%= product.image_url %>" class="card-img-top product-image" style="height: 200px; object-fit: cover;" alt="<%= product.name %>">
+                      <img src="<%= product.image_url %>" class="card-img-top product-image" style="height: 220px; object-fit: cover;" alt="<%= product.name %>">
                     <% elsif product.respond_to?(:images) && product.images.respond_to?(:attached?) && product.images.attached? && product.images.any? %>
-                      <%= image_tag product.images.first, class: "card-img-top product-image", style: "height: 200px; object-fit: cover;" %>
+                      <%= image_tag product.images.first, class: "card-img-top product-image", style: "height: 220px; object-fit: cover;" %>
                     <% else %>
-                      <div class="card-img-top bg-gradient d-flex align-items-center justify-content-center" style="height: 200px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                      <div class="card-img-top product-placeholder d-flex align-items-center justify-content-center" style="height: 220px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%, #f093fb 100%);">
                         <div class="text-center text-white">
-                          <i class="ri-box-3-line" style="font-size: 3rem; opacity: 0.7;"></i>
-                          <div class="mt-2 fw-semibold"><%= product.category&.name || 'Product' %></div>
+                          <div class="product-icon-wrapper">
+                            <i class="ri-box-3-line product-icon"></i>
+                          </div>
+                          <div class="mt-3 fw-semibold fs-6"><%= product.category&.name || 'Product' %></div>
                         </div>
                       </div>
                     <% end %>
 
-                    <!-- Selection Overlay -->
-                    <div class="position-absolute top-0 start-0 w-100 h-100 selection-overlay d-flex align-items-center justify-content-center" style="background: rgba(13, 110, 253, 0.8); opacity: 0; transition: opacity 0.3s;">
-                      <div class="text-white text-center">
-                        <i class="ri-checkbox-circle-line" style="font-size: 3rem;"></i>
-                        <div class="mt-2 fw-bold">SELECTED</div>
+                    <!-- Gradient overlay for better text readability -->
+                    <div class="product-gradient-overlay"></div>
+
+                    <!-- Enhanced Selection Overlay -->
+                    <div class="position-absolute top-0 start-0 w-100 h-100 selection-overlay d-flex align-items-center justify-content-center">
+                      <div class="text-white text-center selection-content">
+                        <div class="selection-icon-wrapper">
+                          <i class="ri-checkbox-circle-fill selection-icon"></i>
+                        </div>
+                        <div class="mt-2 fw-bold fs-5 selection-text">SELECTED</div>
+                        <div class="selection-pulse"></div>
                       </div>
                     </div>
 
-                    <!-- Stock Badge -->
+                    <!-- Enhanced Stock Badge -->
                     <% if current_stock == 0 %>
-                      <span class="position-absolute top-0 end-0 badge bg-danger m-2">
-                        <i class="ri-close-circle-line me-1"></i>Out of Stock
-                      </span>
+                      <div class="position-absolute top-0 end-0 m-3">
+                        <span class="badge modern-badge badge-danger">
+                          <i class="ri-close-circle-fill me-1"></i>Out of Stock
+                        </span>
+                      </div>
                     <% elsif current_stock < 20 %>
-                      <span class="position-absolute top-0 end-0 badge bg-warning text-dark m-2">
-                        <i class="ri-error-warning-line me-1"></i>Low Stock (<%= current_stock %> left)
-                      </span>
+                      <div class="position-absolute top-0 end-0 m-3">
+                        <span class="badge modern-badge badge-warning">
+                          <i class="ri-error-warning-fill me-1"></i>Low Stock
+                          <span class="badge-count"><%= current_stock %></span>
+                        </span>
+                      </div>
                     <% else %>
-                      <span class="position-absolute top-0 end-0 badge bg-success m-2">
-                        <i class="ri-check-circle-line me-1"></i><%= current_stock %> in stock
-                      </span>
+                      <div class="position-absolute top-0 end-0 m-3">
+                        <span class="badge modern-badge badge-success">
+                          <i class="ri-check-circle-fill me-1"></i><%= current_stock %> Available
+                        </span>
+                      </div>
                     <% end %>
 
-                    <!-- Price Badge -->
+                    <!-- Enhanced Price Badge -->
                     <% if product.price && product.price > 0 %>
-                      <span class="position-absolute bottom-0 start-0 badge bg-dark m-2">
-                        <i class="ri-price-tag-3-line me-1"></i>₹<%= number_with_delimiter(product.price) %>
-                      </span>
+                      <div class="position-absolute bottom-0 start-0 m-3">
+                        <span class="badge modern-badge badge-price">
+                          <i class="ri-price-tag-3-fill me-1"></i>₹<%= number_with_delimiter(product.price) %>
+                        </span>
+                      </div>
                     <% end %>
 
-                    <!-- Selection Checkbox -->
+                    <!-- Enhanced Selection Checkbox -->
                     <div class="position-absolute top-0 start-0 m-3">
-                      <div class="form-check">
-                        <input class="form-check-input product-checkbox" type="checkbox" id="select-<%= product.id %>" onchange="toggleProductAllocation(<%= product.id %>)" style="transform: scale(1.3);">
+                      <div class="modern-checkbox">
+                        <input class="form-check-input product-checkbox" type="checkbox" id="select-<%= product.id %>" onchange="toggleProductAllocation(<%= product.id %>)">
+                        <label for="select-<%= product.id %>" class="checkbox-label">
+                          <span class="checkbox-custom">
+                            <i class="ri-check-line"></i>
+                          </span>
+                        </label>
                       </div>
                     </div>
                   </div>
 
-                  <!-- Product Details -->
-                  <div class="card-body d-flex flex-column">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                      <small class="text-muted text-uppercase fw-semibold tracking-wide"><%= @inventory_data[product.id][:category] || 'Uncategorized' %></small>
+                  <!-- Enhanced Product Details -->
+                  <div class="card-body d-flex flex-column p-4">
+                    <!-- Category Badge -->
+                    <div class="mb-3">
+                      <span class="category-badge">
+                        <%= @inventory_data[product.id][:category] || 'Uncategorized' %>
+                      </span>
                     </div>
 
                     <!-- Product Name -->
-                    <h6 class="card-title mb-2 fw-bold" style="line-height: 1.3;">
+                    <h6 class="card-title mb-3 product-title">
                       <label for="select-<%= product.id %>" class="cursor-pointer text-decoration-none text-dark">
                         <%= product.name %>
                       </label>
                     </h6>
 
-                    <!-- SKU -->
-                    <div class="text-muted small mb-3 d-flex align-items-center">
-                      <i class="ri-barcode-line me-2 text-primary"></i>
-                      <span>SKU: <%= product.sku %></span>
+                    <!-- SKU with Enhanced Styling -->
+                    <div class="product-sku mb-3">
+                      <i class="ri-barcode-line me-2"></i>
+                      <span class="sku-text">SKU: <%= product.sku %></span>
                     </div>
 
-                    <!-- Stock Info -->
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                      <div class="text-success fw-semibold">
-                        <i class="ri-database-line me-1"></i><%= available_qty %> <%= @inventory_data[product.id][:unit] %>
-                        <small class="d-block text-muted">Available</small>
+                    <!-- Enhanced Stock and Price Info -->
+                    <div class="product-info-grid mb-3">
+                      <div class="stock-info">
+                        <div class="info-icon">
+                          <i class="ri-database-2-line"></i>
+                        </div>
+                        <div class="info-content">
+                          <div class="info-value"><%= available_qty %> <%= @inventory_data[product.id][:unit] %></div>
+                          <div class="info-label">Available</div>
+                        </div>
                       </div>
                       <% if product.price && product.price > 0 %>
-                        <div class="text-end">
-                          <div class="fw-bold text-primary">₹<%= number_with_delimiter(product.price) %></div>
-                          <small class="text-muted">per <%= @inventory_data[product.id][:unit] %></small>
+                        <div class="price-info">
+                          <div class="info-icon">
+                            <i class="ri-money-rupee-circle-line"></i>
+                          </div>
+                          <div class="info-content">
+                            <div class="info-value price-value">₹<%= number_with_delimiter(product.price) %></div>
+                            <div class="info-label">per <%= @inventory_data[product.id][:unit] %></div>
+                          </div>
                         </div>
                       <% end %>
                     </div>
 
-                    <!-- Allocation Controls (hidden by default) -->
+                    <!-- Enhanced Allocation Controls -->
                     <div id="allocation-controls-<%= product.id %>" class="allocation-controls mt-auto" style="display: none;">
-                      <hr class="my-3">
-                      <div class="bg-light p-3 rounded-3">
-                        <h6 class="text-primary mb-3">
-                          <i class="ri-settings-3-line me-2"></i>Allocation Settings
-                        </h6>
+                      <div class="allocation-separator"></div>
+                      <div class="allocation-panel">
+                        <div class="allocation-header">
+                          <div class="allocation-icon">
+                            <i class="ri-settings-4-line"></i>
+                          </div>
+                          <h6 class="allocation-title">Allocation Settings</h6>
+                        </div>
 
-                        <div class="row align-items-end">
-                          <div class="col-8">
-                            <label class="form-label small text-muted mb-1">Quantity to Transfer</label>
-                            <%= number_field_tag "inventory_allocations[#{product.id}][quantity]",
-                                nil,
-                                class: "form-control",
-                                placeholder: "0",
-                                min: 0,
-                                max: available_qty,
-                                step: 0.01,
-                                id: "qty-#{product.id}",
-                                onchange: "updateAllocation(#{product.id}, this.value, #{available_qty})" %>
+                        <div class="allocation-inputs">
+                          <div class="quantity-input-wrapper">
+                            <label class="allocation-label">Quantity to Transfer</label>
+                            <div class="input-group">
+                              <%= number_field_tag "inventory_allocations[#{product.id}][quantity]",
+                                  nil,
+                                  class: "form-control allocation-quantity-input",
+                                  placeholder: "0",
+                                  min: 0,
+                                  max: available_qty,
+                                  step: 0.01,
+                                  id: "qty-#{product.id}",
+                                  onchange: "updateAllocation(#{product.id}, this.value, #{available_qty})" %>
+                              <button type="button" class="btn btn-outline-primary allocation-max-btn" onclick="setMaxQuantity(<%= product.id %>, <%= available_qty %>)">
+                                <i class="ri-upload-line"></i>
+                              </button>
+                            </div>
                             <%= hidden_field_tag "inventory_allocations[#{product.id}][product_name]", product.name %>
                             <%= hidden_field_tag "inventory_allocations[#{product.id}][unit]", @inventory_data[product.id][:unit] %>
                           </div>
-                          <div class="col-4">
-                            <button type="button" class="btn btn-primary btn-sm w-100" onclick="setMaxQuantity(<%= product.id %>, <%= available_qty %>)">
-                              <i class="ri-arrow-up-line me-1"></i>Max
-                            </button>
+                        </div>
+
+                        <div class="allocation-summary">
+                          <div class="allocation-stats">
+                            <div class="stat-item remaining-stat" id="remaining-<%= product.id %>">
+                              <div class="stat-icon">
+                                <i class="ri-database-2-line"></i>
+                              </div>
+                              <div class="stat-content">
+                                <span class="stat-value">Remaining: <span id="remaining-qty-<%= product.id %>"><%= available_qty %></span> <%= @inventory_data[product.id][:unit] %></span>
+                              </div>
+                            </div>
+                            <% if product.price && product.price > 0 %>
+                              <div class="stat-item value-stat" id="value-<%= product.id %>">
+                                <div class="stat-icon">
+                                  <i class="ri-money-rupee-circle-line"></i>
+                                </div>
+                                <div class="stat-content">
+                                  <span class="stat-value">Value: ₹<span id="transfer-value-<%= product.id %>">0.00</span></span>
+                                </div>
+                              </div>
+                            <% end %>
                           </div>
                         </div>
 
-                        <div class="mt-2 d-flex justify-content-between align-items-center">
-                          <small class="text-success" id="remaining-<%= product.id %>">
-                            <i class="ri-check-line me-1"></i>Remaining: <span id="remaining-qty-<%= product.id %>"><%= available_qty %></span> <%= @inventory_data[product.id][:unit] %>
-                          </small>
-                          <% if product.price && product.price > 0 %>
-                            <small class="text-primary fw-semibold" id="value-<%= product.id %>">
-                              Value: ₹<span id="transfer-value-<%= product.id %>">0</span>
-                            </small>
-                          <% end %>
-                        </div>
-
-                        <div class="invalid-feedback" id="error-<%= product.id %>" style="display: none;">
-                          <i class="ri-error-warning-line me-1"></i>Allocation cannot exceed available quantity
+                        <div class="allocation-error" id="error-<%= product.id %>" style="display: none;">
+                          <i class="ri-error-warning-line me-2"></i>
+                          <span>Allocation cannot exceed available quantity</span>
                         </div>
                       </div>
                     </div>
@@ -401,6 +475,7 @@
       const errorDiv = document.getElementById(`error-${productId}`);
       const input = document.querySelector(`input[name="inventory_allocations[${productId}][quantity]"]`);
       const transferValueSpan = document.getElementById(`transfer-value-${productId}`);
+      const productCard = document.getElementById(`product-card-${productId}`);
 
       if (remaining < 0) {
         errorDiv.style.display = 'block';
@@ -413,76 +488,147 @@
       }
 
       // Update transfer value if price is available
-      if (transferValueSpan) {
-        const productCard = document.getElementById(`product-card-${productId}`);
+      if (transferValueSpan && productCard) {
         const pricePerUnit = parseFloat(productCard.dataset.price || 0);
-        const transferValue = (parseFloat(allocatedQty || 0) * pricePerUnit).toFixed(2);
-        transferValueSpan.textContent = transferValue;
+        const transferValue = (parseFloat(allocatedQty || 0) * pricePerUnit);
+        transferValueSpan.textContent = transferValue.toFixed(2);
+        console.log(`Product ${productId}: Qty=${allocatedQty}, Price=${pricePerUnit}, Value=${transferValue}`);
+      }
+
+      // Update visual selection if quantity > 0
+      const checkbox = document.getElementById(`select-${productId}`);
+      if (parseFloat(allocatedQty || 0) > 0) {
+        if (!checkbox.checked) {
+          checkbox.checked = true;
+          toggleProductAllocation(productId);
+        }
       }
 
       updateAllocationSummary();
     }
 
     function updateAllocationSummary() {
-      const summaryDiv = document.getElementById('allocation-summary');
       const allocations = [];
       let totalValue = 0;
       let selectedCount = 0;
 
+      // Update sidebar stats
+      const selectedCountEl = document.getElementById('selected-count');
+      const totalValueEl = document.getElementById('total-value');
+      const selectedProductsList = document.getElementById('selected-products-list');
+
+      // Get all quantity inputs and process them
       document.querySelectorAll('input[name*="inventory_allocations"][name*="[quantity]"]').forEach(input => {
         const qty = parseFloat(input.value || 0);
         if (qty > 0) {
           selectedCount++;
           const productId = input.name.match(/\[(\d+)\]/)[1];
-          const productName = document.querySelector(`input[name="inventory_allocations[${productId}][product_name]"]`).value;
-          const unit = document.querySelector(`input[name="inventory_allocations[${productId}][unit]"]`).value;
+          const productNameInput = document.querySelector(`input[name="inventory_allocations[${productId}][product_name]"]`);
+          const unitInput = document.querySelector(`input[name="inventory_allocations[${productId}][unit]"]`);
 
-          // Get product price from data attribute or calculate from available data
-          const productCard = document.getElementById(`product-card-${productId}`);
-          const pricePerUnit = parseFloat(productCard.dataset.price || 0);
-          const itemValue = qty * pricePerUnit;
-          totalValue += itemValue;
+          if (productNameInput && unitInput) {
+            const productName = productNameInput.value;
+            const unit = unitInput.value;
 
-          allocations.push(`${productName}: ${qty} ${unit} (₹${itemValue.toFixed(2)})`);
+            // Get product price from data attribute
+            const productCard = document.getElementById(`product-card-${productId}`);
+            const pricePerUnit = parseFloat(productCard?.dataset?.price || 0);
+            const itemValue = qty * pricePerUnit;
+            totalValue += itemValue;
+
+            console.log(`Summary - Product ${productId}: ${productName}, Qty: ${qty}, Price: ${pricePerUnit}, Value: ${itemValue}`);
+
+            allocations.push({
+              name: productName,
+              qty: qty,
+              unit: unit,
+              value: itemValue,
+              id: productId
+            });
+          }
         }
       });
 
-      // Update summary in main section
-      if (allocations.length > 0) {
-        summaryDiv.innerHTML = `
-          <strong>Selected Products (${selectedCount}):</strong><br>
-          ${allocations.join('<br>')}
-          <hr>
-          <strong>Total Transfer Value: ₹${totalValue.toFixed(2)}</strong>
-        `;
-      } else {
-        summaryDiv.innerHTML = 'No products allocated yet';
+      console.log(`Total selected: ${selectedCount}, Total value: ${totalValue}`);
+
+      // Update sidebar statistics
+      if (selectedCountEl) selectedCountEl.textContent = selectedCount;
+      if (totalValueEl) totalValueEl.textContent = `₹${totalValue.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+      // Update selected products list in sidebar
+      if (selectedProductsList) {
+        if (allocations.length > 0) {
+          selectedProductsList.innerHTML = allocations.map(item => `
+            <div class="selected-product-item mb-2 p-2 bg-white rounded border">
+              <div class="d-flex justify-content-between align-items-start">
+                <div class="flex-grow-1">
+                  <div class="fw-semibold text-truncate" style="font-size: 0.8rem;">${item.name}</div>
+                  <div class="text-muted small">${item.qty} ${item.unit}</div>
+                </div>
+                <div class="text-end ms-2">
+                  <div class="fw-bold text-primary" style="font-size: 0.75rem;">₹${item.value.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                </div>
+              </div>
+            </div>
+          `).join('');
+        } else {
+          selectedProductsList.innerHTML = `
+            <div class="empty-selection text-center py-4">
+              <i class="ri-shopping-cart-line text-muted mb-2" style="font-size: 2rem;"></i>
+              <p class="text-muted mb-0">No products selected yet</p>
+              <small class="text-muted">Select products from the grid to see them here</small>
+            </div>
+          `;
+        }
+      }
+
+      // Also update the old summary for backward compatibility
+      const summaryDiv = document.getElementById('allocation-summary');
+      if (summaryDiv) {
+        if (allocations.length > 0) {
+          summaryDiv.innerHTML = `
+            <strong>Selected Products (${selectedCount}):</strong><br>
+            ${allocations.map(item => `${item.name}: ${item.qty} ${item.unit} (₹${item.value.toFixed(2)})`).join('<br>')}
+            <hr>
+            <strong>Total Transfer Value: ₹${totalValue.toFixed(2)}</strong>
+          `;
+        } else {
+          summaryDiv.innerHTML = 'No products allocated yet';
+        }
       }
     }
 
 
     function optimizeAllocation() {
-      // Smart allocation: Select products with low stock first, allocate 50% of available
+      // Smart allocation: Select products with available stock, allocate 30% of available
       clearAllProducts();
 
-      document.querySelectorAll('.product-checkbox').forEach(checkbox => {
-        const productId = checkbox.id.replace('select-', '');
-        const qtyInput = document.getElementById(`qty-${productId}`);
-        const maxQty = parseFloat(qtyInput.max);
+      setTimeout(() => {
+        document.querySelectorAll('.product-checkbox').forEach(checkbox => {
+          const productId = checkbox.id.replace('select-', '');
+          const qtyInput = document.getElementById(`qty-${productId}`);
+          const maxQty = parseFloat(qtyInput?.max || 0);
 
-        // Only select if available quantity > 5
-        if (maxQty > 5) {
-          checkbox.checked = true;
-          toggleProductAllocation(productId);
+          // Only select if available quantity > 5
+          if (maxQty > 5) {
+            checkbox.checked = true;
+            toggleProductAllocation(productId);
 
-          // Allocate 30% of available stock (rounded)
-          const smartQty = Math.round(maxQty * 0.3);
-          qtyInput.value = Math.max(1, smartQty);
-          updateAllocation(productId, qtyInput.value, maxQty);
-        }
-      });
+            // Wait for controls to be shown then set quantity
+            setTimeout(() => {
+              // Allocate 30% of available stock (rounded)
+              const smartQty = Math.max(1, Math.round(maxQty * 0.3));
+              qtyInput.value = smartQty;
+              updateAllocation(productId, smartQty, maxQty);
+            }, 200);
+          }
+        });
 
-      updateAllocationSummary();
+        // Final update after all selections
+        setTimeout(() => {
+          updateAllocationSummary();
+        }, 1000);
+      }, 100);
     }
 
     // Enhanced inventory allocation functions with visual effects
@@ -493,56 +639,75 @@
       const overlay = card.querySelector('.selection-overlay');
 
       if (checkbox.checked) {
-        // Show allocation controls with animation
-        controls.style.display = 'block';
-        setTimeout(() => {
-          controls.style.opacity = '1';
-          controls.style.transform = 'translateY(0)';
-        }, 10);
-
         // Add visual effects
         card.classList.add('border-primary', 'selected-card');
+
+        // Show overlay with animation
         if (overlay) {
-          overlay.style.opacity = '0.9';
+          overlay.style.opacity = '1';
         }
 
-        // Add selection glow effect
-        card.style.boxShadow = '0 0 0 3px rgba(13, 110, 253, 0.25), 0 4px 12px rgba(0,0,0,0.15)';
+        // Show allocation controls
+        if (controls) {
+          controls.style.display = 'block';
+          setTimeout(() => {
+            controls.style.opacity = '1';
+            controls.style.transform = 'translateY(0)';
+          }, 50);
+        }
 
       } else {
-        // Hide allocation controls
-        controls.style.opacity = '0';
-        controls.style.transform = 'translateY(-10px)';
-        setTimeout(() => {
-          controls.style.display = 'none';
-        }, 300);
-
         // Remove visual effects
         card.classList.remove('border-primary', 'selected-card');
+
+        // Hide overlay
         if (overlay) {
           overlay.style.opacity = '0';
         }
-        card.style.boxShadow = '';
 
-        // Clear the quantity input
+        // Hide allocation controls
+        if (controls) {
+          controls.style.opacity = '0';
+          controls.style.transform = 'translateY(-10px)';
+          setTimeout(() => {
+            controls.style.display = 'none';
+          }, 300);
+        }
+
+        // Clear the quantity input and reset values
         const qtyInput = document.getElementById(`qty-${productId}`);
         if (qtyInput) {
           qtyInput.value = '';
-          // Update transfer value
+          // Reset remaining quantity
+          const remainingSpan = document.getElementById(`remaining-qty-${productId}`);
+          const maxQty = parseFloat(qtyInput.max);
+          if (remainingSpan) {
+            remainingSpan.textContent = maxQty;
+          }
+          // Reset transfer value
           const transferValueSpan = document.getElementById(`transfer-value-${productId}`);
           if (transferValueSpan) {
-            transferValueSpan.textContent = '0';
+            transferValueSpan.textContent = '0.00';
           }
-          // Update allocation summary
-          updateAllocationSummary();
         }
       }
+
+      updateAllocationSummary();
     }
 
     function setMaxQuantity(productId, maxQty) {
       const qtyInput = document.getElementById(`qty-${productId}`);
+      const checkbox = document.getElementById(`select-${productId}`);
+
       if (qtyInput) {
         qtyInput.value = maxQty;
+
+        // Ensure product is selected
+        if (!checkbox.checked) {
+          checkbox.checked = true;
+          toggleProductAllocation(productId);
+        }
+
         updateAllocation(productId, maxQty, maxQty);
       }
     }
@@ -552,6 +717,17 @@
         checkbox.checked = true;
         const productId = checkbox.id.replace('select-', '');
         toggleProductAllocation(productId);
+
+        // Set a default quantity (10% of available or minimum 1)
+        setTimeout(() => {
+          const qtyInput = document.getElementById(`qty-${productId}`);
+          if (qtyInput) {
+            const maxQty = parseFloat(qtyInput.max);
+            const defaultQty = Math.max(1, Math.round(maxQty * 0.1));
+            qtyInput.value = defaultQty;
+            updateAllocation(productId, defaultQty, maxQty);
+          }
+        }, 100);
       });
     }
 
@@ -561,6 +737,7 @@
         const productId = checkbox.id.replace('select-', '');
         toggleProductAllocation(productId);
       });
+      updateAllocationSummary();
     }
 
     function filterProducts() {
@@ -906,7 +1083,7 @@
         position: relative !important;
       }
 
-      .product-card .col-md-4 {
+      .product-card {
         padding: 0.75rem;
       }
     }

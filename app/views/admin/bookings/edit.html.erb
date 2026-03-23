@@ -341,7 +341,21 @@
             </div>
 
             <div class="col-12">
-              <label class="form-label">Tax Amount (18%)</label>
+              <%
+                # Calculate the actual total tax rate from all booking items
+                total_tax_rate = 0
+                taxed_items_count = 0
+                @booking.booking_items.each do |item|
+                  if item.product&.gst_enabled && item.product.gst_percentage.to_f > 0
+                    total_tax_rate += item.product.gst_percentage.to_f
+                    taxed_items_count += 1
+                  end
+                end
+                # Calculate average tax rate
+                avg_tax_rate = taxed_items_count > 0 ? (total_tax_rate / taxed_items_count) : 0
+                tax_display = avg_tax_rate.to_i == avg_tax_rate ? avg_tax_rate.to_i : avg_tax_rate.round(2)
+              %>
+              <label class="form-label">Tax Amount (<%= tax_display %>%)</label>
               <%= f.number_field :tax_amount, class: 'form-control', step: '0.01', readonly: true %>
             </div>
 
@@ -480,26 +494,49 @@ function calculateItemTotal(input) {
   }
 }
 
-// Calculate booking totals
+// Calculate booking totals with GST inclusive pricing
 function calculateTotals() {
-  let subtotal = 0;
+  let totalBaseAmount = 0;
+  let totalGstAmount = 0;
 
-  // Calculate subtotal from all visible items
+  // Get product data for GST calculation
+  const productGstRates = {
+    <% Product.where(gst_enabled: true).each do |product| %>
+    <%= product.id %>: <%= product.gst_percentage.to_f %>,
+    <% end %>
+  };
+
+  // Calculate totals from all visible items
   document.querySelectorAll('.booking-item-row:not([style*="display: none"])').forEach(row => {
     const quantityInput = row.querySelector('input[name*="[quantity]"]');
     const priceInput = row.querySelector('input[name*="[price]"]');
+    const productSelect = row.querySelector('select[name*="[product_id]"]');
 
-    if (quantityInput && priceInput) {
+    if (quantityInput && priceInput && productSelect) {
       const quantity = parseFloat(quantityInput.value) || 0;
       const price = parseFloat(priceInput.value) || 0;
-      subtotal += quantity * price;
+      const productId = parseInt(productSelect.value);
+      const totalPrice = quantity * price;
+
+      if (productGstRates[productId] && productGstRates[productId] > 0) {
+        // GST inclusive pricing: extract GST from total price
+        const gstRate = productGstRates[productId];
+        const gstAmount = (totalPrice * gstRate / (100 + gstRate));
+        const baseAmount = totalPrice - gstAmount;
+
+        totalBaseAmount += baseAmount;
+        totalGstAmount += gstAmount;
+      } else {
+        // No GST
+        totalBaseAmount += totalPrice;
+      }
     }
   });
 
   const discountAmount = parseFloat(document.querySelector('input[name="booking[discount_amount]"]').value) || 0;
-  const taxRate = 0.18; // 18%
-  const taxAmount = (subtotal - discountAmount) * taxRate;
-  const totalAmount = subtotal - discountAmount + taxAmount;
+  const subtotal = totalBaseAmount;
+  const taxAmount = totalGstAmount;
+  const totalAmount = totalBaseAmount + totalGstAmount - discountAmount;
 
   // Update form fields
   document.querySelector('input[name="booking[subtotal]"]').value = subtotal.toFixed(2);
