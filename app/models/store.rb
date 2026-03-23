@@ -221,29 +221,21 @@ class Store < ApplicationRecord
       errors.add(:admin_last_name, "can't be blank") if admin_last_name.blank?
       errors.add(:admin_mobile, "can't be blank") if admin_mobile.blank?
 
-      # Create email from username for validation if admin_email is blank
-      if admin_username.present? && admin_email.blank?
-        self.admin_email = "#{admin_username}@#{name.downcase.gsub(/\s+/, '')}.store"
-      end
-
+      # Require manual email entry - no auto-generation
       if admin_email.blank?
-        errors.add(:admin_email, "can't be blank after auto-generation")
+        errors.add(:admin_email, "can't be blank")
       end
 
-      if admin_email.present? && User.exists?(email: admin_email)
+      # Only validate uniqueness if creating a new admin user (not when updating store with existing admin)
+      if admin_email.present? && User.exists?(email: admin_email) && !store_admin_user&.email&.eql?(admin_email)
         errors.add(:admin_email, "already exists")
       end
 
-      # Normalize and validate admin mobile
+      # Store admin mobile without validation
       if admin_mobile.present?
-        normalized_admin_mobile = normalize_mobile_number(admin_mobile)
-        if normalized_admin_mobile.nil? || !normalized_admin_mobile.match?(/\A[6-9]\d{9}\z/)
-          errors.add(:admin_mobile, "should be a valid Indian mobile number")
-        elsif User.exists?(mobile: normalized_admin_mobile)
+        # Check uniqueness only
+        if User.exists?(mobile: admin_mobile) && !store_admin_user&.mobile&.eql?(admin_mobile)
           errors.add(:admin_mobile, "already exists")
-        else
-          # Store the normalized version
-          self.admin_mobile = normalized_admin_mobile
         end
       end
 

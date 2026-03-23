@@ -14,6 +14,57 @@
   <!-- Single Page Store Creation -->
   <div class="store-creation-form">
 
+    <!-- Admin Setup Section -->
+    <% if store.new_record? %>
+    <div class="admin-setup-section">
+      <div class="card mb-4 border-0 shadow-lg">
+        <div class="card-header text-white border-0 p-4" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+          <div class="d-flex align-items-center">
+            <div class="page-icon me-3">
+              <i class="ri-user-settings-line" style="font-size: 2.5rem;"></i>
+            </div>
+            <div>
+              <h4 class="card-title mb-1 fw-bold">Store Admin Setup</h4>
+              <p class="mb-0 text-white-75">Create an admin account to manage this store</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-body p-4">
+          <%= form.hidden_field :create_admin_user, value: true %>
+          <div id="admin-section">
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Admin Username <span class="text-danger">*</span></label>
+            <%= form.text_field :admin_username, class: "form-control", placeholder: "Enter admin username", id: "admin_username", required: true %>
+            <small class="text-muted">This will be used to login to the store admin panel</small>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Admin Password <span class="text-danger">*</span></label>
+            <%= form.password_field :admin_password, class: "form-control", placeholder: "Minimum 6 characters", id: "admin_password", required: true %>
+            <small class="text-muted">Strong password for store admin access</small>
+          </div>
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Admin Email <span class="text-danger">*</span></label>
+            <%= form.email_field :admin_email, class: "form-control", placeholder: "Enter admin email", id: "admin_email", required: true %>
+            <small class="text-muted">Email for store admin account</small>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Admin Mobile <span class="text-danger">*</span></label>
+            <%= form.text_field :admin_mobile, class: "form-control", placeholder: "Enter mobile number", id: "admin_mobile", required: true %>
+            <small class="text-muted">10-digit mobile number starting with 7, 8, or 9</small>
+          </div>
+        </div>
+
+        <%= form.hidden_field :admin_first_name, value: "Store" %>
+        <%= form.hidden_field :admin_last_name, value: "Admin" %>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
     <!-- Store Information Section -->
       <div class="card mb-4 border-0 shadow-lg">
         <div class="card-header text-white border-0 p-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
@@ -70,53 +121,6 @@
       <%= form.hidden_field :email, value: "" %>
     </div>
 
-    <!-- Admin Setup Section -->
-    <% if store.new_record? %>
-    <div class="admin-setup-section">
-      <div class="card mb-4 border-0 shadow-lg">
-        <div class="card-header text-white border-0 p-4" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
-          <div class="d-flex align-items-center">
-            <div class="page-icon me-3">
-              <i class="ri-user-settings-line" style="font-size: 2.5rem;"></i>
-            </div>
-            <div>
-              <h4 class="card-title mb-1 fw-bold">Store Admin Setup</h4>
-              <p class="mb-0 text-white-75">Create an admin account to manage this store</p>
-            </div>
-          </div>
-        </div>
-        <div class="card-body p-4">
-          <div class="row mb-4">
-            <div class="col-12">
-              <div class="form-check form-switch">
-                <%= form.check_box :create_admin_user, class: "form-check-input", checked: true, onchange: "toggleAdminSection()" %>
-                <label class="form-check-label fw-semibold">Create Store Admin Account</label>
-                <div class="form-text">
-                  <i class="ri-information-line me-1"></i>Enable this to create a dedicated admin user for store management
-                </div>
-              </div>
-            </div>
-          </div>
-          <div id="admin-section">
-        <div class="row mb-3">
-          <div class="col-md-6">
-            <label class="form-label">Admin Username <span class="text-danger">*</span></label>
-            <%= form.text_field :admin_username, class: "form-control", placeholder: "Enter admin username", id: "admin_username", required: true %>
-            <small class="text-muted">This will be used to login to the store admin panel</small>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Admin Password <span class="text-danger">*</span></label>
-            <%= form.password_field :admin_password, class: "form-control", placeholder: "Minimum 6 characters", id: "admin_password", required: true %>
-            <small class="text-muted">Strong password for store admin access</small>
-          </div>
-        </div>
-
-        <%= form.hidden_field :admin_email, value: "" %>
-        <%= form.hidden_field :admin_first_name, value: "Store" %>
-        <%= form.hidden_field :admin_last_name, value: "Admin" %>
-        <%= form.hidden_field :admin_mobile, value: "1234567890" %>
-      </div>
-    </div>
 
     <!-- Inventory Allocation Section -->
     <div class="inventory-allocation-section">
@@ -207,8 +211,8 @@
             <% @available_products.each do |product| %>
               <% available_qty = @inventory_data[product.id][:available] %>
               <% current_stock = available_qty.to_i %>
-              <div class="col-xl-4 col-lg-4 col-md-6 col-sm-12 product-card" data-product-name="<%= product.name.downcase %>" data-product-sku="<%= product.sku.downcase %>" data-category="<%= @inventory_data[product.id][:category] %>" data-price="<%= product.price || 0 %>" data-product-id="<%= product.id %>">
-                <div class="card h-100 border-0 shadow-sm hover-lift beautiful-product-card" id="product-card-<%= product.id %>">
+              <div class="col-xl-4 col-lg-4 col-md-6 col-sm-12 product-card" data-product-name="<%= product.name.downcase %>" data-product-sku="<%= product.sku.downcase %>" data-category="<%= @inventory_data[product.id][:category] %>" data-product-id="<%= product.id %>">
+                <div class="card h-100 border-0 shadow-sm hover-lift beautiful-product-card" id="product-card-<%= product.id %>" data-price="<%= product.price || 0 %>" data-product-name="<%= product.name %>" data-unit="<%= @inventory_data[product.id][:unit] %>">
 
                   <!-- Enhanced Product Image - Matching Booking Page -->
                   <div class="position-relative product-image-wrapper">
@@ -415,12 +419,8 @@
       <!-- Inventory Summary -->
       <% if @available_products&.any? %>
       <div class="inventory-summary-section">
-        <div class="row">
-          <div class="col-lg-8">
-            <!-- Selected products will show in the main grid above -->
-          </div>
-
-          <div class="col-lg-4">
+        <div class="row justify-content-center">
+          <div class="col-lg-6 col-xl-5 col-md-8">
             <div class="card border-0 shadow-lg modern-summary-card">
               <div class="card-header text-white border-0 p-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                 <div class="d-flex align-items-center">
@@ -562,10 +562,9 @@
           </div>
         </div>
       </div>
-      <% end %>
+      <% end %> <!-- End inventory summary section -->
 
         </div> <!-- End inventory-allocation-wrapper -->
-      <% end %>
       </div> <!-- End card-body for inventory allocation -->
       </div> <!-- End card for inventory allocation -->
     </div> <!-- End inventory-allocation-section -->
@@ -597,7 +596,7 @@
       // Validate admin information if admin creation is enabled
       const createAdmin = document.querySelector('input[name="store[create_admin_user]"]');
       if (createAdmin && createAdmin.checked) {
-        const adminFields = ['admin_username', 'admin_password'];
+        const adminFields = ['admin_username', 'admin_password', 'admin_email', 'admin_mobile'];
         adminFields.forEach(field => {
           const input = document.querySelector(`input[name="store[${field}]"]`);
           if (input && !input.value.trim()) {
@@ -607,6 +606,7 @@
             input.classList.remove('is-invalid');
           }
         });
+
       }
 
       if (!isValid) {
@@ -616,25 +616,6 @@
       return true;
     }
 
-    function toggleAdminSection() {
-      const checkbox = document.querySelector('input[name="store[create_admin_user]"]');
-      const section = document.getElementById('admin-section');
-      const adminFields = ['admin_username', 'admin_password'];
-
-      if (checkbox.checked) {
-        section.style.display = 'block';
-        adminFields.forEach(fieldId => {
-          const field = document.getElementById(fieldId);
-          if (field) field.required = true;
-        });
-      } else {
-        section.style.display = 'none';
-        adminFields.forEach(fieldId => {
-          const field = document.getElementById(fieldId);
-          if (field) field.required = false;
-        });
-      }
-    }
 
     function updateAllocation(productId, allocatedQty, availableQty) {
       const remaining = availableQty - parseFloat(allocatedQty || 0);
@@ -675,6 +656,7 @@
     }
 
     function updateAllocationSummary() {
+      console.log('updateAllocationSummary called');
       const allocations = [];
       let totalValue = 0;
       let selectedCount = 0;
@@ -704,7 +686,7 @@
             const itemValue = qty * pricePerUnit;
             totalValue += itemValue;
 
-            console.log(`Summary - Product ${productId}: ${productName}, Qty: ${qty}, Price: ${pricePerUnit}, Value: ${itemValue}`);
+            console.log(`Summary - Product ${productId}: ${productName}, Qty: ${qty}, Price: ${pricePerUnit}, Value: ${itemValue}, TotalValue: ${totalValue}`);
 
             allocations.push({
               name: productName,
@@ -718,10 +700,18 @@
       });
 
       console.log(`Total selected: ${selectedCount}, Total value: ${totalValue}`);
+      console.log('Updating sidebar elements:', selectedCountEl, totalValueEl);
 
       // Update sidebar statistics
-      if (selectedCountEl) selectedCountEl.textContent = selectedCount;
-      if (totalValueEl) totalValueEl.textContent = `₹${totalValue.toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
+      if (selectedCountEl) {
+        selectedCountEl.textContent = selectedCount;
+        console.log(`Set selected count to: ${selectedCount}`);
+      }
+      if (totalValueEl) {
+        const formattedValue = `₹${totalValue.toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
+        totalValueEl.textContent = formattedValue;
+        console.log(`Set total value to: ${formattedValue}`);
+      }
       if (selectedBadge) selectedBadge.textContent = `${selectedCount} item${selectedCount !== 1 ? 's' : ''}`;
 
       // Update selected products list in sidebar
@@ -1183,6 +1173,11 @@
       const hasSelections = Array.from(document.querySelectorAll('input[name*="inventory_allocations"][name*="[quantity]"]')).some(input => parseFloat(input.value || 0) > 0);
       const nextBtn = document.getElementById('nextStepBtn');
 
+      // Safety check to prevent errors if button doesn't exist
+      if (!nextBtn) {
+        return;
+      }
+
       if (hasSelections) {
         nextBtn.disabled = false;
         nextBtn.innerHTML = 'Next: Review <i class="ri-arrow-right-line ms-1"></i>';
@@ -1292,7 +1287,7 @@
 
     // Initialize admin section visibility and add event listeners
     document.addEventListener('DOMContentLoaded', function() {
-      toggleAdminSection();
+      // Admin section is always visible for new stores
 
       // Add event listeners for search and filter
       const searchInput = document.getElementById('product-search');
@@ -1308,6 +1303,7 @@
 
       // Initialize step state
       updateNextButtonState();
+
 
       // Show welcome notification
       setTimeout(() => {
@@ -1424,6 +1420,11 @@
       const nextBtn = document.getElementById('wizardNextBtn');
       const submitBtn = document.getElementById('wizardSubmitBtn');
 
+      // Safety checks to prevent errors if buttons don't exist
+      if (!prevBtn || !nextBtn || !submitBtn) {
+        return;
+      }
+
       // Show/hide previous button
       if (currentWizardStep === 1) {
         prevBtn.style.display = 'none';
@@ -1501,8 +1502,11 @@
     document.addEventListener('DOMContentLoaded', function() {
       updateWizardButtons();
 
-      // Show first page by default
-      document.getElementById('wizard-page-1').style.display = 'block';
+      // Show first page by default - with safety check
+      const firstPage = document.getElementById('wizard-page-1');
+      if (firstPage) {
+        firstPage.style.display = 'block';
+      }
     });
   </script>
 
@@ -1946,13 +1950,14 @@
       transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    /* Enhanced Sidebar Styles with Fixed Width */
+    /* Enhanced Centered Summary Card Styles */
     .modern-summary-card {
       transition: all 0.3s ease;
       border-radius: 1rem !important;
       overflow: hidden;
-      min-width: 350px;
+      max-width: 500px;
       width: 100%;
+      margin: 0 auto;
     }
 
     .modern-summary-card:hover {
@@ -1960,17 +1965,21 @@
       box-shadow: 0 20px 60px rgba(0,0,0,0.1) !important;
     }
 
-    /* Sidebar Width Constraints */
-    .col-lg-5 {
-      min-width: 380px;
-      flex: 0 0 auto;
-      width: 41.666667%;
+    /* Centered Summary Section */
+    .inventory-summary-section {
+      margin-top: 2rem;
+      padding: 0 1rem;
     }
 
-    .col-xl-4 {
-      min-width: 400px;
-      flex: 0 0 auto;
-      width: 33.333333%;
+    .inventory-summary-section .row {
+      margin: 0;
+    }
+
+    .inventory-summary-section .col-lg-6,
+    .inventory-summary-section .col-xl-5,
+    .inventory-summary-section .col-md-8 {
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
     }
 
     .stat-card {
