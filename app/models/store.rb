@@ -26,6 +26,7 @@ class Store < ApplicationRecord
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
   validates :contact_person, presence: true, length: { maximum: 100 }
   validates :description, length: { maximum: 1000 }, allow_blank: true
+  validates :gst_no, format: { with: /\A[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}[Z]{1}[0-9A-Z]{1}\z/, message: "should be valid GST number format (15 characters)" }, allow_blank: true
 
   # Custom validation for maximum stores limit
   validate :check_maximum_stores_limit, on: :create

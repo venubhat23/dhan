@@ -1,4 +1,4 @@
-<%= form_with(model: [:admin, store], local: true) do |form| %>
+<%= form_with(model: [:admin, store], local: true, onsubmit: "return validateForm();") do |form| %>
   <% if store.errors.any? %>
     <div class="alert alert-danger alert-dismissible" role="alert">
       <h6 class="alert-heading mb-1">Please fix the following errors:</h6>
@@ -11,33 +11,27 @@
     </div>
   <% end %>
 
-  <!-- Store Information Section -->
-  <div class="card mb-4">
-    <div class="card-header">
-      <h5 class="card-title mb-0">
-        <i class="ri-store-2-line me-2"></i>Store Information
-      </h5>
-    </div>
-    <div class="card-body">
+  <!-- Single Page Store Creation -->
+  <div class="store-creation-form">
+
+    <!-- Store Information Section -->
+      <div class="card mb-4 border-0 shadow-lg">
+        <div class="card-header text-white border-0 p-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+          <div class="d-flex align-items-center">
+            <div class="page-icon me-3">
+              <i class="ri-store-2-line" style="font-size: 2.5rem;"></i>
+            </div>
+            <div>
+              <h4 class="card-title mb-1 fw-bold">Store Information</h4>
+              <p class="mb-0 text-white-75">Enter the basic details for your new store</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-body p-4">
       <div class="row mb-3">
-        <div class="col-md-6">
+        <div class="col-md-12">
           <label class="form-label">Store Name <span class="text-danger">*</span></label>
           <%= form.text_field :name, class: "form-control", placeholder: "Enter store name", required: true %>
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">Contact Person <span class="text-danger">*</span></label>
-          <%= form.text_field :contact_person, class: "form-control", placeholder: "Enter contact person name", required: true %>
-        </div>
-      </div>
-
-      <div class="row mb-3">
-        <div class="col-md-6">
-          <label class="form-label">Contact Mobile <span class="text-danger">*</span></label>
-          <%= form.text_field :contact_mobile, class: "form-control", placeholder: "Enter 10-digit mobile number", required: true %>
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">Email</label>
-          <%= form.email_field :email, class: "form-control", placeholder: "Enter store email (optional)" %>
         </div>
       </div>
 
@@ -62,137 +56,129 @@
       </div>
 
       <div class="row mb-3">
-        <div class="col-md-6">
-          <label class="form-label">Description</label>
-          <%= form.text_area :description, class: "form-control", rows: 3, placeholder: "Enter store description (optional)" %>
-        </div>
-        <div class="col-md-6">
-          <div class="mb-3">
-            <label class="form-label">Status</label>
-            <div class="form-check form-switch mt-2">
-              <%= form.check_box :status, class: "form-check-input", checked: store.new_record? ? true : store.status %>
-              <label class="form-check-label">Active</label>
-            </div>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Inventory Management</label>
-            <div class="form-check form-switch mt-2">
-              <%= form.check_box :inventory_management_enabled, class: "form-check-input", checked: store.new_record? ? true : store.inventory_management_enabled %>
-              <label class="form-check-label">Enable Inventory Management</label>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="row mb-3">
-        <div class="col-md-6">
-          <label class="form-label">Auto Transfer Threshold</label>
-          <%= form.number_field :auto_transfer_threshold, class: "form-control", placeholder: "Minimum stock level", min: 0 %>
-          <small class="text-muted">Automatic transfer requests when stock goes below this level</small>
-        </div>
-        <div class="col-md-6">
+        <div class="col-md-12">
           <label class="form-label">GST Number</label>
           <%= form.text_field :gst_no, class: "form-control", placeholder: "Enter GST number (optional)" %>
+          <small class="text-muted">15-character GST number (optional)</small>
         </div>
       </div>
-    </div>
-  </div>
 
-  <% if store.new_record? %>
-    <!-- Store Admin Setup Section -->
-    <div class="card mb-4">
-      <div class="card-header">
-        <h5 class="card-title mb-0">
-          <i class="ri-user-settings-line me-2"></i>Store Admin Setup
-        </h5>
-        <div class="form-check form-switch mt-2">
-          <%= form.check_box :create_admin_user, class: "form-check-input", checked: true, onchange: "toggleAdminSection()" %>
-          <label class="form-check-label">Create Store Admin Account</label>
+      <%= form.hidden_field :status, value: true %>
+      <%= form.hidden_field :inventory_management_enabled, value: true %>
+      <%= form.hidden_field :contact_person, value: "Store Administrator" %>
+      <%= form.hidden_field :contact_mobile, value: "9876543210" %>
+      <%= form.hidden_field :email, value: "" %>
+    </div>
+
+    <!-- Admin Setup Section -->
+    <% if store.new_record? %>
+    <div class="admin-setup-section">
+      <div class="card mb-4 border-0 shadow-lg">
+        <div class="card-header text-white border-0 p-4" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+          <div class="d-flex align-items-center">
+            <div class="page-icon me-3">
+              <i class="ri-user-settings-line" style="font-size: 2.5rem;"></i>
+            </div>
+            <div>
+              <h4 class="card-title mb-1 fw-bold">Store Admin Setup</h4>
+              <p class="mb-0 text-white-75">Create an admin account to manage this store</p>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="card-body" id="admin-section">
+        <div class="card-body p-4">
+          <div class="row mb-4">
+            <div class="col-12">
+              <div class="form-check form-switch">
+                <%= form.check_box :create_admin_user, class: "form-check-input", checked: true, onchange: "toggleAdminSection()" %>
+                <label class="form-check-label fw-semibold">Create Store Admin Account</label>
+                <div class="form-text">
+                  <i class="ri-information-line me-1"></i>Enable this to create a dedicated admin user for store management
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="admin-section">
         <div class="row mb-3">
           <div class="col-md-6">
-            <label class="form-label">Username <span class="text-danger">*</span></label>
-            <%= form.text_field :admin_username, class: "form-control", placeholder: "admin_username", id: "admin_username" %>
+            <label class="form-label">Admin Username <span class="text-danger">*</span></label>
+            <%= form.text_field :admin_username, class: "form-control", placeholder: "Enter admin username", id: "admin_username", required: true %>
+            <small class="text-muted">This will be used to login to the store admin panel</small>
           </div>
           <div class="col-md-6">
             <label class="form-label">Admin Password <span class="text-danger">*</span></label>
-            <%= form.password_field :admin_password, class: "form-control", placeholder: "Minimum 6 characters", id: "admin_password" %>
+            <%= form.password_field :admin_password, class: "form-control", placeholder: "Minimum 6 characters", id: "admin_password", required: true %>
+            <small class="text-muted">Strong password for store admin access</small>
           </div>
         </div>
 
-        <div class="row mb-3">
-          <div class="col-md-6">
-            <label class="form-label">Admin Email</label>
-            <%= form.email_field :admin_email, class: "form-control", placeholder: "Will be auto-generated if empty", id: "admin_email" %>
-            <small class="text-muted">Leave empty to auto-generate from username</small>
-          </div>
-        </div>
-
-        <div class="row mb-3">
-          <div class="col-md-6">
-            <label class="form-label">First Name <span class="text-danger">*</span></label>
-            <%= form.text_field :admin_first_name, class: "form-control", placeholder: "Enter first name", id: "admin_first_name" %>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Last Name <span class="text-danger">*</span></label>
-            <%= form.text_field :admin_last_name, class: "form-control", placeholder: "Enter last name", id: "admin_last_name" %>
-          </div>
-        </div>
-
-        <div class="row mb-3">
-          <div class="col-md-6">
-            <label class="form-label">Mobile Number <span class="text-danger">*</span></label>
-            <%= form.text_field :admin_mobile, class: "form-control", placeholder: "10-digit mobile number", id: "admin_mobile" %>
-          </div>
-        </div>
+        <%= form.hidden_field :admin_email, value: "" %>
+        <%= form.hidden_field :admin_first_name, value: "Store" %>
+        <%= form.hidden_field :admin_last_name, value: "Admin" %>
+        <%= form.hidden_field :admin_mobile, value: "1234567890" %>
       </div>
     </div>
 
-    <!-- Initial Inventory Allocation Section -->
-    <div class="row">
-      <!-- Main Content -->
-      <div class="col-lg-8">
-        <div class="card mb-4 inventory-allocation-card">
-          <div class="card-header bg-gradient-primary text-white">
+    <!-- Inventory Allocation Section -->
+    <div class="inventory-allocation-section">
+      <div class="card mb-4 border-0 shadow-lg">
+        <div class="card-header text-white border-0 p-4" style="background: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%);">
+          <div class="d-flex align-items-center">
+            <div class="page-icon me-3">
+              <i class="ri-box-3-line" style="font-size: 2.5rem;"></i>
+            </div>
+            <div>
+              <h4 class="card-title mb-1 fw-bold">Initial Inventory Allocation</h4>
+              <p class="mb-0 text-white-75">Set up your store's initial product inventory</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-body p-0">
+
+      <!-- Product Selection -->
+      <div class="inventory-allocation-content">
+        <div class="card mb-4 inventory-allocation-card border-0 shadow-lg">
+          <div class="card-header text-white border-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
             <div class="d-flex justify-content-between align-items-center">
               <div>
-                <h5 class="card-title mb-0">
-                  <i class="ri-box-3-line me-2"></i>Initial Inventory Allocation
+                <h5 class="card-title mb-1 fw-bold">
+                  <i class="ri-box-3-line me-2"></i>Step 1: Select Products for Allocation
                 </h5>
-                <small class="text-white-50">Choose and transfer products from central inventory to this new store</small>
+                <small class="text-white-75">Choose products from central inventory to transfer to this new store</small>
               </div>
               <div class="text-end">
-                <button type="button" class="btn btn-light btn-sm me-2" onclick="refreshInventoryData()" title="Refresh Inventory">
+                <button type="button" class="btn btn-light btn-sm me-2 shadow-sm" onclick="refreshInventoryData()" title="Refresh Inventory">
                   <i class="ri-refresh-line me-1"></i>Refresh
                 </button>
-                <button type="button" class="btn btn-outline-light btn-sm" onclick="optimizeAllocation()" title="Smart Auto-Select">
+                <button type="button" class="btn btn-outline-light btn-sm shadow-sm" onclick="optimizeAllocation()" title="Smart Auto-Select">
                   <i class="ri-magic-line me-1"></i>Smart Select
                 </button>
               </div>
             </div>
           </div>
-          <div class="card-body">
+          <div class="card-body p-0">
         <% if @available_products&.any? %>
           <!-- Enhanced Search and Filter Controls -->
-          <div class="inventory-controls bg-light p-4 rounded-3 mb-4">
-            <div class="row g-3">
+          <div class="bg-white border-bottom p-4">
+            <div class="row g-3 align-items-end">
               <div class="col-lg-5">
-                <label class="form-label text-muted fw-semibold mb-1">Search Products</label>
-                <div class="input-group input-group-lg">
+                <label class="form-label text-dark fw-semibold mb-2">
+                  <i class="ri-search-line me-1 text-primary"></i>Search Products
+                </label>
+                <div class="input-group shadow-sm">
                   <span class="input-group-text bg-white border-end-0">
                     <i class="ri-search-line text-muted"></i>
                   </span>
                   <input type="text" id="product-search" class="form-control border-start-0 ps-0" placeholder="Search by name, SKU, or category...">
-                  <button class="btn btn-outline-secondary" type="button" onclick="document.getElementById('product-search').value=''; filterProducts();">
+                  <button class="btn btn-outline-secondary border-start-0" type="button" onclick="document.getElementById('product-search').value=''; filterProducts();">
                     <i class="ri-close-line"></i>
                   </button>
                 </div>
               </div>
               <div class="col-lg-3">
-                <label class="form-label text-muted fw-semibold mb-1">Filter by Category</label>
-                <select id="category-filter" class="form-select form-select-lg">
+                <label class="form-label text-dark fw-semibold mb-2">
+                  <i class="ri-filter-line me-1 text-primary"></i>Filter by Category
+                </label>
+                <select id="category-filter" class="form-select shadow-sm">
                   <option value="">All Categories</option>
                   <% @available_products.includes(:category).map(&:category).uniq.each do |category| %>
                     <option value="<%= category.name %>"><%= category.name %></option>
@@ -200,12 +186,14 @@
                 </select>
               </div>
               <div class="col-lg-4">
-                <label class="form-label text-muted fw-semibold mb-1">Quick Actions</label>
+                <label class="form-label text-dark fw-semibold mb-2">
+                  <i class="ri-settings-3-line me-1 text-primary"></i>Quick Actions
+                </label>
                 <div class="d-flex gap-2">
-                  <button type="button" class="btn btn-primary btn-lg flex-fill" onclick="selectAllProducts()">
+                  <button type="button" class="btn btn-primary flex-fill shadow-sm" onclick="selectAllProducts()">
                     <i class="ri-checkbox-multiple-line me-1"></i>Select All
                   </button>
-                  <button type="button" class="btn btn-outline-secondary btn-lg flex-fill" onclick="clearAllProducts()">
+                  <button type="button" class="btn btn-outline-secondary flex-fill shadow-sm" onclick="clearAllProducts()">
                     <i class="ri-checkbox-blank-line me-1"></i>Clear All
                   </button>
                 </div>
@@ -214,27 +202,27 @@
           </div>
 
           <!-- Enhanced Product Grid -->
-          <div class="products-grid-container">
+          <div class="products-grid-container p-4">
             <div class="row g-4" id="products-grid">
             <% @available_products.each do |product| %>
               <% available_qty = @inventory_data[product.id][:available] %>
               <% current_stock = available_qty.to_i %>
-              <div class="col-lg-4 col-md-6 col-sm-12 product-card" data-product-name="<%= product.name.downcase %>" data-product-sku="<%= product.sku.downcase %>" data-category="<%= @inventory_data[product.id][:category] %>" data-price="<%= product.price || 0 %>" data-product-id="<%= product.id %>">
-                <div class="card h-100 border-0 shadow-hover modern-product-card" id="product-card-<%= product.id %>">
+              <div class="col-xl-4 col-lg-4 col-md-6 col-sm-12 product-card" data-product-name="<%= product.name.downcase %>" data-product-sku="<%= product.sku.downcase %>" data-category="<%= @inventory_data[product.id][:category] %>" data-price="<%= product.price || 0 %>" data-product-id="<%= product.id %>">
+                <div class="card h-100 border-0 shadow-sm hover-lift beautiful-product-card" id="product-card-<%= product.id %>">
 
-                  <!-- Enhanced Product Image with Gradient Overlay -->
-                  <div class="position-relative product-image-container">
-                    <% if product.image_url.present? %>
-                      <img src="<%= product.image_url %>" class="card-img-top product-image" style="height: 220px; object-fit: cover;" alt="<%= product.name %>">
-                    <% elsif product.respond_to?(:images) && product.images.respond_to?(:attached?) && product.images.attached? && product.images.any? %>
+                  <!-- Enhanced Product Image - Matching Booking Page -->
+                  <div class="position-relative product-image-wrapper">
+                    <% if product.main_image_url.present? %>
+                      <img src="<%= product.main_image_url %>" class="card-img-top product-image" style="height: 220px; object-fit: cover;" alt="<%= product.name %>">
+                    <% elsif product.images_attached? && product.images.any? %>
                       <%= image_tag product.images.first, class: "card-img-top product-image", style: "height: 220px; object-fit: cover;" %>
                     <% else %>
-                      <div class="card-img-top product-placeholder d-flex align-items-center justify-content-center" style="height: 220px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%, #f093fb 100%);">
+                      <div class="card-img-top product-placeholder d-flex align-items-center justify-content-center" style="height: 220px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                         <div class="text-center text-white">
-                          <div class="product-icon-wrapper">
-                            <i class="ri-box-3-line product-icon"></i>
+                          <div class="product-icon-wrapper mb-2">
+                            <i class="ri-box-3-line" style="font-size: 3rem; opacity: 0.8;"></i>
                           </div>
-                          <div class="mt-3 fw-semibold fs-6"><%= product.category&.name || 'Product' %></div>
+                          <div class="fw-semibold fs-6 opacity-75"><%= product.category&.name || 'Product' %></div>
                         </div>
                       </div>
                     <% end %>
@@ -242,57 +230,50 @@
                     <!-- Gradient overlay for better text readability -->
                     <div class="product-gradient-overlay"></div>
 
-                    <!-- Enhanced Selection Overlay -->
-                    <div class="position-absolute top-0 start-0 w-100 h-100 selection-overlay d-flex align-items-center justify-content-center">
-                      <div class="text-white text-center selection-content">
-                        <div class="selection-icon-wrapper">
-                          <i class="ri-checkbox-circle-fill selection-icon"></i>
+                    <!-- Beautiful Selection Overlay -->
+                    <div class="position-absolute top-0 start-0 w-100 h-100 selection-overlay d-flex align-items-center justify-content-center" style="background: rgba(13, 110, 253, 0.85); opacity: 0; transition: all 0.3s ease;">
+                      <div class="text-white text-center">
+                        <div class="mb-2">
+                          <i class="ri-checkbox-circle-fill" style="font-size: 3rem;"></i>
                         </div>
-                        <div class="mt-2 fw-bold fs-5 selection-text">SELECTED</div>
-                        <div class="selection-pulse"></div>
+                        <div class="fw-bold fs-5">SELECTED</div>
                       </div>
                     </div>
 
-                    <!-- Enhanced Stock Badge -->
+                    <!-- Beautiful Stock Badge -->
                     <% if current_stock == 0 %>
                       <div class="position-absolute top-0 end-0 m-3">
-                        <span class="badge modern-badge badge-danger">
+                        <span class="badge bg-danger shadow-sm" style="font-size: 0.75rem; border-radius: 0.5rem;">
                           <i class="ri-close-circle-fill me-1"></i>Out of Stock
                         </span>
                       </div>
                     <% elsif current_stock < 20 %>
                       <div class="position-absolute top-0 end-0 m-3">
-                        <span class="badge modern-badge badge-warning">
-                          <i class="ri-error-warning-fill me-1"></i>Low Stock
-                          <span class="badge-count"><%= current_stock %></span>
+                        <span class="badge bg-warning text-dark shadow-sm" style="font-size: 0.75rem; border-radius: 0.5rem;">
+                          <i class="ri-error-warning-fill me-1"></i><%= current_stock %> Available
                         </span>
                       </div>
                     <% else %>
                       <div class="position-absolute top-0 end-0 m-3">
-                        <span class="badge modern-badge badge-success">
+                        <span class="badge bg-success shadow-sm" style="font-size: 0.75rem; border-radius: 0.5rem;">
                           <i class="ri-check-circle-fill me-1"></i><%= current_stock %> Available
                         </span>
                       </div>
                     <% end %>
 
-                    <!-- Enhanced Price Badge -->
+                    <!-- Beautiful Price Badge -->
                     <% if product.price && product.price > 0 %>
                       <div class="position-absolute bottom-0 start-0 m-3">
-                        <span class="badge modern-badge badge-price">
+                        <span class="badge bg-dark shadow-sm" style="font-size: 0.75rem; border-radius: 0.5rem;">
                           <i class="ri-price-tag-3-fill me-1"></i>₹<%= number_with_delimiter(product.price) %>
                         </span>
                       </div>
                     <% end %>
 
-                    <!-- Enhanced Selection Checkbox -->
+                    <!-- Beautiful Selection Checkbox -->
                     <div class="position-absolute top-0 start-0 m-3">
-                      <div class="modern-checkbox">
-                        <input class="form-check-input product-checkbox" type="checkbox" id="select-<%= product.id %>" onchange="toggleProductAllocation(<%= product.id %>)">
-                        <label for="select-<%= product.id %>" class="checkbox-label">
-                          <span class="checkbox-custom">
-                            <i class="ri-check-line"></i>
-                          </span>
-                        </label>
+                      <div class="form-check">
+                        <input class="form-check-input product-checkbox shadow-sm" type="checkbox" id="select-<%= product.id %>" onchange="toggleProductAllocation(<%= product.id %>)" style="width: 1.25rem; height: 1.25rem; border: 2px solid #fff;">
                       </div>
                     </div>
                   </div>
@@ -300,108 +281,106 @@
                   <!-- Enhanced Product Details -->
                   <div class="card-body d-flex flex-column p-4">
                     <!-- Category Badge -->
-                    <div class="mb-3">
-                      <span class="category-badge">
+                    <div class="mb-2">
+                      <small class="badge bg-light text-dark border">
                         <%= @inventory_data[product.id][:category] || 'Uncategorized' %>
-                      </span>
+                      </small>
                     </div>
 
                     <!-- Product Name -->
-                    <h6 class="card-title mb-3 product-title">
+                    <h6 class="card-title mb-3 fw-bold" style="line-height: 1.3;">
                       <label for="select-<%= product.id %>" class="cursor-pointer text-decoration-none text-dark">
                         <%= product.name %>
                       </label>
                     </h6>
 
                     <!-- SKU with Enhanced Styling -->
-                    <div class="product-sku mb-3">
-                      <i class="ri-barcode-line me-2"></i>
-                      <span class="sku-text">SKU: <%= product.sku %></span>
+                    <div class="mb-3 text-muted small">
+                      <i class="ri-barcode-line me-1"></i>
+                      <span>SKU: <%= product.sku %></span>
                     </div>
 
-                    <!-- Enhanced Stock and Price Info -->
-                    <div class="product-info-grid mb-3">
-                      <div class="stock-info">
-                        <div class="info-icon">
-                          <i class="ri-database-2-line"></i>
-                        </div>
-                        <div class="info-content">
-                          <div class="info-value"><%= available_qty %> <%= @inventory_data[product.id][:unit] %></div>
-                          <div class="info-label">Available</div>
+                    <!-- Enhanced Stock and Price Info with Modern Grid -->
+                    <div class="row g-2 mb-3 small">
+                      <div class="col-6">
+                        <div class="d-flex align-items-center bg-light rounded p-2">
+                          <i class="ri-database-2-line text-success me-2"></i>
+                          <div>
+                            <div class="fw-semibold text-dark"><%= available_qty %> <%= @inventory_data[product.id][:unit] %></div>
+                            <div class="text-muted" style="font-size: 0.7rem;">Available</div>
+                          </div>
                         </div>
                       </div>
                       <% if product.price && product.price > 0 %>
-                        <div class="price-info">
-                          <div class="info-icon">
-                            <i class="ri-money-rupee-circle-line"></i>
-                          </div>
-                          <div class="info-content">
-                            <div class="info-value price-value">₹<%= number_with_delimiter(product.price) %></div>
-                            <div class="info-label">per <%= @inventory_data[product.id][:unit] %></div>
+                        <div class="col-6">
+                          <div class="d-flex align-items-center bg-light rounded p-2">
+                            <i class="ri-money-rupee-circle-line text-primary me-2"></i>
+                            <div>
+                              <div class="fw-semibold text-primary">₹<%= number_with_delimiter(product.price) %></div>
+                              <div class="text-muted" style="font-size: 0.7rem;">per <%= @inventory_data[product.id][:unit] %></div>
+                            </div>
                           </div>
                         </div>
                       <% end %>
                     </div>
 
-                    <!-- Enhanced Allocation Controls -->
-                    <div id="allocation-controls-<%= product.id %>" class="allocation-controls mt-auto" style="display: none;">
-                      <div class="allocation-separator"></div>
-                      <div class="allocation-panel">
-                        <div class="allocation-header">
-                          <div class="allocation-icon">
-                            <i class="ri-settings-4-line"></i>
-                          </div>
-                          <h6 class="allocation-title">Allocation Settings</h6>
-                        </div>
-
-                        <div class="allocation-inputs">
-                          <div class="quantity-input-wrapper">
-                            <label class="allocation-label">Quantity to Transfer</label>
-                            <div class="input-group">
-                              <%= number_field_tag "inventory_allocations[#{product.id}][quantity]",
-                                  nil,
-                                  class: "form-control allocation-quantity-input",
-                                  placeholder: "0",
-                                  min: 0,
-                                  max: available_qty,
-                                  step: 0.01,
-                                  id: "qty-#{product.id}",
-                                  onchange: "updateAllocation(#{product.id}, this.value, #{available_qty})" %>
-                              <button type="button" class="btn btn-outline-primary allocation-max-btn" onclick="setMaxQuantity(<%= product.id %>, <%= available_qty %>)">
-                                <i class="ri-upload-line"></i>
-                              </button>
-                            </div>
-                            <%= hidden_field_tag "inventory_allocations[#{product.id}][product_name]", product.name %>
-                            <%= hidden_field_tag "inventory_allocations[#{product.id}][unit]", @inventory_data[product.id][:unit] %>
+                    <!-- Beautiful Allocation Controls -->
+                    <div id="allocation-controls-<%= product.id %>" class="allocation-controls mt-auto" style="display: none; opacity: 0; transform: translateY(-10px); transition: all 0.3s ease;">
+                      <div class="border-top pt-3">
+                        <div class="bg-primary text-white rounded p-3 mb-3">
+                          <div class="d-flex align-items-center mb-2">
+                            <i class="ri-settings-4-line me-2"></i>
+                            <h6 class="mb-0 text-white">Allocation Settings</h6>
                           </div>
                         </div>
 
-                        <div class="allocation-summary">
-                          <div class="allocation-stats">
-                            <div class="stat-item remaining-stat" id="remaining-<%= product.id %>">
-                              <div class="stat-icon">
-                                <i class="ri-database-2-line"></i>
-                              </div>
-                              <div class="stat-content">
-                                <span class="stat-value">Remaining: <span id="remaining-qty-<%= product.id %>"><%= available_qty %></span> <%= @inventory_data[product.id][:unit] %></span>
+                        <div class="mb-3">
+                          <label class="form-label small fw-semibold">Quantity to Transfer</label>
+                          <div class="input-group">
+                            <%= number_field_tag "inventory_allocations[#{product.id}][quantity]",
+                                nil,
+                                class: "form-control",
+                                placeholder: "Enter quantity",
+                                min: 0,
+                                max: available_qty,
+                                step: 0.01,
+                                id: "qty-#{product.id}",
+                                onchange: "updateAllocation(#{product.id}, this.value, #{available_qty})" %>
+                            <button type="button" class="btn btn-outline-primary" onclick="setMaxQuantity(<%= product.id %>, <%= available_qty %>)" title="Set Maximum">
+                              <i class="ri-upload-line"></i>
+                            </button>
+                          </div>
+                          <%= hidden_field_tag "inventory_allocations[#{product.id}][product_name]", product.name %>
+                          <%= hidden_field_tag "inventory_allocations[#{product.id}][unit]", @inventory_data[product.id][:unit] %>
+                        </div>
+
+                        <div class="row g-2 small">
+                          <div class="col-6" id="remaining-<%= product.id %>">
+                            <div class="bg-light rounded p-2 text-center">
+                              <i class="ri-database-2-line text-info mb-1"></i>
+                              <div class="fw-semibold text-dark">Remaining</div>
+                              <div class="text-muted">
+                                <span id="remaining-qty-<%= product.id %>"><%= available_qty %></span>
+                                <%= @inventory_data[product.id][:unit] %>
                               </div>
                             </div>
-                            <% if product.price && product.price > 0 %>
-                              <div class="stat-item value-stat" id="value-<%= product.id %>">
-                                <div class="stat-icon">
-                                  <i class="ri-money-rupee-circle-line"></i>
-                                </div>
-                                <div class="stat-content">
-                                  <span class="stat-value">Value: ₹<span id="transfer-value-<%= product.id %>">0.00</span></span>
+                          </div>
+                          <% if product.price && product.price > 0 %>
+                            <div class="col-6" id="value-<%= product.id %>">
+                              <div class="bg-light rounded p-2 text-center">
+                                <i class="ri-money-rupee-circle-line text-success mb-1"></i>
+                                <div class="fw-semibold text-dark">Value</div>
+                                <div class="text-success fw-semibold">
+                                  ₹<span id="transfer-value-<%= product.id %>">0.00</span>
                                 </div>
                               </div>
-                            <% end %>
-                          </div>
+                            </div>
+                          <% end %>
                         </div>
 
-                        <div class="allocation-error" id="error-<%= product.id %>" style="display: none;">
-                          <i class="ri-error-warning-line me-2"></i>
-                          <span>Allocation cannot exceed available quantity</span>
+                        <div class="alert alert-danger mt-2" id="error-<%= product.id %>" style="display: none; padding: 0.5rem;">
+                          <i class="ri-error-warning-line me-1"></i>
+                          <small>Allocation cannot exceed available quantity</small>
                         </div>
                       </div>
                     </div>
@@ -417,20 +396,13 @@
             <p class="text-muted mt-2">No products found matching your search criteria</p>
           </div>
 
-          <div class="alert alert-info">
+          <div class="alert alert-info mx-4 mb-4">
             <i class="ri-information-line me-2"></i>
             <strong>Note:</strong> Products will be transferred from central inventory to this store immediately upon creation.
             Remaining quantities will stay in central inventory for future allocations.
           </div>
-
-          <div class="mt-3">
-            <h6>Allocation Summary</h6>
-            <div id="allocation-summary" class="text-muted">
-              No products allocated yet
-            </div>
-          </div>
         <% else %>
-          <div class="alert alert-warning">
+          <div class="alert alert-warning m-4">
             <i class="ri-alert-line me-2"></i>
             <strong>No Products Available:</strong> There are no products with available inventory in central storage to allocate to this store.
             You can add products later through the inventory transfer system.
@@ -440,19 +412,214 @@
         </div>
       </div>
 
-    </div>
-  <% end %>
+      <!-- Inventory Summary -->
+      <% if @available_products&.any? %>
+      <div class="inventory-summary-section">
+        <div class="row">
+          <div class="col-lg-8">
+            <!-- Selected products will show in the main grid above -->
+          </div>
 
-  <div class="pt-4">
-    <%= form.submit store.new_record? ? "Create Store & Setup" : "Update Store", class: "btn btn-primary me-2" %>
-    <%= link_to "Cancel", admin_stores_path, class: "btn btn-label-secondary" %>
-  </div>
+          <div class="col-lg-4">
+            <div class="card border-0 shadow-lg modern-summary-card">
+              <div class="card-header text-white border-0 p-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="d-flex align-items-center">
+                  <div class="summary-icon-wrapper me-3">
+                    <i class="ri-shopping-cart-2-line" style="font-size: 2rem;"></i>
+                  </div>
+                  <div>
+                    <h5 class="card-title mb-1 fw-bold">Allocation Summary</h5>
+                    <small class="text-white-75">Track your selections</small>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card-body p-0">
+                <!-- Enhanced Stats Row -->
+                <div class="summary-stats p-4">
+                  <div class="row g-3">
+                    <div class="col-6">
+                      <div class="stat-card text-center p-3 rounded" style="background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);">
+                        <div class="stat-icon mb-2">
+                          <i class="ri-checkbox-multiple-line text-primary" style="font-size: 2rem;"></i>
+                        </div>
+                        <div class="stat-value fw-bold fs-3 text-primary" id="selected-count">0</div>
+                        <small class="text-muted fw-medium">Selected Items</small>
+                      </div>
+                    </div>
+                    <div class="col-6">
+                      <div class="stat-card text-center p-3 rounded" style="background: linear-gradient(135deg, #e8f5e8 0%, #f1f8e9 100%);">
+                        <div class="stat-icon mb-2">
+                          <i class="ri-money-rupee-circle-line text-success" style="font-size: 2rem;"></i>
+                        </div>
+                        <div class="stat-value fw-bold fs-3 text-success" id="total-value">₹0</div>
+                        <small class="text-muted fw-medium">Total Value</small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Enhanced Selected Products List -->
+                <div class="px-4 pb-3">
+                  <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h6 class="mb-0 text-dark fw-bold">
+                      <i class="ri-list-check me-2 text-primary"></i>Selected Products
+                    </h6>
+                    <span class="badge bg-light text-dark" id="selected-badge">0 items</span>
+                  </div>
+
+                  <div id="selected-products-list" class="selected-products-container" style="max-height: 350px; overflow-y: auto;">
+                    <div class="empty-selection text-center py-5">
+                      <div class="empty-icon mb-3">
+                        <i class="ri-shopping-cart-line text-primary" style="font-size: 4rem; opacity: 0.3;"></i>
+                      </div>
+                      <h6 class="text-muted mb-2 fw-semibold">No Products Selected</h6>
+                      <p class="text-muted mb-0 small">Start by selecting products from the grid above</p>
+                      <div class="mt-3">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="optimizeAllocation()">
+                          <i class="ri-magic-line me-1"></i>Auto Select
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Enhanced Action Buttons -->
+                <div class="card-footer bg-gradient border-top-0 p-4" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+                  <div class="row g-2">
+                    <div class="col-12">
+                      <button type="button" class="btn btn-primary w-100 shadow-sm" onclick="optimizeAllocation()">
+                        <i class="ri-magic-line me-2"></i>Smart Auto-Select
+                      </button>
+                    </div>
+                    <div class="col-6">
+                      <button type="button" class="btn btn-outline-secondary w-100 btn-sm" onclick="selectAllProducts()">
+                        <i class="ri-checkbox-multiple-line me-1"></i>Select All
+                      </button>
+                    </div>
+                    <div class="col-6">
+                      <button type="button" class="btn btn-outline-danger w-100 btn-sm" onclick="clearAllProducts()">
+                        <i class="ri-close-circle-line me-1"></i>Clear All
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Legacy Summary for Backward Compatibility -->
+                  <div class="mt-3" id="allocation-summary" style="display: none;">
+                    <small class="text-muted">No products allocated yet</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Enhanced Quick Help Card -->
+            <div class="card border-0 shadow-sm mt-3 help-card">
+              <div class="card-header bg-light border-0 py-3">
+                <h6 class="mb-0 text-dark fw-bold">
+                  <i class="ri-lightbulb-line text-warning me-2"></i>Quick Guide
+                </h6>
+              </div>
+              <div class="card-body p-3">
+                <div class="help-steps">
+                  <div class="help-step mb-3 p-2 rounded" style="background: rgba(102, 126, 234, 0.1);">
+                    <div class="d-flex align-items-center">
+                      <div class="step-number me-3">
+                        <span class="badge bg-primary rounded-circle" style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">1</span>
+                      </div>
+                      <div class="step-content">
+                        <div class="fw-semibold text-dark small">Select Products</div>
+                        <div class="text-muted" style="font-size: 0.75rem;">Click checkboxes to choose items</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="help-step mb-3 p-2 rounded" style="background: rgba(40, 167, 69, 0.1);">
+                    <div class="d-flex align-items-center">
+                      <div class="step-number me-3">
+                        <span class="badge bg-success rounded-circle" style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">2</span>
+                      </div>
+                      <div class="step-content">
+                        <div class="fw-semibold text-dark small">Set Quantities</div>
+                        <div class="text-muted" style="font-size: 0.75rem;">Enter transfer amounts</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="help-step p-2 rounded" style="background: rgba(255, 193, 7, 0.1);">
+                    <div class="d-flex align-items-center">
+                      <div class="step-number me-3">
+                        <span class="badge bg-warning text-dark rounded-circle" style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">3</span>
+                      </div>
+                      <div class="step-content">
+                        <div class="fw-semibold text-dark small">Create Store</div>
+                        <div class="text-muted" style="font-size: 0.75rem;">Products transfer instantly</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <% end %>
+
+        </div> <!-- End inventory-allocation-wrapper -->
+      <% end %>
+      </div> <!-- End card-body for inventory allocation -->
+      </div> <!-- End card for inventory allocation -->
+    </div> <!-- End inventory-allocation-section -->
+
+    <!-- Submit Button Section -->
+    <div class="text-center mt-4 mb-4">
+      <%= form.submit store.new_record? ? "Create Store" : "Update Store", class: "btn btn-success btn-lg px-5 py-3" %>
+    </div>
+
+  </div> <!-- End store-creation-form container -->
 
   <script>
+    // Form validation function
+    function validateForm() {
+      // Validate store information
+      const requiredFields = ['name', 'address', 'city', 'state', 'pincode'];
+      let isValid = true;
+
+      requiredFields.forEach(field => {
+        const input = document.querySelector(`input[name="store[${field}]"], textarea[name="store[${field}]"], select[name="store[${field}]"]`);
+        if (input && !input.value.trim()) {
+          input.classList.add('is-invalid');
+          isValid = false;
+        } else if (input) {
+          input.classList.remove('is-invalid');
+        }
+      });
+
+      // Validate admin information if admin creation is enabled
+      const createAdmin = document.querySelector('input[name="store[create_admin_user]"]');
+      if (createAdmin && createAdmin.checked) {
+        const adminFields = ['admin_username', 'admin_password'];
+        adminFields.forEach(field => {
+          const input = document.querySelector(`input[name="store[${field}]"]`);
+          if (input && !input.value.trim()) {
+            input.classList.add('is-invalid');
+            isValid = false;
+          } else if (input) {
+            input.classList.remove('is-invalid');
+          }
+        });
+      }
+
+      if (!isValid) {
+        alert('Please fill in all required fields.');
+        return false;
+      }
+      return true;
+    }
+
     function toggleAdminSection() {
       const checkbox = document.querySelector('input[name="store[create_admin_user]"]');
       const section = document.getElementById('admin-section');
-      const adminFields = ['admin_username', 'admin_email', 'admin_password', 'admin_first_name', 'admin_last_name', 'admin_mobile'];
+      const adminFields = ['admin_username', 'admin_password'];
 
       if (checkbox.checked) {
         section.style.display = 'block';
@@ -515,6 +682,7 @@
       // Update sidebar stats
       const selectedCountEl = document.getElementById('selected-count');
       const totalValueEl = document.getElementById('total-value');
+      const selectedBadge = document.getElementById('selected-badge');
       const selectedProductsList = document.getElementById('selected-products-list');
 
       // Get all quantity inputs and process them
@@ -553,30 +721,42 @@
 
       // Update sidebar statistics
       if (selectedCountEl) selectedCountEl.textContent = selectedCount;
-      if (totalValueEl) totalValueEl.textContent = `₹${totalValue.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      if (totalValueEl) totalValueEl.textContent = `₹${totalValue.toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
+      if (selectedBadge) selectedBadge.textContent = `${selectedCount} item${selectedCount !== 1 ? 's' : ''}`;
 
       // Update selected products list in sidebar
       if (selectedProductsList) {
         if (allocations.length > 0) {
           selectedProductsList.innerHTML = allocations.map(item => `
-            <div class="selected-product-item mb-2 p-2 bg-white rounded border">
+            <div class="selected-product-item mb-2 p-3 rounded shadow-sm border-0" style="background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%); border-left: 3px solid #667eea !important;">
               <div class="d-flex justify-content-between align-items-start">
                 <div class="flex-grow-1">
-                  <div class="fw-semibold text-truncate" style="font-size: 0.8rem;">${item.name}</div>
-                  <div class="text-muted small">${item.qty} ${item.unit}</div>
+                  <div class="fw-bold text-dark text-truncate mb-1" style="font-size: 0.85rem;">${item.name}</div>
+                  <div class="d-flex align-items-center">
+                    <span class="badge bg-light text-primary me-2" style="font-size: 0.7rem;">${item.qty} ${item.unit}</span>
+                    <small class="text-muted">Quantity</small>
+                  </div>
                 </div>
                 <div class="text-end ms-2">
-                  <div class="fw-bold text-primary" style="font-size: 0.75rem;">₹${item.value.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                  <div class="fw-bold text-success" style="font-size: 0.9rem;">₹${item.value.toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</div>
+                  <small class="text-muted">Value</small>
                 </div>
               </div>
             </div>
           `).join('');
         } else {
           selectedProductsList.innerHTML = `
-            <div class="empty-selection text-center py-4">
-              <i class="ri-shopping-cart-line text-muted mb-2" style="font-size: 2rem;"></i>
-              <p class="text-muted mb-0">No products selected yet</p>
-              <small class="text-muted">Select products from the grid to see them here</small>
+            <div class="empty-selection text-center py-5">
+              <div class="empty-icon mb-3">
+                <i class="ri-shopping-cart-line text-primary" style="font-size: 4rem; opacity: 0.3;"></i>
+              </div>
+              <h6 class="text-muted mb-2 fw-semibold">No Products Selected</h6>
+              <p class="text-muted mb-0 small">Start by selecting products from the grid above</p>
+              <div class="mt-3">
+                <button type="button" class="btn btn-outline-primary btn-sm" onclick="optimizeAllocation()">
+                  <i class="ri-magic-line me-1"></i>Auto Select
+                </button>
+              </div>
             </div>
           `;
         }
@@ -631,7 +811,7 @@
       }, 100);
     }
 
-    // Enhanced inventory allocation functions with visual effects
+    // Enhanced inventory allocation functions with beautiful visual effects
     function toggleProductAllocation(productId) {
       const checkbox = document.getElementById(`select-${productId}`);
       const controls = document.getElementById(`allocation-controls-${productId}`);
@@ -639,36 +819,38 @@
       const overlay = card.querySelector('.selection-overlay');
 
       if (checkbox.checked) {
-        // Add visual effects
-        card.classList.add('border-primary', 'selected-card');
+        // Add beautiful visual effects
+        card.classList.add('selected-card');
 
-        // Show overlay with animation
+        // Show overlay with smooth animation
         if (overlay) {
           overlay.style.opacity = '1';
+          overlay.style.transform = 'scale(1)';
         }
 
-        // Show allocation controls
+        // Show allocation controls with smooth transition
         if (controls) {
           controls.style.display = 'block';
           setTimeout(() => {
             controls.style.opacity = '1';
             controls.style.transform = 'translateY(0)';
-          }, 50);
+          }, 100);
         }
 
       } else {
-        // Remove visual effects
-        card.classList.remove('border-primary', 'selected-card');
+        // Remove visual effects smoothly
+        card.classList.remove('selected-card');
 
-        // Hide overlay
+        // Hide overlay smoothly
         if (overlay) {
           overlay.style.opacity = '0';
+          overlay.style.transform = 'scale(0.95)';
         }
 
-        // Hide allocation controls
+        // Hide allocation controls with smooth transition
         if (controls) {
           controls.style.opacity = '0';
-          controls.style.transform = 'translateY(-10px)';
+          controls.style.transform = 'translateY(-15px)';
           setTimeout(() => {
             controls.style.display = 'none';
           }, 300);
@@ -693,6 +875,7 @@
       }
 
       updateAllocationSummary();
+      updateNextButtonState();
     }
 
     function setMaxQuantity(productId, maxQty) {
@@ -836,6 +1019,277 @@
       }, 1500);
     }
 
+    // Two-Step Navigation Functions
+    let currentStep = 1;
+
+    function goToNextStep() {
+      if (currentStep === 1) {
+        // Check if any products are selected
+        const selectedCount = document.querySelectorAll('input[name*="inventory_allocations"][name*="[quantity]"]').length;
+        const hasSelections = Array.from(document.querySelectorAll('input[name*="inventory_allocations"][name*="[quantity]"]')).some(input => parseFloat(input.value || 0) > 0);
+
+        if (!hasSelections) {
+          showNotification('Please select at least one product with a quantity before proceeding to review.', 'warning');
+          return;
+        }
+
+        // Add enhanced loading state with progress
+        const nextBtn = document.getElementById('nextStepBtn');
+        nextBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Preparing Review...';
+        nextBtn.disabled = true;
+
+        // Add progress indicator
+        const progressIndicator = document.createElement('div');
+        progressIndicator.className = 'progress mt-2';
+        progressIndicator.style.height = '3px';
+        progressIndicator.innerHTML = `
+          <div class="progress-bar bg-success progress-bar-striped progress-bar-animated"
+               style="width: 0%; transition: width 0.8s ease-in-out;"></div>
+        `;
+        nextBtn.parentNode.appendChild(progressIndicator);
+
+        // Animate progress bar
+        setTimeout(() => {
+          const bar = progressIndicator.querySelector('.progress-bar');
+          bar.style.width = '100%';
+        }, 100);
+
+        setTimeout(() => {
+          // Clean up progress indicator
+          const existingProgress = nextBtn.parentNode.querySelector('.progress');
+          if (existingProgress) {
+            existingProgress.remove();
+          }
+
+          // Move to step 2 with animation
+          currentStep = 2;
+          const step1 = document.getElementById('step-1-content');
+          const step2 = document.getElementById('step-2-content');
+
+          // Fade out step 1 with enhanced animation
+          step1.style.opacity = '0';
+          step1.style.transform = 'translateX(-20px) scale(0.98)';
+
+          setTimeout(() => {
+            step1.style.display = 'none';
+            step2.style.display = 'block';
+            step2.style.opacity = '0';
+            step2.style.transform = 'translateX(20px) scale(0.98)';
+
+            // Fade in step 2 with bounce effect
+            setTimeout(() => {
+              step2.style.opacity = '1';
+              step2.style.transform = 'translateX(0) scale(1)';
+            }, 50);
+          }, 300);
+
+          // Update step indicators with animation
+          updateStepIndicators();
+
+          // Update navigation buttons with loading states
+          const prevBtn = document.getElementById('prevStepBtn');
+          prevBtn.style.display = 'inline-block';
+          prevBtn.innerHTML = '<i class="ri-arrow-left-line me-1"></i>Back to Selection';
+
+          nextBtn.style.display = 'none';
+          nextBtn.innerHTML = 'Next: Review <i class="ri-arrow-right-line ms-1"></i>';
+          nextBtn.disabled = false;
+
+          // Update progress with success state
+          updateProgressBar();
+
+          // Populate review section with loading animation
+          populateReviewSection();
+
+          // Enhanced success notification
+          showNotification('✨ Review your selection below and confirm to create store', 'success');
+        }, 800);
+      }
+    }
+
+    function goToPreviousStep() {
+      if (currentStep === 2) {
+        // Move back to step 1 with animation
+        currentStep = 1;
+        const step1 = document.getElementById('step-1-content');
+        const step2 = document.getElementById('step-2-content');
+
+        // Fade out step 2
+        step2.style.opacity = '0';
+        step2.style.transform = 'translateX(20px)';
+
+        setTimeout(() => {
+          step2.style.display = 'none';
+          step1.style.display = 'block';
+          step1.style.opacity = '0';
+          step1.style.transform = 'translateX(-20px)';
+
+          // Fade in step 1
+          setTimeout(() => {
+            step1.style.opacity = '1';
+            step1.style.transform = 'translateX(0)';
+          }, 50);
+        }, 300);
+
+        // Update step indicators with animation
+        updateStepIndicators();
+
+        // Update navigation buttons
+        document.getElementById('prevStepBtn').style.display = 'none';
+        document.getElementById('nextStepBtn').style.display = 'inline-block';
+
+        // Update progress
+        updateProgressBar();
+
+        // Update next button state
+        updateNextButtonState();
+
+        showNotification('Continue selecting products', 'info');
+      }
+    }
+
+    function updateStepIndicators() {
+      const step1 = document.getElementById('step-1-indicator');
+      const step2 = document.getElementById('step-2-indicator');
+      const connector = document.getElementById('connector-progress');
+
+      if (currentStep === 1) {
+        step1.classList.remove('completed');
+        step1.classList.add('active');
+        step2.classList.remove('active');
+        connector.style.width = '0%';
+      } else if (currentStep === 2) {
+        step1.classList.remove('active');
+        step1.classList.add('completed');
+        step2.classList.add('active');
+        connector.style.width = '100%';
+      }
+    }
+
+    function updateProgressBar() {
+      const progressBar = document.getElementById('step-progress-bar');
+      const progressText = document.getElementById('step-progress-text');
+
+      if (currentStep === 1) {
+        progressBar.style.width = '50%';
+        progressText.textContent = 'Step 1 of 2';
+      } else if (currentStep === 2) {
+        progressBar.style.width = '100%';
+        progressText.textContent = 'Step 2 of 2 - Almost done!';
+      }
+    }
+
+    function updateNextButtonState() {
+      const hasSelections = Array.from(document.querySelectorAll('input[name*="inventory_allocations"][name*="[quantity]"]')).some(input => parseFloat(input.value || 0) > 0);
+      const nextBtn = document.getElementById('nextStepBtn');
+
+      if (hasSelections) {
+        nextBtn.disabled = false;
+        nextBtn.innerHTML = 'Next: Review <i class="ri-arrow-right-line ms-1"></i>';
+      } else {
+        nextBtn.disabled = true;
+        nextBtn.innerHTML = 'Select Products First <i class="ri-arrow-right-line ms-1"></i>';
+      }
+    }
+
+    function populateReviewSection() {
+      const reviewContainer = document.getElementById('selected-products-review');
+      const allocations = [];
+
+      // Get all selected products
+      document.querySelectorAll('input[name*="inventory_allocations"][name*="[quantity]"]').forEach(input => {
+        const qty = parseFloat(input.value || 0);
+        if (qty > 0) {
+          const productId = input.name.match(/\[(\d+)\]/)[1];
+          const productNameInput = document.querySelector(`input[name="inventory_allocations[${productId}][product_name]"]`);
+          const unitInput = document.querySelector(`input[name="inventory_allocations[${productId}][unit]"]`);
+          const productCard = document.getElementById(`product-card-${productId}`);
+
+          if (productNameInput && unitInput && productCard) {
+            const productName = productNameInput.value;
+            const unit = unitInput.value;
+            const pricePerUnit = parseFloat(productCard.dataset.price || 0);
+            const itemValue = qty * pricePerUnit;
+
+            allocations.push({
+              id: productId,
+              name: productName,
+              qty: qty,
+              unit: unit,
+              price: pricePerUnit,
+              value: itemValue
+            });
+          }
+        }
+      });
+
+      if (allocations.length > 0) {
+        reviewContainer.innerHTML = allocations.map(item => `
+          <div class="col-md-6 col-lg-4">
+            <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #28a745 !important;">
+              <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                  <h6 class="card-title mb-0 fw-bold text-dark">${item.name}</h6>
+                  <span class="badge bg-success">Selected</span>
+                </div>
+                <div class="mb-3">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small">Quantity:</span>
+                    <span class="fw-bold text-primary">${item.qty} ${item.unit}</span>
+                  </div>
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small">Unit Price:</span>
+                    <span class="fw-bold">₹${item.price.toLocaleString('en-IN')}</span>
+                  </div>
+                  <hr class="my-2">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold">Total Value:</span>
+                    <span class="fw-bold text-success fs-6">₹${item.value.toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span>
+                  </div>
+                </div>
+                <button type="button" class="btn btn-outline-primary btn-sm" onclick="editProduct(${item.id})">
+                  <i class="ri-edit-line me-1"></i>Edit Quantity
+                </button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        reviewContainer.innerHTML = `
+          <div class="col-12">
+            <div class="text-center py-5">
+              <i class="ri-shopping-cart-line text-muted mb-3" style="font-size: 4rem; opacity: 0.3;"></i>
+              <h6 class="text-muted mb-2">No Products Selected</h6>
+              <p class="text-muted mb-3">Go back to Step 1 to select products</p>
+              <button type="button" class="btn btn-outline-primary" onclick="goToPreviousStep()">
+                <i class="ri-arrow-left-line me-1"></i>Back to Product Selection
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      // Update summary in sidebar
+      updateAllocationSummary();
+    }
+
+    function editProduct(productId) {
+      // Go back to step 1 and highlight the specific product
+      goToPreviousStep();
+
+      // Scroll to the product and highlight it
+      setTimeout(() => {
+        const productCard = document.getElementById(`product-card-${productId}`);
+        if (productCard) {
+          productCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          productCard.style.outline = '3px solid #0d6efd';
+          setTimeout(() => {
+            productCard.style.outline = '';
+          }, 3000);
+        }
+      }, 300);
+    }
+
     // Initialize admin section visibility and add event listeners
     document.addEventListener('DOMContentLoaded', function() {
       toggleAdminSection();
@@ -852,51 +1306,253 @@
         categoryFilter.addEventListener('change', filterProducts);
       }
 
+      // Initialize step state
+      updateNextButtonState();
+
+      // Show welcome notification
+      setTimeout(() => {
+        showNotification('👋 Welcome! Start by selecting products for your new store', 'info');
+      }, 500);
+    });
+
+    // Enhanced notification system
+    function showNotification(message, type = 'info') {
+      // Remove existing notifications
+      const existingNotifications = document.querySelectorAll('.step-notification');
+      existingNotifications.forEach(n => n.remove());
+
+      const notification = document.createElement('div');
+      notification.className = `alert alert-${type} step-notification border-0 shadow-sm`;
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 350px;
+        opacity: 0;
+        transform: translateX(100px);
+        transition: all 0.4s ease-out;
+        border-left: 4px solid ${type === 'success' ? '#28a745' : type === 'warning' ? '#ffc107' : '#17a2b8'} !important;
+      `;
+
+      const iconMap = {
+        success: 'ri-check-double-line',
+        warning: 'ri-alert-line',
+        info: 'ri-information-line',
+        error: 'ri-error-warning-line'
+      };
+
+      notification.innerHTML = `
+        <div class="d-flex align-items-center">
+          <i class="${iconMap[type]} me-2" style="font-size: 1.2rem;"></i>
+          <span>${message}</span>
+          <button type="button" class="btn-close ms-auto" onclick="this.parentElement.parentElement.remove()"></button>
+        </div>
+      `;
+
+      document.body.appendChild(notification);
+
+      // Animate in
+      setTimeout(() => {
+        notification.style.opacity = '1';
+        notification.style.transform = 'translateX(0)';
+      }, 100);
+
+      // Auto remove after 4 seconds
+      setTimeout(() => {
+        if (notification.parentElement) {
+          notification.style.opacity = '0';
+          notification.style.transform = 'translateX(100px)';
+          setTimeout(() => {
+            if (notification.parentElement) {
+              notification.remove();
+            }
+          }, 400);
+        }
+      }, 4000);
+    }
+
+    // Wizard Navigation Functions
+    let currentWizardStep = 1;
+    const totalWizardSteps = 3;
+
+    function goToNextWizardStep() {
+      if (currentWizardStep < totalWizardSteps) {
+        // Validate current step before proceeding
+        if (validateCurrentStep()) {
+          // Hide current step
+          document.getElementById(`wizard-page-${currentWizardStep}`).style.display = 'none';
+          document.getElementById(`wizard-step-${currentWizardStep}`).classList.remove('active');
+          document.getElementById(`wizard-step-${currentWizardStep}`).classList.add('completed');
+
+          // Show next step
+          currentWizardStep++;
+          document.getElementById(`wizard-page-${currentWizardStep}`).style.display = 'block';
+          document.getElementById(`wizard-step-${currentWizardStep}`).classList.add('active');
+
+          // Update navigation buttons
+          updateWizardButtons();
+
+          // Scroll to top
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }
+    }
+
+    function goToPreviousWizardStep() {
+      if (currentWizardStep > 1) {
+        // Hide current step
+        document.getElementById(`wizard-page-${currentWizardStep}`).style.display = 'none';
+        document.getElementById(`wizard-step-${currentWizardStep}`).classList.remove('active');
+
+        // Show previous step
+        currentWizardStep--;
+        document.getElementById(`wizard-page-${currentWizardStep}`).style.display = 'block';
+        document.getElementById(`wizard-step-${currentWizardStep}`).classList.remove('completed');
+        document.getElementById(`wizard-step-${currentWizardStep}`).classList.add('active');
+
+        // Update navigation buttons
+        updateWizardButtons();
+
+        // Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+
+    function updateWizardButtons() {
+      const prevBtn = document.getElementById('wizardPrevBtn');
+      const nextBtn = document.getElementById('wizardNextBtn');
+      const submitBtn = document.getElementById('wizardSubmitBtn');
+
+      // Show/hide previous button
+      if (currentWizardStep === 1) {
+        prevBtn.style.display = 'none';
+      } else {
+        prevBtn.style.display = 'block';
+      }
+
+      // Update next/submit button
+      if (currentWizardStep === totalWizardSteps) {
+        nextBtn.style.display = 'none';
+        submitBtn.style.display = 'block';
+      } else {
+        nextBtn.style.display = 'block';
+        submitBtn.style.display = 'none';
+
+        // Update button text based on current step
+        if (currentWizardStep === 1) {
+          nextBtn.innerHTML = 'Next: Admin Setup <i class="ri-arrow-right-line ms-2"></i>';
+        } else if (currentWizardStep === 2) {
+          nextBtn.innerHTML = 'Next: Inventory Setup <i class="ri-arrow-right-line ms-2"></i>';
+        }
+      }
+    }
+
+    function validateCurrentStep() {
+      if (currentWizardStep === 1) {
+        // Validate store information
+        const requiredFields = ['name', 'address', 'city', 'state', 'pincode'];
+        let isValid = true;
+
+        requiredFields.forEach(field => {
+          const input = document.querySelector(`input[name="store[${field}]"], textarea[name="store[${field}]"], select[name="store[${field}]"]`);
+          if (input && !input.value.trim()) {
+            input.classList.add('is-invalid');
+            isValid = false;
+          } else if (input) {
+            input.classList.remove('is-invalid');
+          }
+        });
+
+        if (!isValid) {
+          alert('Please fill in all required store information fields.');
+          return false;
+        }
+
+      } else if (currentWizardStep === 2) {
+        // Validate admin information if admin creation is enabled
+        const createAdmin = document.querySelector('input[name="store[create_admin_user]"]').checked;
+
+        if (createAdmin) {
+          const adminFields = ['admin_username', 'admin_password'];
+          let isValid = true;
+
+          adminFields.forEach(field => {
+            const input = document.querySelector(`input[name="store[${field}]"]`);
+            if (input && !input.value.trim()) {
+              input.classList.add('is-invalid');
+              isValid = false;
+            } else if (input) {
+              input.classList.remove('is-invalid');
+            }
+          });
+
+          if (!isValid) {
+            alert('Please fill in all required admin account fields.');
+            return false;
+          }
+        }
+      }
+
+      return true;
+    }
+
+    // Initialize wizard on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      updateWizardButtons();
+
+      // Show first page by default
+      document.getElementById('wizard-page-1').style.display = 'block';
     });
   </script>
 
   <style>
-    /* Enhanced Product Card Styles - Booking Page Style */
-    .product-card .card {
+    /* Beautiful Product Card Styles - Enhanced Modern Design */
+    .beautiful-product-card {
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      border: 2px solid transparent;
+      border: 1px solid rgba(0,0,0,0.08) !important;
       overflow: hidden;
       cursor: pointer;
+      background: #fff;
     }
 
-    .product-card .card:hover:not(.selected-card) {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+    .beautiful-product-card:hover:not(.selected-card) {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.12) !important;
+      border-color: rgba(13, 110, 253, 0.2) !important;
     }
 
-    .product-card .card.selected-card {
+    .beautiful-product-card.selected-card {
       border-color: #0d6efd !important;
-      transform: translateY(-3px);
+      transform: translateY(-6px);
       background: linear-gradient(145deg, #ffffff 0%, #f8f9ff 100%);
+      box-shadow: 0 15px 50px rgba(13, 110, 253, 0.15) !important;
     }
 
     /* Product Image Enhancements */
     .product-image {
-      transition: transform 0.3s ease;
+      transition: all 0.3s ease;
+      border-radius: 0 !important;
     }
 
-    .product-card:hover .product-image {
-      transform: scale(1.05);
+    .beautiful-product-card:hover .product-image {
+      transform: scale(1.02);
+    }
+
+    .product-image-wrapper {
+      overflow: hidden;
+      background: #f8f9fa;
     }
 
     .selection-overlay {
-      transition: opacity 0.3s ease;
-      backdrop-filter: blur(2px);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      backdrop-filter: blur(3px);
+      border-radius: 0;
     }
 
-    /* Hover lift effect like booking page */
+    /* Hover lift effect - Enhanced */
     .hover-lift {
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .hover-lift:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
     }
 
     /* Badge styling matching booking page */
@@ -1117,11 +1773,408 @@
       font-weight: 600;
     }
 
-    /* Category badge styling */
-    .text-uppercase {
+    /* Enhanced Step Navigation Styles */
+    .step-navigation-card {
+      border-radius: 1rem !important;
+      overflow: hidden;
+    }
+
+    .step-indicator {
+      display: flex;
+      align-items: center;
+    }
+
+    .step-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .step-circle {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+      color: #6c757d;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      margin-bottom: 0.5rem;
+      position: relative;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .step-icon {
+      font-size: 1.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .step-number {
+      position: absolute;
+      bottom: -2px;
+      right: -2px;
+      width: 20px;
+      height: 20px;
+      background: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 0.75rem;
+      font-weight: bold;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .step-item.active .step-circle {
+      background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%);
+      color: white;
+      transform: scale(1.1);
+      box-shadow: 0 4px 20px rgba(13, 110, 253, 0.3);
+    }
+
+    .step-item.active .step-number {
+      color: #0d6efd;
+    }
+
+    .step-item.completed .step-circle {
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+      color: white;
+      transform: scale(1.05);
+      box-shadow: 0 4px 20px rgba(40, 167, 69, 0.3);
+    }
+
+    .step-item.completed .step-number {
+      color: #28a745;
+    }
+
+    .step-label {
+      font-size: 1rem;
       font-weight: 600;
       color: #6c757d;
+      transition: all 0.3s ease;
+      margin-bottom: 0.25rem;
+    }
+
+    .step-description {
+      font-size: 0.75rem;
+      color: #adb5bd;
+      transition: all 0.3s ease;
+      text-align: center;
+    }
+
+    .step-item.active .step-label {
+      color: #0d6efd;
+      font-weight: 700;
+    }
+
+    .step-item.active .step-description {
+      color: #6c757d;
+    }
+
+    .step-item.completed .step-label {
+      color: #28a745;
+      font-weight: 700;
+    }
+
+    .step-item.completed .step-description {
+      color: #6c757d;
+    }
+
+    .step-connector {
+      position: relative;
+      width: 80px;
+      height: 4px;
+      margin: 0 2rem;
+      margin-top: -30px;
+    }
+
+    .connector-line {
+      width: 100%;
+      height: 100%;
+      background: #dee2e6;
+      border-radius: 2px;
+    }
+
+    .connector-progress {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .step-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    .step-btn {
+      min-width: 140px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      border-radius: 0.5rem;
+    }
+
+    .step-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .step-progress {
+      width: 160px;
+    }
+
+    .progress {
+      border-radius: 2px;
+      background: rgba(0,0,0,0.1);
+    }
+
+    .progress-bar {
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Step Content Animation */
+    .step-content {
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Enhanced Sidebar Styles with Fixed Width */
+    .modern-summary-card {
+      transition: all 0.3s ease;
+      border-radius: 1rem !important;
+      overflow: hidden;
+      min-width: 350px;
+      width: 100%;
+    }
+
+    .modern-summary-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.1) !important;
+    }
+
+    /* Sidebar Width Constraints */
+    .col-lg-5 {
+      min-width: 380px;
+      flex: 0 0 auto;
+      width: 41.666667%;
+    }
+
+    .col-xl-4 {
+      min-width: 400px;
+      flex: 0 0 auto;
+      width: 33.333333%;
+    }
+
+    .stat-card {
+      transition: all 0.3s ease;
+      border: 1px solid rgba(255,255,255,0.2);
+      min-height: 120px;
+      padding: 1rem !important;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+
+    /* Ensure proper text sizing */
+    .stat-value {
+      font-size: 2rem !important;
+      line-height: 1.2;
+    }
+
+    /* Prevent content shrinking */
+    .selected-products-container {
+      border-radius: 0.75rem;
+      min-height: 200px;
+    }
+
+    .selected-product-item {
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .selected-product-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15) !important;
+    }
+
+    .help-card {
+      border-radius: 0.75rem !important;
+    }
+
+    .help-step {
+      transition: all 0.2s ease;
+    }
+
+    .help-step:hover {
+      transform: translateX(4px);
+    }
+
+    .summary-icon-wrapper {
+      opacity: 0.9;
+    }
+
+    .empty-selection {
+      animation: fadeIn 0.5s ease;
+    }
+
+    /* Beautiful Form Controls */
+    .form-control:focus,
+    .form-select:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.15);
+    }
+
+    .input-group .btn {
+      border-color: #dee2e6;
+    }
+
+    .input-group .btn:hover {
+      background: #667eea;
+      border-color: #667eea;
+      color: white;
+    }
+
+    /* Badge Enhancements */
+    .badge.bg-light {
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+      color: #495057 !important;
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+
+    /* Animation Keyframes */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .products-grid-container {
+      animation: slideUp 0.6s ease;
+    }
+
+    /* Beautiful Scrollbar */
+    #selected-products-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #selected-products-list::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+
+    #selected-products-list::-webkit-scrollbar-thumb {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 3px;
+    }
+
+    #selected-products-list::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+    }
+
+    /* Enhanced Wide Layout */
+    .inventory-allocation-card {
+      min-height: 600px;
+    }
+
+    .products-grid-container {
+      min-height: 500px;
+    }
+
+    /* Optimize for 3 products per row layout */
+    @media (min-width: 1200px) {
+      .col-xl-4 {
+        flex: 0 0 auto;
+        width: 33.333333%; /* 3 products per row on large+ screens */
+      }
+    }
+
+    @media (min-width: 992px) and (max-width: 1199px) {
+      .col-lg-4 {
+        flex: 0 0 auto;
+        width: 33.333333%; /* 3 products per row on medium screens */
+      }
+    }
+
+    /* Enhanced Responsive Design */
+    @media (max-width: 1199px) {
+      .col-lg-5 {
+        margin-top: 2rem;
+        min-width: 320px;
+      }
+
+      .modern-summary-card {
+        border-radius: 0.75rem !important;
+        min-width: 300px;
+      }
+    }
+
+    /* Mobile Responsiveness */
+    @media (max-width: 991px) {
+      .beautiful-product-card:hover:not(.selected-card) {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1) !important;
+      }
+
+      .beautiful-product-card.selected-card {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(13, 110, 253, 0.12) !important;
+      }
+
+      .col-lg-7, .col-xl-8 {
+        width: 100%;
+      }
+
+      .col-lg-5, .col-xl-4 {
+        width: 100%;
+        margin-top: 2rem;
+        min-width: unset;
+      }
+
+      .modern-summary-card {
+        min-width: unset;
+      }
+
+      .modern-summary-card:hover {
+        transform: none;
+      }
+
+      .stat-card {
+        margin-bottom: 1rem;
+        min-height: 100px;
+      }
+
+      .help-step:hover {
+        transform: none;
+      }
+    }
+
+    /* Extra small screens */
+    @media (max-width: 576px) {
+      .stat-card {
+        padding: 1rem !important;
+      }
+
+      .selected-product-item {
+        padding: 0.75rem !important;
+      }
+
+      .help-step {
+        padding: 0.75rem !important;
+      }
     }
   </style>
 <% end %>

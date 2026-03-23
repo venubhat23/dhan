@@ -167,8 +167,8 @@ class Admin::StoresController < Admin::ApplicationController
                                    :email, :gst_no, :status, :inventory_management_enabled,
                                    :auto_transfer_threshold, :manager_email, :operating_hours,
                                    :timezone, :store_admin_user_id, :create_admin_user,
-                                   :admin_email, :admin_password, :admin_first_name,
-                                   :admin_last_name, :admin_mobile)
+                                   :admin_username, :admin_email, :admin_password,
+                                   :admin_first_name, :admin_last_name, :admin_mobile)
   end
 
   def prepare_inventory_data
