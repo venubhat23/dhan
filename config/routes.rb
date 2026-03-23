@@ -360,6 +360,9 @@ Rails.application.routes.draw do
         patch :update_admin
         get :inventory
         get :transfer_inventory
+        get :transfer
+        post :process_transfer
+        get :current_stock
       end
       collection do
         get :get_product_availability

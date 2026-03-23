@@ -1,6 +1,6 @@
 class Admin::StoresController < Admin::ApplicationController
   before_action :authenticate_user!
-  before_action :set_store, only: [:show, :edit, :update, :destroy, :toggle_status, :assign_admin, :update_admin, :inventory, :transfer_inventory]
+  before_action :set_store, only: [:show, :edit, :update, :destroy, :toggle_status, :assign_admin, :update_admin, :inventory, :transfer_inventory, :transfer, :process_transfer, :current_stock]
   before_action :check_collect_from_store_enabled, only: [:index, :new, :create]
   skip_before_action :verify_authenticity_token, only: [:get_product_availability]
 
@@ -147,6 +147,114 @@ class Admin::StoresController < Admin::ApplicationController
                       .distinct
                       .includes(:category)
     @other_stores = Store.where.not(id: @store.id).active
+  end
+
+  def transfer
+    @available_products = @store.available_products_for_allocation.includes(:category)
+    @inventory_data = {}
+    @total_available_value = 0
+
+    @available_products.each do |product|
+      central_inventory = @store.central_inventory_for_product(product.id)
+      store_inventory = @store.store_inventory_for_product(product.id)
+
+      # Get the latest stock batch for pricing
+      latest_batch = StockBatch.where(product_id: product.id, store_id: nil, status: 'active')
+                               .where('quantity_remaining > 0')
+                               .order(batch_date: :desc, created_at: :desc)
+                               .first
+
+      price = latest_batch&.selling_price || product.price || 0
+      value = central_inventory * price
+      @total_available_value += value
+
+      @inventory_data[product.id] = {
+        product: product,
+        central_available: central_inventory,
+        store_current: store_inventory,
+        price: price,
+        total_value: value,
+        unit: product.unit_type || 'Unit'
+      }
+    end
+
+    @total_available_value = @total_available_value.round(2)
+  end
+
+  def process_transfer
+    transfer_items = params[:transfer_items] || {}
+
+    begin
+      ActiveRecord::Base.transaction do
+        total_transferred = 0
+
+        transfer_items.each do |product_id, quantity_str|
+          quantity = quantity_str.to_f
+          next if quantity <= 0
+
+          product = Product.find(product_id)
+          central_available = @store.central_inventory_for_product(product_id)
+
+          if quantity > central_available
+            raise StandardError, "#{product.name}: Requested #{quantity} but only #{central_available} available"
+          end
+
+          # Transfer inventory using existing method
+          @store.transfer_inventory_from_central(product, quantity)
+          total_transferred += 1
+        end
+
+        flash[:notice] = "Successfully transferred #{total_transferred} products to #{@store.name}"
+        redirect_to transfer_admin_store_path(@store)
+      end
+    rescue StandardError => e
+      flash[:alert] = "Transfer failed: #{e.message}"
+      redirect_to transfer_admin_store_path(@store)
+    end
+  end
+
+  def current_stock
+    @store_products = @store.store_products_with_inventory.includes(:category, :stock_batches)
+    @stock_summary = {}
+    @total_stock_value = 0
+    @total_products = @store_products.count
+    @low_stock_items = 0
+
+    @store_products.each do |product|
+      # Get total available quantity for this product in this store
+      available_quantity = @store.available_inventory(product.id)
+
+      # Get stock batches for this product in this store
+      stock_batches = product.stock_batches.where(store_id: @store.id, status: 'active')
+                             .where('quantity_remaining > 0')
+                             .order(:batch_date)
+
+      # Calculate weighted average price
+      total_value = stock_batches.sum { |batch| batch.quantity_remaining * batch.selling_price }
+      average_price = available_quantity > 0 ? (total_value / available_quantity) : 0
+
+      # Check if low stock (using auto_transfer_threshold or default 10)
+      threshold = @store.auto_transfer_threshold || 10
+      is_low_stock = available_quantity <= threshold
+      @low_stock_items += 1 if is_low_stock
+
+      # Calculate total value for this product
+      product_total_value = available_quantity * average_price
+      @total_stock_value += product_total_value
+
+      @stock_summary[product.id] = {
+        product: product,
+        available_quantity: available_quantity,
+        average_price: average_price.round(2),
+        total_value: product_total_value.round(2),
+        is_low_stock: is_low_stock,
+        threshold: threshold,
+        stock_batches: stock_batches,
+        unit_type: product.unit_type || 'Unit'
+      }
+    end
+
+    @total_stock_value = @total_stock_value.round(2)
   end
 
   private

@@ -1,0 +1,532 @@
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1">Current Stock - <%= @store.name %></h2>
+    <p class="text-muted mb-0">
+      <i class="bi bi-geo-alt me-1"></i>
+      <%= @store.city %>, <%= @store.state %>
+      <span class="ms-2">
+        <i class="bi bi-boxes me-1"></i>
+        Inventory Overview
+      </span>
+    </p>
+  </div>
+  <div class="d-flex gap-2 align-items-center">
+    <%= link_to admin_store_path(@store), class: "btn btn-outline-primary" do %>
+      <i class="bi bi-arrow-left me-1"></i>
+      Back to Store
+    <% end %>
+    <%= link_to inventory_admin_store_path(@store), class: "btn btn-primary" do %>
+      <i class="bi bi-gear me-1"></i>
+      Manage Inventory
+    <% end %>
+  </div>
+</div>
+
+<!-- Stock Summary Cards -->
+<div class="row mb-4">
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-3">
+        <div class="d-flex align-items-center">
+          <div class="flex-grow-1">
+            <h6 class="text-muted mb-1">Total Products</h6>
+            <h4 class="mb-0 text-primary"><%= @total_products %></h4>
+          </div>
+          <div class="text-primary">
+            <i class="bi bi-box-seam fs-3"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-3">
+        <div class="d-flex align-items-center">
+          <div class="flex-grow-1">
+            <h6 class="text-muted mb-1">Low Stock Items</h6>
+            <h4 class="mb-0 text-warning"><%= @low_stock_items %></h4>
+          </div>
+          <div class="text-warning">
+            <i class="bi bi-exclamation-triangle fs-3"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-3">
+        <div class="d-flex align-items-center">
+          <div class="flex-grow-1">
+            <h6 class="text-muted mb-1">Total Stock Value</h6>
+            <h4 class="mb-0 text-success">₹<%= number_with_delimiter(@total_stock_value) %></h4>
+          </div>
+          <div class="text-success">
+            <i class="bi bi-currency-rupee fs-3"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-3">
+        <div class="d-flex align-items-center">
+          <div class="flex-grow-1">
+            <h6 class="text-muted mb-1">Avg. Product Value</h6>
+            <h4 class="mb-0 text-info">
+              ₹<%= @total_products > 0 ? number_with_delimiter((@total_stock_value / @total_products).round(2)) : "0" %>
+            </h4>
+          </div>
+          <div class="text-info">
+            <i class="bi bi-calculator fs-3"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters and Search -->
+<div class="row mb-4">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-3">
+        <div class="row g-3 align-items-center">
+          <div class="col-md-6">
+            <div class="position-relative">
+              <input type="text"
+                     class="form-control"
+                     placeholder="Search products..."
+                     id="productSearch"
+                     style="padding-left: 40px;">
+              <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <select class="form-select" id="categoryFilter">
+              <option value="">All Categories</option>
+              <% Product.joins(:category).distinct.pluck('categories.name').uniq.sort.each do |category| %>
+                <option value="<%= category %>"><%= category %></option>
+              <% end %>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <select class="form-select" id="stockFilter">
+              <option value="">All Stock Levels</option>
+              <option value="low">Low Stock Only</option>
+              <option value="good">Good Stock</option>
+              <option value="out">Out of Stock</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm bg-light">
+      <div class="card-body p-3">
+        <div class="d-flex align-items-center justify-content-center">
+          <i class="bi bi-info-circle text-primary me-2"></i>
+          <small class="text-muted mb-0">
+            Last updated: <%= Time.current.strftime("%B %d, %Y at %I:%M %p") %>
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Stock Table -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white border-0 py-3">
+    <div class="d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">
+        <i class="bi bi-table me-2"></i>
+        Product Stock Details
+      </h5>
+      <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary btn-sm" onclick="exportStockReport()">
+          <i class="bi bi-download me-1"></i>
+          Export
+        </button>
+        <button class="btn btn-outline-primary btn-sm" onclick="refreshStock()">
+          <i class="bi bi-arrow-clockwise me-1"></i>
+          Refresh
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <% if @stock_summary.any? %>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0" id="stockTable">
+          <thead class="table-light">
+            <tr>
+              <th class="border-0 fw-semibold">Product Details</th>
+              <th class="border-0 fw-semibold">Category</th>
+              <th class="border-0 fw-semibold text-center">Current Stock</th>
+              <th class="border-0 fw-semibold text-end">Unit Price</th>
+              <th class="border-0 fw-semibold text-end">Total Value</th>
+              <th class="border-0 fw-semibold text-center">Stock Status</th>
+              <th class="border-0 fw-semibold text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @stock_summary.each do |product_id, data| %>
+              <tr data-product-name="<%= data[:product].name.downcase %>"
+                  data-category="<%= data[:product].category&.name %>"
+                  data-stock-level="<%= data[:is_low_stock] ? 'low' : (data[:available_quantity] > 0 ? 'good' : 'out') %>">
+                <td class="align-middle">
+                  <div class="d-flex align-items-center">
+                    <div class="avatar-sm bg-primary-subtle rounded-circle d-flex align-items-center justify-content-center me-3">
+                      <i class="bi bi-box text-primary"></i>
+                    </div>
+                    <div>
+                      <h6 class="mb-1"><%= data[:product].name %></h6>
+                      <div class="d-flex align-items-center gap-2">
+                        <small class="text-muted">SKU: <%= data[:product].sku %></small>
+                        <% if data[:stock_batches].count > 1 %>
+                          <span class="badge bg-info-subtle text-info">
+                            <%= data[:stock_batches].count %> batches
+                          </span>
+                        <% end %>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td class="align-middle">
+                  <% if data[:product].category %>
+                    <span class="badge bg-secondary-subtle text-secondary">
+                      <%= data[:product].category.name %>
+                    </span>
+                  <% else %>
+                    <span class="text-muted">Uncategorized</span>
+                  <% end %>
+                </td>
+                <td class="align-middle text-center">
+                  <div>
+                    <span class="fw-bold text-<%= data[:is_low_stock] ? 'danger' : (data[:available_quantity] > 0 ? 'success' : 'muted') %>">
+                      <%= number_with_delimiter(data[:available_quantity]) %>
+                    </span>
+                    <small class="text-muted d-block"><%= data[:unit_type] %></small>
+                    <% if data[:is_low_stock] %>
+                      <small class="text-danger">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                        Below threshold (<%= data[:threshold] %>)
+                      </small>
+                    <% end %>
+                  </div>
+                </td>
+                <td class="align-middle text-end">
+                  <span class="fw-semibold">₹<%= number_with_delimiter(data[:average_price]) %></span>
+                  <small class="text-muted d-block">per <%= data[:unit_type] %></small>
+                </td>
+                <td class="align-middle text-end">
+                  <span class="fw-bold text-success">₹<%= number_with_delimiter(data[:total_value]) %></span>
+                </td>
+                <td class="align-middle text-center">
+                  <% if data[:available_quantity] == 0 %>
+                    <span class="badge bg-danger-subtle text-danger">
+                      <i class="bi bi-x-circle me-1"></i>Out of Stock
+                    </span>
+                  <% elsif data[:is_low_stock] %>
+                    <span class="badge bg-warning-subtle text-warning">
+                      <i class="bi bi-exclamation-triangle me-1"></i>Low Stock
+                    </span>
+                  <% else %>
+                    <span class="badge bg-success-subtle text-success">
+                      <i class="bi bi-check-circle me-1"></i>Good Stock
+                    </span>
+                  <% end %>
+                </td>
+                <td class="align-middle text-center">
+                  <div class="btn-group" role="group">
+                    <button type="button"
+                            class="btn btn-sm btn-outline-primary"
+                            onclick="viewBatchDetails(<%= product_id %>)"
+                            title="View Batch Details">
+                      <i class="bi bi-list-ul"></i>
+                    </button>
+                    <%= link_to transfer_admin_store_path(@store, product_id: product_id),
+                        class: "btn btn-sm btn-outline-success",
+                        title: "Transfer Stock" do %>
+                      <i class="bi bi-arrow-left-right"></i>
+                    <% end %>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Batch Details Row (Initially Hidden) -->
+              <tr id="batch-details-<%= product_id %>" class="batch-details-row" style="display: none;">
+                <td colspan="7" class="bg-light border-0">
+                  <div class="p-3">
+                    <h6 class="mb-3">
+                      <i class="bi bi-layers me-2"></i>
+                      Stock Batches for <%= data[:product].name %>
+                    </h6>
+                    <% if data[:stock_batches].any? %>
+                      <div class="row g-2">
+                        <% data[:stock_batches].each do |batch| %>
+                          <div class="col-md-6 col-lg-4">
+                            <div class="card border border-secondary-subtle">
+                              <div class="card-body p-2">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                  <small class="fw-semibold text-muted">Batch Date</small>
+                                  <small class="text-primary"><%= batch.batch_date.strftime("%b %d, %Y") %></small>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                  <small class="text-muted">Quantity:</small>
+                                  <small class="fw-bold"><%= batch.quantity_remaining %> <%= data[:unit_type] %></small>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                  <small class="text-muted">Price:</small>
+                                  <small class="text-success">₹<%= number_with_delimiter(batch.selling_price) %></small>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                  <small class="text-muted">Value:</small>
+                                  <small class="fw-semibold">₹<%= number_with_delimiter((batch.quantity_remaining * batch.selling_price).round(2)) %></small>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        <% end %>
+                      </div>
+                    <% else %>
+                      <div class="text-center py-3">
+                        <i class="bi bi-inbox text-muted" style="font-size: 2rem;"></i>
+                        <p class="text-muted mt-2 mb-0">No active batches found</p>
+                      </div>
+                    <% end %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <div class="text-center py-5">
+        <div class="mb-3">
+          <i class="bi bi-box-seam fs-1 text-muted"></i>
+        </div>
+        <h5 class="text-muted mb-3">No Products in Stock</h5>
+        <p class="text-muted mb-4">This store doesn't have any products in inventory yet.</p>
+        <%= link_to "Transfer Inventory", transfer_admin_store_path(@store), class: "btn btn-primary" %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- JavaScript for Interactivity -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Search functionality
+  const searchInput = document.getElementById('productSearch');
+  const categoryFilter = document.getElementById('categoryFilter');
+  const stockFilter = document.getElementById('stockFilter');
+  const tableRows = document.querySelectorAll('#stockTable tbody tr:not(.batch-details-row)');
+
+  function filterTable() {
+    const searchTerm = searchInput.value.toLowerCase();
+    const selectedCategory = categoryFilter.value;
+    const selectedStockLevel = stockFilter.value;
+
+    tableRows.forEach(row => {
+      const productName = row.dataset.productName || '';
+      const category = row.dataset.category || '';
+      const stockLevel = row.dataset.stockLevel || '';
+
+      const matchesSearch = productName.includes(searchTerm);
+      const matchesCategory = !selectedCategory || category === selectedCategory;
+      const matchesStock = !selectedStockLevel || stockLevel === selectedStockLevel;
+
+      if (matchesSearch && matchesCategory && matchesStock) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+        // Also hide corresponding batch details
+        const productId = row.querySelector('button[onclick*="viewBatchDetails"]')?.onclick?.toString().match(/\d+/)?.[0];
+        if (productId) {
+          const batchRow = document.getElementById(`batch-details-${productId}`);
+          if (batchRow) batchRow.style.display = 'none';
+        }
+      }
+    });
+
+    // Update visible count
+    const visibleRows = Array.from(tableRows).filter(row => row.style.display !== 'none');
+    console.log(`Showing ${visibleRows.length} of ${tableRows.length} products`);
+  }
+
+  // Add event listeners
+  searchInput?.addEventListener('input', filterTable);
+  categoryFilter?.addEventListener('change', filterTable);
+  stockFilter?.addEventListener('change', filterTable);
+});
+
+// Toggle batch details
+function viewBatchDetails(productId) {
+  const batchRow = document.getElementById(`batch-details-${productId}`);
+  if (batchRow) {
+    const isVisible = batchRow.style.display !== 'none';
+    batchRow.style.display = isVisible ? 'none' : 'table-row';
+
+    // Update button icon
+    const button = event.target.closest('button');
+    const icon = button.querySelector('i');
+    if (icon) {
+      if (isVisible) {
+        icon.className = 'bi bi-list-ul';
+        button.title = 'View Batch Details';
+      } else {
+        icon.className = 'bi bi-x-lg';
+        button.title = 'Hide Batch Details';
+      }
+    }
+  }
+}
+
+// Export functionality
+function exportStockReport() {
+  // Simple CSV export
+  const table = document.getElementById('stockTable');
+  let csv = '';
+
+  // Headers
+  const headers = ['Product Name', 'SKU', 'Category', 'Current Stock', 'Unit', 'Unit Price', 'Total Value', 'Status'];
+  csv += headers.join(',') + '\n';
+
+  // Data rows
+  const dataRows = table.querySelectorAll('tbody tr:not(.batch-details-row)');
+  dataRows.forEach(row => {
+    if (row.style.display !== 'none') {
+      const cells = row.querySelectorAll('td');
+      const rowData = [
+        cells[0]?.querySelector('h6')?.textContent?.trim() || '',
+        cells[0]?.querySelector('small')?.textContent?.replace('SKU: ', '') || '',
+        cells[1]?.textContent?.trim() || '',
+        cells[2]?.querySelector('.fw-bold')?.textContent?.trim() || '',
+        cells[2]?.querySelector('.text-muted')?.textContent?.trim() || '',
+        cells[3]?.querySelector('.fw-semibold')?.textContent?.trim() || '',
+        cells[4]?.querySelector('.fw-bold')?.textContent?.trim() || '',
+        cells[5]?.querySelector('.badge')?.textContent?.trim() || ''
+      ];
+      csv += rowData.map(field => `"${field}"`).join(',') + '\n';
+    }
+  });
+
+  // Download
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${new Date().toISOString().split('T')[0]}_<%= @store.name.parameterize %>_stock_report.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}
+
+// Refresh functionality
+function refreshStock() {
+  location.reload();
+}
+</script>
+
+<!-- Custom Styles -->
+<style>
+/* Enhanced table styling */
+.table-hover tbody tr:hover {
+  background-color: #f8f9fa;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  transition: all 0.2s ease;
+}
+
+/* Badge styling */
+.badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+/* Avatar styling */
+.avatar-sm {
+  width: 40px;
+  height: 40px;
+}
+
+/* Card hover effects */
+.card {
+  border: none !important;
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+}
+
+/* Button enhancements */
+.btn {
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+/* Search input styling */
+.position-relative .form-control {
+  border-radius: 8px;
+}
+
+/* Batch details styling */
+.batch-details-row td {
+  border-top: none !important;
+}
+
+.batch-details-row .card {
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.batch-details-row .card:hover {
+  transform: scale(1.02);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Status indicators */
+.text-danger {
+  color: #dc3545 !important;
+}
+
+.text-success {
+  color: #198754 !important;
+}
+
+.text-warning {
+  color: #fd7e14 !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+
+  .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .avatar-sm {
+    width: 35px;
+    height: 35px;
+  }
+}
+</style>
