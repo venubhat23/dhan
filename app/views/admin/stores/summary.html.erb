@@ -1,0 +1,301 @@
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1">
+      <i class="bi bi-graph-up me-2"></i>
+      Store Summary - <%= @store.name %>
+    </h2>
+    <p class="text-muted mb-0">Financial overview and analytics</p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to admin_store_path(@store), class: "btn btn-outline-primary" do %>
+      <i class="bi bi-eye me-2"></i>Store Details
+    <% end %>
+    <%= link_to admin_stores_path, class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-arrow-left me-2"></i>Back to Stores
+    <% end %>
+  </div>
+</div>
+
+<!-- Date Range Filter -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3">
+    <%= form_tag summary_admin_store_path(@store), method: :get, local: true, class: "row g-3 align-items-end" do %>
+      <div class="col-md-4">
+        <label class="form-label small"><i class="bi bi-calendar me-1"></i>Start Date</label>
+        <%= date_field_tag :start_date, @start_date, class: "form-control form-control-sm" %>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small"><i class="bi bi-calendar me-1"></i>End Date</label>
+        <%= date_field_tag :end_date, @end_date, class: "form-control form-control-sm" %>
+      </div>
+      <div class="col-md-4">
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary btn-sm flex-fill">
+            <i class="bi bi-funnel me-1"></i>Apply Filter
+          </button>
+          <%= link_to summary_admin_store_path(@store), class: "btn btn-outline-secondary btn-sm" do %>
+            <i class="bi bi-x me-1"></i>Reset
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Date Range Display -->
+<div class="alert alert-info border-0 mb-4">
+  <i class="bi bi-info-circle me-2"></i>
+  <strong>Showing data from <%= @start_date.strftime('%B %d, %Y') %> to <%= @end_date.strftime('%B %d, %Y') %></strong>
+  (<%= distance_of_time_in_words(@start_date, @end_date) %>)
+</div>
+
+<!-- Summary Metrics Cards -->
+<div class="row mb-5">
+  <div class="col-md-3 mb-3">
+    <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white !important;">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="card-title mb-1" style="color: white !important; font-weight: 600;">Total Bookings</h6>
+            <h3 class="mb-0" style="color: white !important; font-weight: 700;"><%= @total_bookings %></h3>
+          </div>
+          <i class="bi bi-cart-check fs-1" style="color: rgba(255,255,255,0.3);"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3 mb-3">
+    <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white !important;">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="card-title mb-1" style="color: white !important; font-weight: 600;">Booking Revenue</h6>
+            <h3 class="mb-0" style="color: white !important; font-weight: 700;">₹<%= number_with_delimiter(@total_booking_amount.round(2)) %></h3>
+          </div>
+          <i class="bi bi-currency-rupee fs-1" style="color: rgba(255,255,255,0.3);"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3 mb-3">
+    <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white !important;">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="card-title mb-1" style="color: white !important; font-weight: 600;">Total Expenses</h6>
+            <h3 class="mb-0" style="color: white !important; font-weight: 700;">₹<%= number_with_delimiter(@total_expenses.round(2)) %></h3>
+          </div>
+          <i class="bi bi-receipt fs-1" style="color: rgba(255,255,255,0.3);"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3 mb-3">
+    <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, <%= @net_profit >= 0 ? '#8b5cf6 0%, #7c3aed 100%' : '#ef4444 0%, #dc2626 100%' %>); color: white !important;">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="card-title mb-1" style="color: white !important; font-weight: 600;">Net Profit</h6>
+            <h3 class="mb-0" style="color: white !important; font-weight: 700;">
+              <% if @net_profit >= 0 %>
+                <i class="bi bi-arrow-up me-1"></i>₹<%= number_with_delimiter(@net_profit.round(2)) %>
+              <% else %>
+                <i class="bi bi-arrow-down me-1"></i>-₹<%= number_with_delimiter(@net_profit.abs.round(2)) %>
+              <% end %>
+            </h3>
+          </div>
+          <i class="bi bi-graph-<%= @net_profit >= 0 ? 'up' : 'down' %> fs-1" style="color: rgba(255,255,255,0.3);"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Detailed Analytics -->
+<div class="row mb-4">
+  <!-- Booking Status Breakdown -->
+  <div class="col-md-6 mb-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white border-0">
+        <h6 class="mb-0"><i class="bi bi-pie-chart me-2"></i>Booking Status Breakdown</h6>
+      </div>
+      <div class="card-body">
+        <% if @booking_statuses.any? %>
+          <% @booking_statuses.each do |status, count| %>
+            <div class="d-flex justify-content-between align-items-center mb-3 p-2 rounded bg-light">
+              <div class="d-flex align-items-center">
+                <span class="badge bg-<%= status == 'completed' ? 'success' : status == 'pending' ? 'warning' : 'secondary' %> me-2">
+                  <%= status&.humanize || 'Pending' %>
+                </span>
+                <span><%= count %> bookings</span>
+              </div>
+              <div>
+                <small class="text-muted">
+                  <%= number_to_percentage((count.to_f / @total_bookings * 100), precision: 1) %>
+                </small>
+              </div>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="text-muted text-center py-3">No bookings found for selected period.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Expense Categories -->
+  <div class="col-md-6 mb-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white border-0">
+        <h6 class="mb-0"><i class="bi bi-tags me-2"></i>Expense Categories</h6>
+      </div>
+      <div class="card-body">
+        <% if @expense_categories.any? %>
+          <% @expense_categories.each do |category, amount| %>
+            <div class="d-flex justify-content-between align-items-center mb-3 p-2 rounded bg-light">
+              <div class="d-flex align-items-center">
+                <div class="icon-bg bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                  <i class="<%= Expense.new(category: category).category_icon %> small"></i>
+                </div>
+                <span><%= category %></span>
+              </div>
+              <div class="text-end">
+                <strong class="text-primary">₹<%= number_with_delimiter(amount.round(2)) %></strong>
+                <div class="small text-muted">
+                  <%= number_to_percentage((amount.to_f / @total_expenses * 100), precision: 1) %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="text-muted text-center py-3">No expenses found for selected period.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="row">
+  <!-- Recent Bookings -->
+  <div class="col-lg-6 mb-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-0">
+        <div class="d-flex justify-content-between align-items-center">
+          <h6 class="mb-0"><i class="bi bi-cart-check me-2"></i>Recent Bookings</h6>
+          <span class="badge bg-primary"><%= @recent_bookings.count %> of <%= @total_bookings %></span>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <% if @recent_bookings.any? %>
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Booking #</th>
+                  <th>Customer</th>
+                  <th>Date</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @recent_bookings.each do |booking| %>
+                  <tr>
+                    <td>
+                      <strong><%= booking.booking_number || "BK-#{booking.id}" %></strong>
+                    </td>
+                    <td>
+                      <%= booking.customer&.full_name || booking.customer_name || 'Walk-in' %>
+                    </td>
+                    <td>
+                      <%= booking.created_at.strftime('%d %b %Y') %>
+                      <div class="small text-muted"><%= booking.created_at.strftime('%I:%M %p') %></div>
+                    </td>
+                    <td>
+                      <strong class="text-primary">₹<%= number_with_delimiter((booking.total_amount || 0).round(2)) %></strong>
+                    </td>
+                    <td>
+                      <span class="badge bg-<%= booking.status == 'completed' ? 'success' : booking.status == 'pending' ? 'warning' : 'secondary' %>">
+                        <%= booking.status&.humanize || 'Pending' %>
+                      </span>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% else %>
+          <div class="text-center py-5">
+            <i class="bi bi-cart-x fs-1 text-muted mb-2"></i>
+            <p class="text-muted">No bookings found for selected period.</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Expenses -->
+  <div class="col-lg-6 mb-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-0">
+        <div class="d-flex justify-content-between align-items-center">
+          <h6 class="mb-0"><i class="bi bi-receipt me-2"></i>Recent Expenses</h6>
+          <span class="badge bg-warning"><%= @recent_expenses.count %> of <%= @expenses.count %></span>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <% if @recent_expenses.any? %>
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Title</th>
+                  <th>Category</th>
+                  <th>Date</th>
+                  <th>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @recent_expenses.each do |expense| %>
+                  <tr>
+                    <td>
+                      <strong><%= expense.title %></strong>
+                      <% if expense.description.present? %>
+                        <div class="small text-muted"><%= truncate(expense.description, length: 30) %></div>
+                      <% end %>
+                    </td>
+                    <td>
+                      <span class="badge bg-light text-dark">
+                        <i class="<%= expense.category_icon %> me-1"></i>
+                        <%= expense.category %>
+                      </span>
+                    </td>
+                    <td>
+                      <%= expense.expense_date.strftime('%d %b %Y') %>
+                      <div class="small text-muted">
+                        by <%= expense.created_by.first_name %>
+                      </div>
+                    </td>
+                    <td>
+                      <strong class="text-primary">₹<%= number_with_delimiter(expense.amount.round(2)) %></strong>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% else %>
+          <div class="text-center py-5">
+            <i class="bi bi-receipt fs-1 text-muted mb-2"></i>
+            <p class="text-muted">No expenses found for selected period.</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

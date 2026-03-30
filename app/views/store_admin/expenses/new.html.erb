@@ -1,0 +1,163 @@
+<% content_for :page_title, "New Expense" %>
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="mb-1">Add New Expense</h4>
+    <small class="text-muted">Record a new expense for <%= @current_store.name %></small>
+  </div>
+  <div>
+    <%= link_to store_admin_expenses_path, class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-arrow-left me-2"></i>Back to Expenses
+    <% end %>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-0">
+        <h6 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Expense Details</h6>
+      </div>
+      <div class="card-body">
+        <%= form_with model: [:store_admin, @expense], local: true, html: { class: "needs-validation", novalidate: true } do |f| %>
+          <% if @expense.errors.any? %>
+            <div class="alert alert-danger">
+              <h6><i class="bi bi-exclamation-triangle me-2"></i>Please fix the following errors:</h6>
+              <ul class="mb-0">
+                <% @expense.errors.full_messages.each do |message| %>
+                  <li><%= message %></li>
+                <% end %>
+              </ul>
+            </div>
+          <% end %>
+
+          <div class="row g-3">
+            <!-- Title -->
+            <div class="col-md-6">
+              <label class="form-label">
+                <i class="bi bi-card-text me-1"></i>Title <span class="text-danger">*</span>
+              </label>
+              <%= f.text_field :title, class: "form-control", placeholder: "Enter expense title", required: true %>
+              <div class="invalid-feedback">Please provide a title for the expense.</div>
+            </div>
+
+            <!-- Category -->
+            <div class="col-md-6">
+              <label class="form-label">
+                <i class="bi bi-tags me-1"></i>Category <span class="text-danger">*</span>
+              </label>
+              <%= f.select :category,
+                  options_for_select(Expense::CATEGORIES.map { |cat| [cat, cat] }, @expense.category),
+                  { prompt: "Select a category" },
+                  { class: "form-select", required: true } %>
+              <div class="invalid-feedback">Please select a category.</div>
+            </div>
+
+            <!-- Amount -->
+            <div class="col-md-6">
+              <label class="form-label">
+                <i class="bi bi-currency-rupee me-1"></i>Amount <span class="text-danger">*</span>
+              </label>
+              <div class="input-group">
+                <span class="input-group-text">₹</span>
+                <%= f.number_field :amount, class: "form-control", step: 0.01, min: 0.01, placeholder: "0.00", required: true %>
+              </div>
+              <div class="invalid-feedback">Please enter a valid amount.</div>
+            </div>
+
+            <!-- Expense Date -->
+            <div class="col-md-6">
+              <label class="form-label">
+                <i class="bi bi-calendar me-1"></i>Expense Date <span class="text-danger">*</span>
+              </label>
+              <%= f.date_field :expense_date, class: "form-control", required: true %>
+              <div class="invalid-feedback">Please select the expense date.</div>
+            </div>
+
+            <!-- Description -->
+            <div class="col-12">
+              <label class="form-label">
+                <i class="bi bi-file-text me-1"></i>Description
+              </label>
+              <%= f.text_area :description, class: "form-control", rows: 4, placeholder: "Enter additional details about this expense (optional)" %>
+              <div class="form-text">Provide any additional details or notes about this expense.</div>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2 mt-4">
+            <%= f.submit "Create Expense", class: "btn btn-primary" %>
+            <%= link_to "Cancel", store_admin_expenses_path, class: "btn btn-outline-secondary" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Guide Sidebar -->
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-0">
+        <h6 class="mb-0"><i class="bi bi-lightbulb me-2"></i>Quick Guide</h6>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <h6 class="text-primary">Categories</h6>
+          <small class="text-muted">
+            Choose the most appropriate category for your expense to help with reporting and analysis.
+          </small>
+        </div>
+
+        <div class="mb-3">
+          <h6 class="text-primary">Common Expenses</h6>
+          <ul class="list-unstyled small">
+            <li><i class="bi bi-check-circle text-success me-1"></i>Monthly rent payment</li>
+            <li><i class="bi bi-check-circle text-success me-1"></i>Staff salary payments</li>
+            <li><i class="bi bi-check-circle text-success me-1"></i>Inventory purchases</li>
+            <li><i class="bi bi-check-circle text-success me-1"></i>Equipment maintenance</li>
+            <li><i class="bi bi-check-circle text-success me-1"></i>Utility bills</li>
+          </ul>
+        </div>
+
+        <div class="mb-3">
+          <h6 class="text-primary">Tips</h6>
+          <ul class="list-unstyled small">
+            <li><i class="bi bi-info-circle text-info me-1"></i>Be specific with titles</li>
+            <li><i class="bi bi-info-circle text-info me-1"></i>Keep receipts for record</li>
+            <li><i class="bi bi-info-circle text-info me-1"></i>Add detailed descriptions</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Store Info -->
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-body text-center">
+        <i class="bi bi-building fs-1 text-primary mb-2"></i>
+        <h6><%= @current_store.name %></h6>
+        <small class="text-muted">
+          <%= @current_store.city %>, <%= @current_store.state %>
+        </small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Form validation
+(function() {
+  'use strict';
+  window.addEventListener('load', function() {
+    var forms = document.getElementsByClassName('needs-validation');
+    var validation = Array.prototype.filter.call(forms, function(form) {
+      form.addEventListener('submit', function(event) {
+        if (form.checkValidity() === false) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+      }, false);
+    });
+  }, false);
+})();
+</script>

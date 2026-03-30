@@ -1,0 +1,614 @@
+<%# Floating Toggle Buttons %>
+<div class="position-fixed" style="top: 90px; right: 20px; z-index: 1050;">
+  <div class="d-flex gap-2">
+    <button type="button" class="btn btn-primary btn-sm shadow-lg" id="productsViewBtn" onclick="showProductsView()" title="Products" style="display: none;">
+      <i class="bi bi-grid"></i>
+    </button>
+    <button type="button" class="btn btn-outline-primary btn-sm shadow-lg" id="checkoutViewBtn" onclick="showCheckoutView()" title="Checkout">
+      <i class="bi bi-cart-check"></i>
+    </button>
+  </div>
+</div>
+
+<%# Large Toggle Buttons %>
+<div class="mb-3">
+  <div class="btn-group-lg d-flex gap-3" role="group">
+    <button type="button" class="btn btn-primary px-3 py-2 rounded-3 shadow-sm" id="productsViewBtnLarge" onclick="showProductsView()" style="display: none;">
+      <i class="bi bi-grid me-2"></i>
+      <span class="fw-medium">Products</span>
+    </button>
+    <button type="button" class="btn btn-outline-primary px-3 py-2 rounded-3 shadow-sm" id="checkoutViewBtnLarge" onclick="showCheckoutView()">
+      <i class="bi bi-cart-check me-2"></i>
+      <span class="fw-medium">Checkout</span>
+    </button>
+  </div>
+</div>
+
+<%# Search and Filters %>
+<div class="card border-0 shadow-sm mb-3" id="searchSection">
+  <div class="card-body py-2">
+    <div class="row g-2 align-items-center">
+      <div class="col-md-5">
+        <input type="text" class="form-control form-control-sm" placeholder="Search products by name or SKU..." id="productSearch">
+      </div>
+      <div class="col-md-3">
+        <div class="d-flex gap-2 align-items-center">
+          <small class="text-muted">Filter:</small>
+          <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-primary btn-sm active" id="allProductsBtn" onclick="filterProducts('all')">All</button>
+            <button type="button" class="btn btn-outline-primary btn-sm" id="inStockBtn" onclick="filterProducts('instock')">In Stock</button>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <small class="text-muted">Store: <strong><%= @current_store.name %></strong></small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%# Products View %>
+<div id="productsView">
+  <div class="card border-0 shadow-sm">
+    <div class="card-body pt-3">
+      <% available_products = @current_store.stock_batches.includes(:product).group_by(&:product_id) %>
+      <% if available_products&.any? %>
+        <div class="row g-3" id="productGrid">
+          <% available_products.each do |product_id, batches| %>
+            <% product = batches.first.product %>
+            <% current_stock = batches.sum(&:quantity_remaining) %>
+            <% selling_price = batches.first.selling_price %>
+            <div class="col-md-4 col-lg-3 product-grid-item" data-product-id="<%= product.id %>" data-stock="<%= current_stock %>">
+              <div class="card h-100 border-0 shadow-sm hover-lift">
+                <%# Product Image %>
+                <div class="position-relative">
+                  <% if product.images.present? && product.images.any? %>
+                    <%= image_tag product.images.first, class: "card-img-top", style: "height: 200px; object-fit: cover;" %>
+                  <% else %>
+                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                      <i class="bi bi-box-seam fs-1 text-muted"></i>
+                    </div>
+                  <% end %>
+
+                  <%# Stock Badge %>
+                  <% if current_stock <= 0 %>
+                    <span class="position-absolute top-0 end-0 badge bg-danger m-2">
+                      <i class="bi bi-x-circle me-1"></i>Out of Stock
+                    </span>
+                  <% elsif current_stock <= 10 %>
+                    <span class="position-absolute top-0 end-0 badge bg-warning text-dark m-2">
+                      <i class="bi bi-exclamation-triangle me-1"></i>Low Stock (<%= current_stock.to_i %> left)
+                    </span>
+                  <% else %>
+                    <span class="position-absolute top-0 end-0 badge bg-success m-2">
+                      <i class="bi bi-check-circle me-1"></i><%= current_stock.to_i %> in stock
+                    </span>
+                  <% end %>
+                </div>
+
+                <%# Product Details %>
+                <div class="card-body d-flex flex-column">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <small class="text-muted"><%= product.category&.name || 'No Category' %></small>
+                  </div>
+
+                  <h6 class="card-title mb-2" style="min-height: 48px;"><%= product.name %></h6>
+
+                  <%# Price %>
+                  <div class="mb-3">
+                    <span class="h6 text-primary mb-0">₹<%= number_with_delimiter(selling_price.round(2)) %></span>
+                    <small class="text-muted d-block">per <%= product.unit_type %></small>
+                  </div>
+
+                  <%# Quantity and Add to Cart %>
+                  <div class="mt-3">
+                    <% if current_stock > 0 %>
+                      <!-- Quantity Selector -->
+                      <div class="mb-3">
+                        <label class="form-label fw-bold small">
+                          Quantity
+                          <span class="badge bg-info-subtle text-info ms-1">
+                            Max: <%= current_stock.to_i %>
+                          </span>
+                        </label>
+                        <div class="input-group">
+                          <button class="btn btn-outline-primary" type="button" onclick="decreaseQuantity(<%= product.id %>)" style="width: 45px; height: 45px; border-radius: 8px 0 0 8px;">
+                            <i class="bi bi-dash fw-bold"></i>
+                          </button>
+                          <input type="number" id="qty-<%= product.id %>" value="1" min="0.1" step="0.1" max="<%= current_stock %>" class="form-control text-center fw-bold" style="height: 45px; font-size: 1.1rem;" onchange="validateQuantity(<%= product.id %>, <%= current_stock %>)">
+                          <button class="btn btn-outline-primary" type="button" onclick="increaseQuantity(<%= product.id %>)" style="width: 45px; height: 45px; border-radius: 0 8px 8px 0;">
+                            <i class="bi bi-plus fw-bold"></i>
+                          </button>
+                        </div>
+
+                        <% if current_stock <= 10 %>
+                          <small class="text-warning d-block mt-1">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            <strong>Low Stock!</strong> Only <%= current_stock.to_i %> left
+                          </small>
+                        <% end %>
+                      </div>
+
+                      <!-- Add to Cart Button -->
+                      <button class="btn btn-primary w-100"
+                              onclick="addToCart(<%= product.id %>, '<%= j(product.name) %>', <%= selling_price %>, <%= current_stock %>, <%= selling_price %>, 0)"
+                              data-base-price="<%= selling_price %>"
+                              data-gst-rate="0"
+                              data-final-price="<%= selling_price %>">
+                        <i class="bi bi-cart-plus me-2"></i>Add to Cart
+                      </button>
+                    <% else %>
+                      <div class="text-center">
+                        <button class="btn btn-danger w-100" disabled>
+                          <i class="bi bi-x-circle me-2"></i>SOLD OUT
+                        </button>
+                        <small class="text-muted mt-1 d-block">Product is currently out of stock</small>
+                      </div>
+                    <% end %>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="text-center py-5">
+          <i class="bi bi-box-seam fs-1 text-muted mb-3"></i>
+          <h5 class="text-muted">No Products Available</h5>
+          <p class="text-muted">No inventory has been allocated to this store yet.</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<%# Checkout View %>
+<div id="checkoutView" style="display: none;">
+  <div class="row">
+    <%# Checkout Form %>
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0">
+          <h5 class="mb-0">Booking Details</h5>
+        </div>
+        <div class="card-body">
+          <%= form_with model: [:store_admin, @booking], url: store_admin_bookings_path, local: true, html: { id: 'bookingForm' } do |f| %>
+            <% if @booking.errors.any? %>
+              <div class="alert alert-danger">
+                <h6><i class="bi bi-exclamation-triangle me-2"></i>Please fix the following errors:</h6>
+                <ul class="mb-0">
+                  <% @booking.errors.full_messages.each do |message| %>
+                    <li><%= message %></li>
+                  <% end %>
+                </ul>
+              </div>
+            <% end %>
+
+            <%# Customer Information %>
+            <div class="mb-4">
+              <h6 class="mb-3"><i class="bi bi-person me-2"></i>Customer Information</h6>
+
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">
+                    <i class="bi bi-person-search me-1"></i>Customer
+                  </label>
+                  <%= f.select :customer_id,
+                      options_for_select(
+                        [["Walk-in Customer", ""]] +
+                        @customers.map { |c| ["#{c.display_name} - #{c.mobile}", c.id] }
+                      ),
+                      { selected: @booking.customer_id },
+                      { class: "form-select", id: "customer_select" } %>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">
+                    <i class="bi bi-credit-card me-1"></i>Payment Method
+                  </label>
+                  <%= f.select :payment_method,
+                      [["Cash", "cash"], ["UPI", "upi"], ["Card", "card"], ["Credit", "credit"]],
+                      { selected: @booking.payment_method || "cash" },
+                      { class: "form-select" } %>
+                </div>
+              </div>
+            </div>
+
+            <%# Cart Items Display %>
+            <div class="mb-4" id="cartItemsSection">
+              <h6 class="mb-3"><i class="bi bi-cart me-2"></i>Cart Items</h6>
+              <div id="cartItems">
+                <div class="text-center py-4 text-muted" id="emptyCartMessage">
+                  <i class="bi bi-cart-x fs-1 mb-2"></i>
+                  <p>No items in cart. Add products from the products view.</p>
+                </div>
+              </div>
+            </div>
+
+            <%# Additional Options %>
+            <div class="row g-3 mb-4">
+              <div class="col-md-6">
+                <label class="form-label">
+                  <i class="bi bi-cash-coin me-1"></i>Payment Status
+                </label>
+                <%= f.select :payment_status,
+                    [["Unpaid", "unpaid"], ["Paid", "paid"]],
+                    { selected: @booking.payment_status || "unpaid" },
+                    { class: "form-select" } %>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label">
+                  <i class="bi bi-percent me-1"></i>Discount Amount (₹)
+                </label>
+                <input type="number" name="booking[discount_amount]" id="discountAmount" class="form-control" value="0" min="0" step="0.01" onchange="updateTotals()">
+              </div>
+            </div>
+
+            <%# Notes %>
+            <div class="mb-4">
+              <label class="form-label">
+                <i class="bi bi-sticky me-1"></i>Notes (Optional)
+              </label>
+              <%= f.text_area :notes, class: "form-control", rows: 3, placeholder: "Any special instructions or notes for this booking..." %>
+            </div>
+
+            <%# Action Buttons %>
+            <div class="d-flex gap-2">
+              <%= link_to "Cancel", store_admin_bookings_path, class: "btn btn-outline-secondary" %>
+              <button type="submit" class="btn btn-primary" id="submitBookingBtn" disabled>
+                <i class="bi bi-check-circle me-2"></i>Create Booking
+              </button>
+            </div>
+
+            <%# Hidden fields for cart items %>
+            <div id="cartItemsHiddenFields"></div>
+
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <%# Order Summary Sidebar %>
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm position-sticky" style="top: 100px;">
+        <div class="card-header bg-transparent border-0">
+          <h5 class="mb-0"><i class="bi bi-receipt me-2"></i>Order Summary</h5>
+        </div>
+        <div class="card-body">
+          <div id="orderSummary">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span>Subtotal:</span>
+              <span id="subtotalAmount">₹0.00</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-2" id="discountRow" style="display: none;">
+              <span class="text-success">Discount:</span>
+              <span class="text-success" id="discountAmountDisplay">-₹0.00</span>
+            </div>
+            <hr>
+            <div class="d-flex justify-content-between align-items-center">
+              <strong>Total:</strong>
+              <strong id="totalAmount">₹0.00</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  transition: all 0.3s ease;
+}
+
+.product-grid-item {
+  transition: all 0.3s ease;
+}
+
+.cart-item {
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  background-color: #fff;
+  transition: all 0.3s ease;
+}
+
+.cart-item:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.quantity-input {
+  max-width: 80px;
+}
+
+#searchSection {
+  position: sticky;
+  top: 70px;
+  z-index: 1020;
+}
+</style>
+
+<script>
+let cart = new Map();
+let currentView = 'checkout';
+
+// View Management
+function showProductsView() {
+  document.getElementById('productsView').style.display = 'block';
+  document.getElementById('checkoutView').style.display = 'none';
+
+  // Update toggle buttons
+  document.getElementById('productsViewBtn').style.display = 'none';
+  document.getElementById('checkoutViewBtn').style.display = 'block';
+  document.getElementById('productsViewBtnLarge').style.display = 'none';
+  document.getElementById('checkoutViewBtnLarge').style.display = 'block';
+
+  currentView = 'products';
+}
+
+function showCheckoutView() {
+  document.getElementById('productsView').style.display = 'none';
+  document.getElementById('checkoutView').style.display = 'block';
+
+  // Update toggle buttons
+  document.getElementById('productsViewBtn').style.display = 'block';
+  document.getElementById('checkoutViewBtn').style.display = 'none';
+  document.getElementById('productsViewBtnLarge').style.display = 'block';
+  document.getElementById('checkoutViewBtnLarge').style.display = 'none';
+
+  currentView = 'checkout';
+  updateCartDisplay();
+}
+
+// Cart Management
+function addToCart(productId, productName, price, maxStock, basePrice, gstRate) {
+  const quantity = parseFloat(document.getElementById(`qty-${productId}`).value);
+
+  if (quantity <= 0 || quantity > maxStock) {
+    alert(`Please enter a valid quantity between 1 and ${maxStock}`);
+    return;
+  }
+
+  cart.set(productId, {
+    id: productId,
+    name: productName,
+    price: price,
+    basePrice: basePrice,
+    gstRate: gstRate,
+    quantity: quantity,
+    maxStock: maxStock
+  });
+
+  updateCartDisplay();
+  updateOrderSummary();
+
+  // Show success feedback
+  const button = event.target;
+  const originalText = button.innerHTML;
+  button.innerHTML = '<i class="bi bi-check me-2"></i>Added!';
+  button.classList.add('btn-success');
+  button.classList.remove('btn-primary');
+
+  setTimeout(() => {
+    button.innerHTML = originalText;
+    button.classList.remove('btn-success');
+    button.classList.add('btn-primary');
+  }, 1000);
+}
+
+function removeFromCart(productId) {
+  cart.delete(productId);
+  updateCartDisplay();
+  updateOrderSummary();
+}
+
+function updateCartQuantity(productId, newQuantity) {
+  if (cart.has(productId)) {
+    const item = cart.get(productId);
+    // Ensure minimum quantity is 0.1 and not exceeding max stock
+    newQuantity = Math.max(0.1, Math.min(newQuantity, item.maxStock));
+
+    if (newQuantity > 0 && newQuantity <= item.maxStock) {
+      item.quantity = parseFloat(newQuantity.toFixed(1)); // Round to 1 decimal place
+      cart.set(productId, item);
+      updateCartDisplay(); // Update the display
+      updateOrderSummary();
+    }
+  }
+}
+
+function updateCartDisplay() {
+  const cartContainer = document.getElementById('cartItems');
+  const emptyMessage = document.getElementById('emptyCartMessage');
+
+  // Check if elements exist before trying to manipulate them
+  if (!cartContainer || !emptyMessage) {
+    return;
+  }
+
+  if (cart.size === 0) {
+    emptyMessage.style.display = 'block';
+    updateFormFields();
+    return;
+  }
+
+  emptyMessage.style.display = 'none';
+
+  let html = '';
+  cart.forEach((item, productId) => {
+    const itemTotal = item.quantity * item.price;
+    const currentQty = parseFloat(item.quantity);
+    const minusQty = Math.max(0.1, currentQty - 0.1);
+    const plusQty = Math.min(item.maxStock, currentQty + 0.1);
+
+    html += `
+      <div class="cart-item" data-product-id="${productId}">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="mb-1">${item.name}</h6>
+            <small class="text-muted">₹${item.price.toFixed(2)} each</small>
+          </div>
+          <div class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center gap-2">
+              <button type="button" class="btn btn-sm btn-outline-secondary cart-minus-btn"
+                      onclick="updateCartQuantity(${productId}, ${minusQty})"
+                      style="width: 30px; height: 30px;"
+                      ${currentQty <= 0.1 ? 'disabled' : ''}>
+                <i class="bi bi-dash"></i>
+              </button>
+              <input type="number"
+                     class="form-control quantity-input text-center"
+                     value="${currentQty}"
+                     min="0.1"
+                     max="${item.maxStock}"
+                     step="0.1"
+                     onchange="updateCartQuantity(${productId}, parseFloat(this.value))"
+                     style="width: 80px;">
+              <button type="button" class="btn btn-sm btn-outline-secondary cart-plus-btn"
+                      onclick="updateCartQuantity(${productId}, ${plusQty})"
+                      style="width: 30px; height: 30px;"
+                      ${currentQty >= item.maxStock ? 'disabled' : ''}>
+                <i class="bi bi-plus"></i>
+              </button>
+            </div>
+            <strong class="text-primary">₹${itemTotal.toFixed(2)}</strong>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeFromCart(${productId})" title="Remove">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  cartContainer.innerHTML = html;
+  updateFormFields();
+}
+
+function updateOrderSummary() {
+  let subtotal = 0;
+
+  cart.forEach((item) => {
+    subtotal += item.quantity * item.price;
+  });
+
+  const discount = parseFloat(document.getElementById('discountAmount')?.value || 0);
+  const total = Math.max(0, subtotal - discount);
+
+  document.getElementById('subtotalAmount').textContent = `₹${subtotal.toFixed(2)}`;
+  document.getElementById('totalAmount').textContent = `₹${total.toFixed(2)}`;
+
+  const discountRow = document.getElementById('discountRow');
+  const discountDisplay = document.getElementById('discountAmountDisplay');
+
+  if (discount > 0) {
+    discountRow.style.display = 'flex';
+    discountDisplay.textContent = `-₹${discount.toFixed(2)}`;
+  } else {
+    discountRow.style.display = 'none';
+  }
+
+  // Enable/disable submit button
+  const submitBtn = document.getElementById('submitBookingBtn');
+  if (submitBtn) {
+    submitBtn.disabled = cart.size === 0;
+  }
+}
+
+function updateFormFields() {
+  const container = document.getElementById('cartItemsHiddenFields');
+  let html = '';
+
+  let index = 0;
+  cart.forEach((item, productId) => {
+    html += `
+      <input type="hidden" name="booking[booking_items_attributes][${index}][product_id]" value="${productId}">
+      <input type="hidden" name="booking[booking_items_attributes][${index}][quantity]" value="${item.quantity}">
+      <input type="hidden" name="booking[booking_items_attributes][${index}][price]" value="${item.price}">
+    `;
+    index++;
+  });
+
+  container.innerHTML = html;
+}
+
+function updateTotals() {
+  updateOrderSummary();
+}
+
+// Quantity controls
+function increaseQuantity(productId) {
+  const input = document.getElementById(`qty-${productId}`);
+  const current = parseFloat(input.value);
+  const max = parseFloat(input.max);
+
+  if (current < max) {
+    input.value = (current + 0.1).toFixed(1);
+  }
+}
+
+function decreaseQuantity(productId) {
+  const input = document.getElementById(`qty-${productId}`);
+  const current = parseFloat(input.value);
+
+  if (current > 0.1) {
+    input.value = (current - 0.1).toFixed(1);
+  }
+}
+
+function validateQuantity(productId, maxStock) {
+  const input = document.getElementById(`qty-${productId}`);
+  const value = parseFloat(input.value);
+
+  if (value > maxStock) {
+    input.value = maxStock;
+  } else if (value < 0.1) {
+    input.value = 0.1;
+  }
+}
+
+// Search and Filter
+function filterProducts(type) {
+  const products = document.querySelectorAll('.product-grid-item');
+  const allBtn = document.getElementById('allProductsBtn');
+  const inStockBtn = document.getElementById('inStockBtn');
+
+  // Update button states
+  allBtn.classList.toggle('active', type === 'all');
+  inStockBtn.classList.toggle('active', type === 'instock');
+
+  products.forEach(product => {
+    const stock = parseInt(product.dataset.stock);
+
+    if (type === 'all') {
+      product.style.display = 'block';
+    } else if (type === 'instock') {
+      product.style.display = stock > 0 ? 'block' : 'none';
+    }
+  });
+}
+
+// Search functionality
+document.addEventListener('DOMContentLoaded', function() {
+  const searchInput = document.getElementById('productSearch');
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      const searchTerm = this.value.toLowerCase();
+      const products = document.querySelectorAll('.product-grid-item');
+
+      products.forEach(product => {
+        const productName = product.querySelector('.card-title').textContent.toLowerCase();
+        const match = productName.includes(searchTerm);
+        product.style.display = match ? 'block' : 'none';
+      });
+    });
+  }
+
+  // Initialize
+  updateOrderSummary();
+});
+</script>

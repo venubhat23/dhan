@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_03_07_032837) do
+ActiveRecord::Schema[8.0].define(version: 2026_03_30_121614) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -415,6 +415,22 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_07_032837) do
     t.datetime "updated_at", null: false
     t.index ["customer_id"], name: "index_device_tokens_on_customer_id"
     t.index ["delivery_person_id"], name: "index_device_tokens_on_delivery_person_id"
+  end
+
+  create_table "expenses", force: :cascade do |t|
+    t.bigint "store_id", null: false
+    t.bigint "created_by_id", null: false
+    t.string "title", null: false
+    t.text "description"
+    t.decimal "amount", precision: 10, scale: 2, null: false
+    t.string "category", null: false
+    t.date "expense_date", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["category"], name: "index_expenses_on_category"
+    t.index ["created_by_id"], name: "index_expenses_on_created_by_id"
+    t.index ["store_id", "expense_date"], name: "index_expenses_on_store_id_and_expense_date"
+    t.index ["store_id"], name: "index_expenses_on_store_id"
   end
 
   create_table "franchises", force: :cascade do |t|
@@ -986,7 +1002,11 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_07_032837) do
     t.string "status"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "store_id"
     t.index ["product_id"], name: "index_stock_batches_on_product_id"
+    t.index ["store_id", "product_id"], name: "index_stock_batches_on_store_and_product"
+    t.index ["store_id", "status"], name: "index_stock_batches_on_store_and_status"
+    t.index ["store_id"], name: "index_stock_batches_on_store_id"
     t.index ["vendor_id"], name: "index_stock_batches_on_vendor_id"
     t.index ["vendor_purchase_id"], name: "index_stock_batches_on_vendor_purchase_id"
   end
@@ -1002,12 +1022,52 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_07_032837) do
     t.text "notes"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "store_id"
     t.index ["created_at"], name: "idx_stock_movements_created_at"
     t.index ["movement_type"], name: "idx_stock_movements_movement_type"
     t.index ["product_id", "created_at"], name: "idx_stock_movements_product_created"
     t.index ["product_id"], name: "idx_stock_movements_product_id"
     t.index ["product_id"], name: "index_stock_movements_on_product_id"
     t.index ["reference_type", "reference_id"], name: "idx_stock_movements_ref_type_id"
+    t.index ["store_id", "created_at"], name: "index_stock_movements_on_store_and_date"
+    t.index ["store_id"], name: "index_stock_movements_on_store_id"
+  end
+
+  create_table "store_inventory_transfers", force: :cascade do |t|
+    t.bigint "product_id", null: false
+    t.bigint "from_store_id"
+    t.bigint "to_store_id", null: false
+    t.bigint "initiated_by_id", null: false
+    t.bigint "approved_by_id"
+    t.decimal "quantity", precision: 8, scale: 2, null: false
+    t.decimal "transfer_price", precision: 10, scale: 2
+    t.string "status", default: "pending", null: false
+    t.text "notes"
+    t.string "transfer_reference_number"
+    t.string "courier_details"
+    t.string "tracking_number"
+    t.datetime "initiated_at"
+    t.datetime "approved_at"
+    t.datetime "shipped_at"
+    t.datetime "completed_at"
+    t.datetime "cancelled_at"
+    t.json "transfer_metadata"
+    t.decimal "shipping_cost", precision: 8, scale: 2
+    t.integer "estimated_delivery_days"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["approved_by_id"], name: "index_store_inventory_transfers_on_approved_by_id"
+    t.index ["from_store_id", "status"], name: "index_transfers_on_from_store_and_status"
+    t.index ["from_store_id"], name: "index_store_inventory_transfers_on_from_store_id"
+    t.index ["initiated_by_id", "created_at"], name: "index_transfers_on_user_and_date"
+    t.index ["initiated_by_id"], name: "index_store_inventory_transfers_on_initiated_by_id"
+    t.index ["product_id", "status"], name: "index_transfers_on_product_and_status"
+    t.index ["product_id"], name: "index_store_inventory_transfers_on_product_id"
+    t.index ["status"], name: "index_transfers_on_status"
+    t.index ["to_store_id", "status"], name: "index_transfers_on_to_store_and_status"
+    t.index ["to_store_id"], name: "index_store_inventory_transfers_on_to_store_id"
+    t.index ["transfer_reference_number"], name: "index_transfers_on_reference_number", unique: true
+    t.check_constraint "quantity > 0::numeric", name: "positive_quantity"
   end
 
   create_table "stores", force: :cascade do |t|
@@ -1024,6 +1084,13 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_07_032837) do
     t.string "gst_no"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "store_admin_user_id"
+    t.boolean "inventory_management_enabled", default: true
+    t.decimal "auto_transfer_threshold", precision: 8, scale: 2, default: "10.0"
+    t.string "manager_email"
+    t.text "operating_hours"
+    t.string "timezone", default: "UTC"
+    t.index ["store_admin_user_id"], name: "index_stores_on_store_admin_user_id"
   end
 
   create_table "sub_agents", force: :cascade do |t|
@@ -1193,7 +1260,14 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_07_032837) do
     t.string "original_password"
     t.string "authenticatable_type"
     t.bigint "authenticatable_id"
+    t.bigint "assigned_store_id"
+    t.json "store_permissions", default: {}
+    t.datetime "last_store_access"
+    t.json "store_access_logs", default: []
+    t.json "notification_preferences", default: {"low_stock_alerts"=>true, "transfer_notifications"=>true, "booking_alerts"=>true, "daily_reports"=>false}
     t.index ["aadhar_no"], name: "index_users_on_aadhar_no", unique: true
+    t.index ["assigned_store_id"], name: "index_users_on_assigned_store"
+    t.index ["assigned_store_id"], name: "index_users_on_assigned_store_id"
     t.index ["authenticatable_type", "authenticatable_id"], name: "index_users_on_authenticatable"
     t.index ["confirmation_token"], name: "index_users_on_confirmation_token", unique: true
     t.index ["deleted_at"], name: "index_users_on_deleted_at"
@@ -1318,6 +1392,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_07_032837) do
   add_foreign_key "delivery_rules", "products"
   add_foreign_key "device_tokens", "customers"
   add_foreign_key "device_tokens", "delivery_people"
+  add_foreign_key "expenses", "stores"
+  add_foreign_key "expenses", "users", column: "created_by_id"
   add_foreign_key "franchises", "users"
   add_foreign_key "invoice_items", "invoices"
   add_foreign_key "invoice_items", "milk_delivery_tasks"
@@ -1352,12 +1428,21 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_07_032837) do
   add_foreign_key "solid_queue_recurring_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_scheduled_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "stock_batches", "products"
+  add_foreign_key "stock_batches", "stores"
   add_foreign_key "stock_batches", "vendor_purchases"
   add_foreign_key "stock_batches", "vendors"
   add_foreign_key "stock_movements", "products"
+  add_foreign_key "stock_movements", "stores"
+  add_foreign_key "store_inventory_transfers", "products"
+  add_foreign_key "store_inventory_transfers", "stores", column: "from_store_id"
+  add_foreign_key "store_inventory_transfers", "stores", column: "to_store_id"
+  add_foreign_key "store_inventory_transfers", "users", column: "approved_by_id"
+  add_foreign_key "store_inventory_transfers", "users", column: "initiated_by_id"
+  add_foreign_key "stores", "users", column: "store_admin_user_id"
   add_foreign_key "subscription_templates", "customers"
   add_foreign_key "subscription_templates", "delivery_people"
   add_foreign_key "subscription_templates", "products"
+  add_foreign_key "users", "stores", column: "assigned_store_id"
   add_foreign_key "vendor_invoices", "vendor_purchases"
   add_foreign_key "vendor_payments", "vendor_purchases"
   add_foreign_key "vendor_payments", "vendors"

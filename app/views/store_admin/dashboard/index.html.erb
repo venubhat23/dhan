@@ -1,5 +1,28 @@
 <% content_for :page_title, "Dashboard" %>
 
+<style>
+  /* Override CSS conflicts for metric cards */
+  .metric-card.bg-primary {
+    background: #0d6efd !important;
+    color: white !important;
+  }
+  .metric-card.bg-warning {
+    background: #ffc107 !important;
+    color: #212529 !important;
+  }
+  .metric-card.bg-info {
+    background: #0dcaf0 !important;
+    color: white !important;
+  }
+  .metric-card.bg-success {
+    background: #198754 !important;
+    color: white !important;
+  }
+  .metric-card h5, .metric-card h3 {
+    color: inherit !important;
+  }
+</style>
+
 <!-- Metrics Cards -->
 <div class="row mb-4">
   <div class="col-md-3 mb-3">
@@ -7,8 +30,8 @@
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center">
           <div>
-            <h5 class="card-title mb-1">Total Products</h5>
-            <h3 class="mb-0"><%= @inventory_summary[:total_products] %></h3>
+            <h5 class="card-title mb-1 fw-semibold">Total Products</h5>
+            <h3 class="mb-0 fw-bold"><%= @inventory_summary[:total_products] || 0 %></h3>
           </div>
           <i class="bi bi-boxes fs-1 opacity-50"></i>
         </div>
@@ -17,12 +40,12 @@
   </div>
 
   <div class="col-md-3 mb-3">
-    <div class="card metric-card border-0 shadow-sm bg-warning text-white">
+    <div class="card metric-card border-0 shadow-sm bg-warning text-dark">
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center">
           <div>
-            <h5 class="card-title mb-1">Low Stock</h5>
-            <h3 class="mb-0"><%= @inventory_summary[:low_stock_count] %></h3>
+            <h5 class="card-title mb-1 fw-semibold">Low Stock</h5>
+            <h3 class="mb-0 fw-bold"><%= @inventory_summary[:low_stock_count] || 0 %></h3>
           </div>
           <i class="bi bi-exclamation-triangle fs-1 opacity-50"></i>
         </div>
@@ -35,8 +58,8 @@
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center">
           <div>
-            <h5 class="card-title mb-1">Pending Transfers</h5>
-            <h3 class="mb-0"><%= @inventory_summary[:pending_incoming_transfers] %></h3>
+            <h5 class="card-title mb-1 fw-semibold">Pending Transfers</h5>
+            <h3 class="mb-0 fw-bold"><%= @inventory_summary[:pending_incoming_transfers] || 0 %></h3>
           </div>
           <i class="bi bi-arrow-left-right fs-1 opacity-50"></i>
         </div>
@@ -49,8 +72,8 @@
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center">
           <div>
-            <h5 class="card-title mb-1">Inventory Value</h5>
-            <h3 class="mb-0">₹<%= number_with_delimiter(@inventory_summary[:total_stock_value]&.round || 0) %></h3>
+            <h5 class="card-title mb-1 fw-semibold">Inventory Value</h5>
+            <h3 class="mb-0 fw-bold">₹<%= number_with_delimiter(@inventory_summary[:total_stock_value]&.round || 0) %></h3>
           </div>
           <i class="bi bi-currency-rupee fs-1 opacity-50"></i>
         </div>
@@ -69,7 +92,7 @@
           Low Stock Alert
         </h6>
         <% if @low_stock_products.any? %>
-          <%= link_to "View All", store_admin_inventory_low_stock_path, class: "btn btn-sm btn-outline-primary" %>
+          <%= link_to "View All", low_stock_store_admin_inventory_index_path, class: "btn btn-sm btn-outline-primary" %>
         <% end %>
       </div>
       <div class="card-body">
@@ -127,7 +150,7 @@
               </div>
               <div class="text-end">
                 <span class="badge bg-<%= booking.status_color %>">
-                  <%= booking.status.humanize %>
+                  <%= booking.status&.humanize || 'Pending' %>
                 </span>
                 <div class="small text-muted mt-1">
                   ₹<%= number_with_delimiter(booking.total_amount&.round || 0) %>
@@ -197,7 +220,7 @@
           <i class="bi bi-activity text-secondary me-2"></i>
           Recent Stock Movements
         </h6>
-        <%= link_to "View All", store_admin_inventory_movements_path, class: "btn btn-sm btn-outline-primary" %>
+        <%= link_to "View All", movements_store_admin_inventory_index_path, class: "btn btn-sm btn-outline-primary" %>
       </div>
       <div class="card-body">
         <% if @recent_stock_movements.any? %>

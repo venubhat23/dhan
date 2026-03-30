@@ -1,6 +1,6 @@
 class Store < ApplicationRecord
   # Constants
-  MAX_STORES_LIMIT = 10
+  MAX_STORES_LIMIT = 100
 
   # Associations
   has_many :bookings, dependent: :restrict_with_error
@@ -10,6 +10,7 @@ class Store < ApplicationRecord
   has_many :stock_movements, dependent: :restrict_with_error
   has_many :outgoing_transfers, class_name: 'StoreInventoryTransfer', foreign_key: 'from_store_id', dependent: :destroy
   has_many :incoming_transfers, class_name: 'StoreInventoryTransfer', foreign_key: 'to_store_id', dependent: :destroy
+  has_many :expenses, dependent: :destroy
 
   # Virtual attributes for store creation form
   attr_accessor :admin_username, :admin_email, :admin_password, :admin_first_name, :admin_last_name, :admin_mobile
@@ -293,7 +294,7 @@ class Store < ApplicationRecord
       mobile: admin_mobile,
       password: admin_password,
       password_confirmation: admin_password,
-      user_type: 'admin',  # Changed from 'store_admin' to 'admin' for full access
+      user_type: 'store_admin',  # Store admin for store-specific access
       assigned_store: self,
       sidebar_permissions: sidebar_permissions.to_json,
       permissions: 'all',  # Full permissions

@@ -23,8 +23,11 @@ class ApplicationController < ActionController::Base
   protected
 
   def after_sign_in_path_for(resource)
+    # Special handling for store admin users - redirect to store dashboard
+    if resource.store_admin?
+      store_admin_root_path
     # Special handling for franchise users - redirect directly to bookings
-    if resource.franchise?
+    elsif resource.franchise?
       franchise_dashboard_path
     elsif resource.has_sidebar_permission?('dashboard')
       root_path  # Dashboard

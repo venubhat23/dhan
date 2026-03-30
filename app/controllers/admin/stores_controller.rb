@@ -1,6 +1,6 @@
 class Admin::StoresController < Admin::ApplicationController
   before_action :authenticate_user!
-  before_action :set_store, only: [:show, :edit, :update, :destroy, :toggle_status, :assign_admin, :update_admin, :inventory, :transfer_inventory, :transfer, :process_transfer, :current_stock]
+  before_action :set_store, only: [:show, :edit, :update, :destroy, :toggle_status, :assign_admin, :update_admin, :inventory, :transfer_inventory, :transfer, :process_transfer, :current_stock, :summary]
   before_action :check_collect_from_store_enabled, only: [:index, :new, :create]
   skip_before_action :verify_authenticity_token, only: [:get_product_availability]
 
@@ -255,6 +255,70 @@ class Admin::StoresController < Admin::ApplicationController
     end
 
     @total_stock_value = @total_stock_value.round(2)
+  end
+
+  def summary
+    # Get date range parameters
+    @start_date = params[:start_date]&.to_date || Date.current.beginning_of_month
+    @end_date = params[:end_date]&.to_date || Date.current
+
+    # Ensure end_date is end of day for queries
+    end_date_time = @end_date.end_of_day
+
+    # Get bookings data
+    @bookings = @store.bookings.where(created_at: @start_date..end_date_time)
+    @expenses = @store.expenses.where(expense_date: @start_date..@end_date)
+
+    # Calculate summary metrics
+    @total_bookings = @bookings.count
+    @total_booking_amount = @bookings.sum(:total_amount) || 0
+    @total_expenses = @expenses.sum(:amount) || 0
+    @net_profit = @total_booking_amount - @total_expenses
+
+    # Get recent data for display
+    @recent_bookings = @bookings.includes(:customer)
+                              .order(created_at: :desc)
+                              .limit(10)
+
+    @recent_expenses = @expenses.includes(:created_by)
+                               .order(expense_date: :desc)
+                               .limit(10)
+
+    # Category breakdown for expenses
+    @expense_categories = @expenses.group(:category).sum(:amount)
+
+    # Status breakdown for bookings
+    @booking_statuses = @bookings.group(:status).count
+
+    respond_to do |format|
+      format.html
+      format.json do
+        render json: {
+          total_bookings: @total_bookings,
+          total_booking_amount: @total_booking_amount.to_f,
+          total_expenses: @total_expenses.to_f,
+          recent_bookings: @recent_bookings.map { |booking|
+            {
+              id: booking.id,
+              booking_number: booking.booking_number || "BK-#{booking.id}",
+              customer_name: booking.customer&.full_name || booking.customer_name,
+              created_at: booking.created_at,
+              total_amount: booking.total_amount || 0,
+              status: booking.status || 'pending'
+            }
+          },
+          recent_expenses: @recent_expenses.map { |expense|
+            {
+              id: expense.id,
+              title: expense.title,
+              category: expense.category,
+              expense_date: expense.expense_date,
+              amount: expense.amount
+            }
+          }
+        }
+      end
+    end
   end
 
   private

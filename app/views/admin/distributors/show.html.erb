@@ -233,6 +233,45 @@
 
   <!-- Sidebar -->
   <div class="col-lg-4">
+    <!-- Login Credentials -->
+    <div class="card border-0 shadow-sm mb-4 border-primary">
+      <div class="card-header bg-primary text-white border-0">
+        <h6 class="mb-0">
+          <i class="bi bi-key me-2"></i>
+          Login Credentials
+        </h6>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="form-label text-muted mb-1">Email (Username)</label>
+          <div class="d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center">
+              <i class="bi bi-envelope text-primary me-2"></i>
+              <span class="fw-bold" id="emailText"><%= @distributor.email %></span>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="copyToClipboard('<%= @distributor.email %>', 'Email copied!')">
+              <i class="bi bi-clipboard"></i>
+            </button>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label text-muted mb-1">Account Status</label>
+          <div>
+            <span class="badge bg-<%= @distributor.active? ? 'success' : 'danger' %> fs-6">
+              <i class="bi bi-<%= @distributor.active? ? 'check-circle' : 'x-circle' %> me-1"></i>
+              <%= @distributor.active? ? 'Active' : 'Inactive' %>
+            </span>
+          </div>
+        </div>
+        <div class="d-grid">
+          <button type="button" class="btn btn-warning btn-sm" onclick="resetPassword()">
+            <i class="bi bi-shield-lock me-1"></i>
+            Reset Password
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Quick Stats -->
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-header bg-transparent border-0">
@@ -366,3 +405,126 @@
     </div>
   </div>
 </div>
+
+<!-- JavaScript for Login Credentials Section -->
+<script>
+function copyToClipboard(text, message) {
+  navigator.clipboard.writeText(text).then(function() {
+    // Show success message
+    showToast(message || 'Copied to clipboard!', 'success');
+  }).catch(function(err) {
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+    showToast(message || 'Copied to clipboard!', 'success');
+  });
+}
+
+function resetPassword() {
+  if (confirm('Are you sure you want to reset the password for this distributor? They will receive a new password via email.')) {
+    // You can implement the actual reset password functionality here
+    // For now, just show a placeholder message
+    showToast('Password reset functionality would be implemented here', 'info');
+
+    // Example implementation:
+    // fetch('/admin/distributors/<%= @distributor.id %>/reset_password', {
+    //   method: 'POST',
+    //   headers: {
+    //     'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content,
+    //     'Content-Type': 'application/json'
+    //   }
+    // }).then(response => response.json())
+    //   .then(data => {
+    //     if (data.success) {
+    //       showToast('Password reset successfully. New password sent to email.', 'success');
+    //     } else {
+    //       showToast('Failed to reset password.', 'error');
+    //     }
+    //   });
+  }
+}
+
+function showToast(message, type = 'info') {
+  // Create toast element
+  const toast = document.createElement('div');
+  toast.className = `alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} position-fixed`;
+  toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+  toast.innerHTML = `
+    <div class="d-flex align-items-center">
+      <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+      ${message}
+    </div>
+  `;
+
+  // Add to page
+  document.body.appendChild(toast);
+
+  // Remove after 3 seconds
+  setTimeout(() => {
+    if (toast.parentNode) {
+      toast.parentNode.removeChild(toast);
+    }
+  }, 3000);
+}
+</script>
+
+<!-- Enhanced Styling -->
+<style>
+.border-primary {
+  border: 2px solid #0d6efd !important;
+}
+
+.card-header.bg-primary {
+  background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%) !important;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
+}
+
+.fw-bold {
+  font-weight: 600 !important;
+}
+
+.badge.fs-6 {
+  font-size: 0.875rem !important;
+  padding: 0.5rem 0.75rem;
+}
+
+.copy-button {
+  transition: all 0.2s ease;
+}
+
+.copy-button:hover {
+  transform: scale(1.1);
+}
+
+/* Toast animations */
+.alert {
+  animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Highlight email on hover */
+#emailText:hover {
+  background-color: #f8f9fa;
+  padding: 2px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+</style>

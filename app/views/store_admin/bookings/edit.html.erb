@@ -1,0 +1,205 @@
+<%- content_for :title, "Edit Booking - #{@booking.booking_number || "##{@booking.id}"}" %>
+<%- content_for :breadcrumb do %>
+  <li class="breadcrumb-item"><%= link_to "Dashboard", store_admin_root_path %></li>
+  <li class="breadcrumb-item"><%= link_to "Bookings", store_admin_bookings_path %></li>
+  <li class="breadcrumb-item"><%= link_to "Booking ##{@booking.booking_number || @booking.id}", store_admin_booking_path(@booking) %></li>
+  <li class="breadcrumb-item active">Edit</li>
+<%- end %>
+
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h4 class="card-title mb-0">Edit Booking #<%= @booking.booking_number || @booking.id %></h4>
+        <p class="text-muted mb-0">Store: <%= @current_store.name %></p>
+      </div>
+
+      <div class="card-body">
+        <%= form_with(model: [@current_store, @booking], url: store_admin_booking_path(@booking), local: true, method: :patch) do |form| %>
+          <% if @booking.errors.any? %>
+            <div class="alert alert-danger alert-dismissible">
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              <h5><i class="icon fa fa-ban"></i> Please fix the following errors:</h5>
+              <ul class="mb-0">
+                <% @booking.errors.full_messages.each do |message| %>
+                  <li><%= message %></li>
+                <% end %>
+              </ul>
+            </div>
+          <% end %>
+
+          <div class="row">
+            <!-- Customer Selection -->
+            <div class="col-md-6">
+              <div class="mb-3">
+                <%= form.label :customer_id, "Customer", class: "form-label" %>
+                <%= form.select :customer_id,
+                    options_for_select(
+                      [["Walk-in Customer", ""]] +
+                      @customers.map { |c| ["#{c.display_name} - #{c.mobile}", c.id] },
+                      @booking.customer_id
+                    ),
+                    {},
+                    { class: "form-select" } %>
+              </div>
+            </div>
+
+            <!-- Payment Method -->
+            <div class="col-md-6">
+              <div class="mb-3">
+                <%= form.label :payment_method, "Payment Method", class: "form-label" %>
+                <%= form.select :payment_method,
+                    [["Cash", "cash"], ["UPI", "upi"], ["Card", "card"], ["Credit", "credit"]],
+                    { selected: @booking.payment_method },
+                    { class: "form-select" } %>
+              </div>
+            </div>
+          </div>
+
+          <!-- Booking Items -->
+          <div class="mb-4">
+            <h5 class="mb-3">Booking Items</h5>
+
+            <div id="booking-items">
+              <%= form.fields_for :booking_items do |item_form| %>
+                <div class="booking-item card mb-3">
+                  <div class="card-body">
+                    <div class="row align-items-center">
+                      <div class="col-md-5">
+                        <%= item_form.label :product_id, "Product", class: "form-label" %>
+                        <%= item_form.select :product_id,
+                            options_for_select(
+                              @available_products.map { |product| [product.name, product.id] },
+                              item_form.object.product_id
+                            ),
+                            { prompt: "Select a product..." },
+                            { class: "form-select product-select", data: { item_id: item_form.index } } %>
+                      </div>
+                      <div class="col-md-3">
+                        <%= item_form.label :quantity, "Quantity", class: "form-label" %>
+                        <%= item_form.number_field :quantity, class: "form-control", min: 1, step: 1 %>
+                      </div>
+                      <div class="col-md-3">
+                        <%= item_form.label :price, "Unit Price", class: "form-label" %>
+                        <%= item_form.number_field :price, class: "form-control", min: 0, step: 0.01 %>
+                      </div>
+                      <div class="col-md-1 text-end">
+                        <%= item_form.hidden_field :_destroy, value: '0', class: 'destroy-field' %>
+                        <button type="button" class="btn btn-danger btn-sm remove-item" style="margin-top: 25px;">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+
+            <button type="button" class="btn btn-outline-primary" id="add-item">
+              <i class="fas fa-plus me-2"></i>Add Item
+            </button>
+          </div>
+
+          <!-- Notes -->
+          <div class="mb-3">
+            <%= form.label :notes, "Notes (Optional)", class: "form-label" %>
+            <%= form.text_area :notes, class: "form-control", rows: 3, placeholder: "Any special instructions or notes for this booking..." %>
+          </div>
+
+          <!-- Payment Status -->
+          <div class="mb-3">
+            <%= form.label :payment_status, "Payment Status", class: "form-label" %>
+            <%= form.select :payment_status,
+                [["Unpaid", "unpaid"], ["Paid", "paid"]],
+                { selected: @booking.payment_status },
+                { class: "form-select" } %>
+          </div>
+
+          <!-- Discount -->
+          <div class="mb-3">
+            <%= form.label :discount_amount, "Discount Amount (₹)", class: "form-label" %>
+            <%= form.number_field :discount_amount, class: "form-control", min: 0, step: 0.01 %>
+          </div>
+
+          <!-- Form Actions -->
+          <div class="d-flex justify-content-between">
+            <%= link_to "Cancel", store_admin_booking_path(@booking), class: "btn btn-secondary" %>
+            <%= form.submit "Update Booking", class: "btn btn-primary" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let itemCounter = <%= @booking.booking_items.count %>;
+const availableProducts = <%= raw @available_products.map { |p| { id: p.id, name: p.name, price: p.selling_price || 0 } }.to_json %>;
+
+// Add new item
+document.getElementById('add-item').addEventListener('click', function() {
+  const container = document.getElementById('booking-items');
+  const newItemHtml = `
+    <div class="booking-item card mb-3">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-md-5">
+            <label class="form-label">Product</label>
+            <select name="booking[booking_items_attributes][${itemCounter}][product_id]" class="form-select product-select" data-item-id="${itemCounter}">
+              <option value="">Select a product...</option>
+              ${availableProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Quantity</label>
+            <input type="number" name="booking[booking_items_attributes][${itemCounter}][quantity]" class="form-control" min="1" step="1" value="1">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Unit Price</label>
+            <input type="number" name="booking[booking_items_attributes][${itemCounter}][price]" class="form-control" min="0" step="0.01" value="0">
+          </div>
+          <div class="col-md-1 text-end">
+            <input type="hidden" name="booking[booking_items_attributes][${itemCounter}][_destroy]" value="0" class="destroy-field">
+            <button type="button" class="btn btn-danger btn-sm remove-item" style="margin-top: 25px;">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  container.insertAdjacentHTML('beforeend', newItemHtml);
+  itemCounter++;
+});
+
+// Remove item
+document.addEventListener('click', function(e) {
+  if (e.target.closest('.remove-item')) {
+    const item = e.target.closest('.booking-item');
+    const destroyField = item.querySelector('.destroy-field');
+
+    if (destroyField) {
+      destroyField.value = '1';
+      item.style.display = 'none';
+    } else {
+      item.remove();
+    }
+  }
+});
+
+// Update price when product changes
+document.addEventListener('change', function(e) {
+  if (e.target.classList.contains('product-select')) {
+    const productId = parseInt(e.target.value);
+    const product = availableProducts.find(p => p.id === productId);
+
+    if (product) {
+      const itemContainer = e.target.closest('.booking-item');
+      const priceInput = itemContainer.querySelector('input[name*="[price]"]');
+      if (priceInput) {
+        priceInput.value = product.price;
+      }
+    }
+  }
+});
+</script>

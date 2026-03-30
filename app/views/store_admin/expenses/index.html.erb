@@ -1,0 +1,202 @@
+<% content_for :page_title, "Expenses" %>
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="mb-1">Store Expenses</h4>
+    <small class="text-muted">Manage and track your store expenses</small>
+  </div>
+  <div>
+    <%= link_to new_store_admin_expense_path, class: "btn btn-primary" do %>
+      <i class="bi bi-plus-circle me-2"></i>Add Expense
+    <% end %>
+  </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+  <div class="col-md-4 mb-3">
+    <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white !important;">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="card-title mb-1" style="color: white !important; font-weight: 600;">Total Expenses</h6>
+            <h3 class="mb-0" style="color: white !important; font-weight: 700;">₹<%= number_with_delimiter(@total_expenses.to_f.round(2)) %></h3>
+          </div>
+          <i class="bi bi-receipt fs-1" style="color: rgba(255,255,255,0.3);"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4 mb-3">
+    <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color: white !important;">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="card-title mb-1" style="color: white !important; font-weight: 600;">This Month</h6>
+            <h3 class="mb-0" style="color: white !important; font-weight: 700;">₹<%= number_with_delimiter(@monthly_expenses.to_f.round(2)) %></h3>
+          </div>
+          <i class="bi bi-calendar-month fs-1" style="color: rgba(255,255,255,0.3);"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4 mb-3">
+    <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white !important;">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="card-title mb-1" style="color: white !important; font-weight: 600;">Categories</h6>
+            <h3 class="mb-0" style="color: white !important; font-weight: 700;"><%= @category_breakdown.keys.count %></h3>
+          </div>
+          <i class="bi bi-tags fs-1" style="color: rgba(255,255,255,0.3);"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3">
+    <%= form_tag store_admin_expenses_path, method: :get, local: true, class: "row g-3 align-items-end" do %>
+      <div class="col-md-3">
+        <label class="form-label small">Start Date</label>
+        <%= date_field_tag :start_date, params[:start_date], class: "form-control form-control-sm" %>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small">End Date</label>
+        <%= date_field_tag :end_date, params[:end_date], class: "form-control form-control-sm" %>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small">Category</label>
+        <%= select_tag :category,
+            options_for_select([["All Categories", ""]] + Expense::CATEGORIES.map { |cat| [cat, cat] }, params[:category]),
+            class: "form-select form-select-sm" %>
+      </div>
+      <div class="col-md-3">
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="bi bi-funnel me-1"></i>Filter
+          </button>
+          <%= link_to store_admin_expenses_path, class: "btn btn-outline-secondary btn-sm" do %>
+            <i class="bi bi-x me-1"></i>Clear
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Expenses List -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white border-0">
+    <h6 class="mb-0"><i class="bi bi-list me-2"></i>Expense Records</h6>
+  </div>
+  <div class="card-body p-0">
+    <% if @expenses.any? %>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Date</th>
+              <th>Title</th>
+              <th>Category</th>
+              <th>Amount</th>
+              <th>Created By</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @expenses.each do |expense| %>
+              <tr>
+                <td>
+                  <strong><%= expense.expense_date.strftime('%d %b %Y') %></strong>
+                  <div class="small text-muted"><%= time_ago_in_words(expense.created_at) %> ago</div>
+                </td>
+                <td>
+                  <strong><%= expense.title %></strong>
+                  <% if expense.description.present? %>
+                    <div class="small text-muted"><%= truncate(expense.description, length: 50) %></div>
+                  <% end %>
+                </td>
+                <td>
+                  <span class="badge bg-light text-dark">
+                    <i class="<%= expense.category_icon %> me-1"></i>
+                    <%= expense.category %>
+                  </span>
+                </td>
+                <td>
+                  <strong class="text-primary"><%= expense.formatted_amount %></strong>
+                </td>
+                <td>
+                  <small class="text-muted">
+                    <i class="bi bi-person me-1"></i>
+                    <%= expense.created_by.first_name %> <%= expense.created_by.last_name %>
+                  </small>
+                </td>
+                <td>
+                  <div class="btn-group" role="group">
+                    <%= link_to store_admin_expense_path(expense), class: "btn btn-sm btn-outline-primary", title: "View" do %>
+                      <i class="bi bi-eye"></i>
+                    <% end %>
+                    <%= link_to edit_store_admin_expense_path(expense), class: "btn btn-sm btn-outline-secondary", title: "Edit" do %>
+                      <i class="bi bi-pencil"></i>
+                    <% end %>
+                    <%= link_to store_admin_expense_path(expense),
+                        method: :delete,
+                        data: {
+                          confirm: "Are you sure you want to delete this expense?",
+                          turbo_method: :delete
+                        },
+                        class: "btn btn-sm btn-outline-danger",
+                        title: "Delete" do %>
+                      <i class="bi bi-trash"></i>
+                    <% end %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <div class="text-center py-5">
+        <i class="bi bi-receipt fs-1 text-muted mb-3"></i>
+        <h5 class="text-muted">No Expenses Found</h5>
+        <p class="text-muted">No expenses have been recorded for the selected criteria.</p>
+        <%= link_to "Add First Expense", new_store_admin_expense_path, class: "btn btn-primary" %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Category Breakdown (if monthly expenses exist) -->
+<% if @category_breakdown.any? %>
+  <div class="card border-0 shadow-sm mt-4">
+    <div class="card-header bg-white border-0">
+      <h6 class="mb-0"><i class="bi bi-pie-chart me-2"></i>This Month's Category Breakdown</h6>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <% @category_breakdown.each do |category, amount| %>
+          <div class="col-md-4 col-lg-3 mb-3">
+            <div class="d-flex align-items-center p-3 rounded bg-light">
+              <div class="me-3">
+                <div class="icon-bg bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                  <i class="<%= Expense.new(category: category).category_icon %>"></i>
+                </div>
+              </div>
+              <div>
+                <small class="text-muted d-block"><%= category %></small>
+                <strong class="text-primary">₹<%= number_with_delimiter(amount.to_f.round(2)) %></strong>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>

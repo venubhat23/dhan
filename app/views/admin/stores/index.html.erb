@@ -175,6 +175,12 @@
                 <td class="align-middle">
                   <div class="d-flex gap-2 align-items-center">
                     <!-- Quick Actions -->
+                    <%= link_to summary_admin_store_path(store),
+                        class: "btn btn-sm btn-outline-success",
+                        title: "View Summary" do %>
+                      <i class="bi bi-graph-up"></i>
+                    <% end %>
+
                     <%= link_to admin_store_path(store),
                         class: "btn btn-sm btn-outline-primary",
                         title: "View Details" do %>
@@ -279,6 +285,7 @@
     <% end %>
   </div>
 </div>
+
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

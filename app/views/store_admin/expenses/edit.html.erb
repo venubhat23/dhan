@@ -1,0 +1,190 @@
+<% content_for :page_title, "Edit Expense" %>
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="mb-1">Edit Expense</h4>
+    <small class="text-muted">Update expense details for <%= @current_store.name %></small>
+  </div>
+  <div>
+    <%= link_to store_admin_expense_path(@expense), class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-arrow-left me-2"></i>Back to Expense
+    <% end %>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-0">
+        <h6 class="mb-0"><i class="bi bi-pencil me-2"></i>Update Expense Details</h6>
+      </div>
+      <div class="card-body">
+        <%= form_with model: [:store_admin, @expense], local: true, html: { class: "needs-validation", novalidate: true } do |f| %>
+          <% if @expense.errors.any? %>
+            <div class="alert alert-danger">
+              <h6><i class="bi bi-exclamation-triangle me-2"></i>Please fix the following errors:</h6>
+              <ul class="mb-0">
+                <% @expense.errors.full_messages.each do |message| %>
+                  <li><%= message %></li>
+                <% end %>
+              </ul>
+            </div>
+          <% end %>
+
+          <div class="row g-3">
+            <!-- Title -->
+            <div class="col-md-6">
+              <label class="form-label">
+                <i class="bi bi-card-text me-1"></i>Title <span class="text-danger">*</span>
+              </label>
+              <%= f.text_field :title, class: "form-control", placeholder: "Enter expense title", required: true %>
+              <div class="invalid-feedback">Please provide a title for the expense.</div>
+            </div>
+
+            <!-- Category -->
+            <div class="col-md-6">
+              <label class="form-label">
+                <i class="bi bi-tags me-1"></i>Category <span class="text-danger">*</span>
+              </label>
+              <%= f.select :category,
+                  options_for_select(Expense::CATEGORIES.map { |cat| [cat, cat] }, @expense.category),
+                  { prompt: "Select a category" },
+                  { class: "form-select", required: true } %>
+              <div class="invalid-feedback">Please select a category.</div>
+            </div>
+
+            <!-- Amount -->
+            <div class="col-md-6">
+              <label class="form-label">
+                <i class="bi bi-currency-rupee me-1"></i>Amount <span class="text-danger">*</span>
+              </label>
+              <div class="input-group">
+                <span class="input-group-text">₹</span>
+                <%= f.number_field :amount, class: "form-control", step: 0.01, min: 0.01, placeholder: "0.00", required: true %>
+              </div>
+              <div class="invalid-feedback">Please enter a valid amount.</div>
+            </div>
+
+            <!-- Expense Date -->
+            <div class="col-md-6">
+              <label class="form-label">
+                <i class="bi bi-calendar me-1"></i>Expense Date <span class="text-danger">*</span>
+              </label>
+              <%= f.date_field :expense_date, class: "form-control", required: true %>
+              <div class="invalid-feedback">Please select the expense date.</div>
+            </div>
+
+            <!-- Description -->
+            <div class="col-12">
+              <label class="form-label">
+                <i class="bi bi-file-text me-1"></i>Description
+              </label>
+              <%= f.text_area :description, class: "form-control", rows: 4, placeholder: "Enter additional details about this expense (optional)" %>
+              <div class="form-text">Provide any additional details or notes about this expense.</div>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2 mt-4">
+            <%= f.submit "Update Expense", class: "btn btn-primary" %>
+            <%= link_to "Cancel", store_admin_expense_path(@expense), class: "btn btn-outline-secondary" %>
+            <%= link_to store_admin_expense_path(@expense),
+                method: :delete,
+                data: {
+                  confirm: "Are you sure you want to delete this expense?",
+                  turbo_method: :delete
+                },
+                class: "btn btn-outline-danger ms-auto" do %>
+              <i class="bi bi-trash me-1"></i>Delete
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="col-lg-4">
+    <!-- Current Values -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-0">
+        <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Current Values</h6>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <small class="text-muted">Current Amount</small>
+          <div class="fw-bold text-primary fs-5">
+            ₹<%= number_with_delimiter(@expense.amount.to_f.round(2)) %>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <small class="text-muted">Current Category</small>
+          <div class="fw-medium">
+            <i class="<%= @expense.category_icon %> me-1"></i>
+            <%= @expense.category %>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <small class="text-muted">Current Date</small>
+          <div class="fw-medium">
+            <%= @expense.expense_date.strftime('%d %B %Y') %>
+          </div>
+        </div>
+
+        <div class="mb-0">
+          <small class="text-muted">Created By</small>
+          <div class="fw-medium">
+            <%= @expense.created_by.first_name %> <%= @expense.created_by.last_name %>
+          </div>
+          <small class="text-muted">
+            on <%= @expense.created_at.strftime('%d %b %Y') %>
+          </small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Store Info -->
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-body text-center">
+        <i class="bi bi-building fs-1 text-primary mb-2"></i>
+        <h6><%= @current_store.name %></h6>
+        <small class="text-muted">
+          <%= @current_store.city %>, <%= @current_store.state %>
+        </small>
+      </div>
+    </div>
+
+    <!-- Help -->
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-header bg-white border-0">
+        <h6 class="mb-0"><i class="bi bi-question-circle me-2"></i>Need Help?</h6>
+      </div>
+      <div class="card-body">
+        <small class="text-muted">
+          Make sure to update all relevant fields. Changes will be reflected immediately after saving.
+        </small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Form validation
+(function() {
+  'use strict';
+  window.addEventListener('load', function() {
+    var forms = document.getElementsByClassName('needs-validation');
+    var validation = Array.prototype.filter.call(forms, function(form) {
+      form.addEventListener('submit', function(event) {
+        if (form.checkValidity() === false) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+      }, false);
+    });
+  }, false);
+})();
+</script>

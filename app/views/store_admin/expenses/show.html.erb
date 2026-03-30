@@ -1,0 +1,138 @@
+<% content_for :page_title, "Expense Details" %>
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="mb-1"><%= @expense.title %></h4>
+    <small class="text-muted">Expense details for <%= @current_store.name %></small>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to edit_store_admin_expense_path(@expense), class: "btn btn-outline-primary" do %>
+      <i class="bi bi-pencil me-2"></i>Edit
+    <% end %>
+    <%= link_to store_admin_expenses_path, class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-arrow-left me-2"></i>Back to Expenses
+    <% end %>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-8">
+    <!-- Main Expense Details -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-0">
+        <div class="d-flex justify-content-between align-items-center">
+          <h6 class="mb-0"><i class="bi bi-receipt me-2"></i>Expense Information</h6>
+          <span class="badge bg-light text-dark">
+            <i class="<%= @expense.category_icon %> me-1"></i>
+            <%= @expense.category %>
+          </span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="row g-4">
+          <div class="col-md-6">
+            <label class="text-muted small">Title</label>
+            <div class="fw-medium"><%= @expense.title %></div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="text-muted small">Amount</label>
+            <div class="fw-medium text-primary fs-5">
+              <i class="bi bi-currency-rupee me-1"></i>
+              <%= number_with_delimiter(@expense.amount.to_f.round(2)) %>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="text-muted small">Expense Date</label>
+            <div class="fw-medium">
+              <i class="bi bi-calendar me-1"></i>
+              <%= @expense.expense_date.strftime('%d %B %Y') %>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="text-muted small">Category</label>
+            <div class="fw-medium">
+              <i class="<%= @expense.category_icon %> me-1"></i>
+              <%= @expense.category %>
+            </div>
+          </div>
+
+          <% if @expense.description.present? %>
+            <div class="col-12">
+              <label class="text-muted small">Description</label>
+              <div class="fw-medium"><%= simple_format(@expense.description) %></div>
+            </div>
+          <% end %>
+
+          <div class="col-md-6">
+            <label class="text-muted small">Created By</label>
+            <div class="fw-medium">
+              <i class="bi bi-person me-1"></i>
+              <%= @expense.created_by.first_name %> <%= @expense.created_by.last_name %>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="text-muted small">Created On</label>
+            <div class="fw-medium">
+              <i class="bi bi-clock me-1"></i>
+              <%= @expense.created_at.strftime('%d %B %Y at %I:%M %p') %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="col-lg-4">
+    <!-- Actions -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-0">
+        <h6 class="mb-0"><i class="bi bi-gear me-2"></i>Actions</h6>
+      </div>
+      <div class="card-body">
+        <div class="d-grid gap-2">
+          <%= link_to edit_store_admin_expense_path(@expense), class: "btn btn-outline-primary" do %>
+            <i class="bi bi-pencil me-2"></i>Edit Expense
+          <% end %>
+          <%= link_to store_admin_expense_path(@expense),
+              method: :delete,
+              data: {
+                confirm: "Are you sure you want to delete this expense? This action cannot be undone.",
+                turbo_method: :delete
+              },
+              class: "btn btn-outline-danger" do %>
+            <i class="bi bi-trash me-2"></i>Delete Expense
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Store Info -->
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-body text-center">
+        <i class="bi bi-building fs-1 text-primary mb-2"></i>
+        <h6><%= @current_store.name %></h6>
+        <small class="text-muted">
+          <i class="bi bi-geo-alt me-1"></i>
+          <%= @current_store.city %>, <%= @current_store.state %>
+        </small>
+      </div>
+    </div>
+
+    <!-- Category Info -->
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-body text-center">
+        <div class="icon-bg bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-2" style="width: 50px; height: 50px;">
+          <i class="<%= @expense.category_icon %> fs-4"></i>
+        </div>
+        <h6><%= @expense.category %></h6>
+        <small class="text-muted">Expense Category</small>
+      </div>
+    </div>
+  </div>
+</div>

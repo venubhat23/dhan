@@ -36,6 +36,7 @@ Rails.application.routes.draw do
 
     resources :customers, only: [:index, :show, :new, :create]
     resources :reports, only: [:index, :show]
+    resources :expenses
   end
 
   # Vendor invoice public view
@@ -363,6 +364,7 @@ Rails.application.routes.draw do
         get :transfer
         post :process_transfer
         get :current_stock
+        get :summary
       end
       collection do
         get :get_product_availability
