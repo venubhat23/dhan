@@ -369,20 +369,31 @@ function addToCart(productId, productName, price, maxStock, basePrice, gstRate) 
   const quantity = parseFloat(document.getElementById(`qty-${productId}`).value);
 
   if (quantity <= 0 || quantity > maxStock) {
-    alert(`Please enter a valid quantity between 1 and ${maxStock}`);
+    alert(`Please enter a valid quantity between 0.1 and ${maxStock}`);
     return;
   }
 
-  cart.set(productId, {
-    id: productId,
-    name: productName,
-    price: price,
-    basePrice: basePrice,
-    gstRate: gstRate,
-    quantity: quantity,
-    maxStock: maxStock
-  });
+  // Check if item already exists in cart
+  if (cart.has(productId)) {
+    // Update existing item quantity
+    const existingItem = cart.get(productId);
+    const newQuantity = Math.min(existingItem.quantity + quantity, maxStock);
+    existingItem.quantity = parseFloat(newQuantity.toFixed(1));
+    cart.set(productId, existingItem);
+  } else {
+    // Add new item to cart
+    cart.set(productId, {
+      id: productId,
+      name: productName,
+      price: price,
+      basePrice: basePrice,
+      gstRate: gstRate,
+      quantity: parseFloat(quantity.toFixed(1)),
+      maxStock: maxStock
+    });
+  }
 
+  console.log('Cart after adding item:', cart); // Debug log
   updateCartDisplay();
   updateOrderSummary();
 
@@ -425,13 +436,17 @@ function updateCartDisplay() {
   const cartContainer = document.getElementById('cartItems');
   const emptyMessage = document.getElementById('emptyCartMessage');
 
+  console.log('updateCartDisplay called, cart size:', cart.size); // Debug log
+
   // Check if elements exist before trying to manipulate them
   if (!cartContainer || !emptyMessage) {
+    console.log('Cart container or empty message not found'); // Debug log
     return;
   }
 
   if (cart.size === 0) {
     emptyMessage.style.display = 'block';
+    cartContainer.innerHTML = '';
     updateFormFields();
     return;
   }

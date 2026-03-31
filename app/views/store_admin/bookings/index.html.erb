@@ -16,34 +16,54 @@
         <!-- Booking Summary Cards -->
         <div class="row mb-4">
           <div class="col-md-3">
-            <div class="card bg-primary text-white">
-              <div class="card-body">
-                <h5 class="card-title">Total Bookings</h5>
-                <h3 class="mb-0"><%= @summary[:total_bookings] %></h3>
+            <div class="card border-0 shadow-sm" style="background: #0d6efd !important; color: white !important; min-height: 120px !important;">
+              <div class="card-body" style="background: transparent !important; padding: 1.5rem !important;">
+                <div class="d-flex justify-content-between align-items-center" style="display: flex !important;">
+                  <div style="display: block !important;">
+                    <h5 class="card-title mb-1" style="color: white !important; font-weight: 600 !important; font-size: 1rem !important; margin-bottom: 0.5rem !important;">Total Bookings</h5>
+                    <h3 class="mb-0" style="color: white !important; font-weight: 700 !important; font-size: 2rem !important; margin: 0 !important;"><%= @summary[:total_bookings] %></h3>
+                  </div>
+                  <i class="bi bi-calendar-check fs-1" style="color: rgba(255,255,255,0.5) !important; font-size: 3rem !important;"></i>
+                </div>
               </div>
             </div>
           </div>
           <div class="col-md-3">
-            <div class="card bg-warning text-white">
-              <div class="card-body">
-                <h5 class="card-title">Pending</h5>
-                <h3 class="mb-0"><%= @summary[:pending_bookings] %></h3>
+            <div class="card border-0 shadow-sm" style="background: #ffc107 !important; color: #212529 !important; min-height: 120px !important;">
+              <div class="card-body" style="background: transparent !important; padding: 1.5rem !important;">
+                <div class="d-flex justify-content-between align-items-center" style="display: flex !important;">
+                  <div style="display: block !important;">
+                    <h5 class="card-title mb-1" style="color: #212529 !important; font-weight: 600 !important; font-size: 1rem !important; margin-bottom: 0.5rem !important;">Pending</h5>
+                    <h3 class="mb-0" style="color: #212529 !important; font-weight: 700 !important; font-size: 2rem !important; margin: 0 !important;"><%= @summary[:pending_bookings] %></h3>
+                  </div>
+                  <i class="bi bi-hourglass-split fs-1" style="color: rgba(33,37,41,0.5) !important; font-size: 3rem !important;"></i>
+                </div>
               </div>
             </div>
           </div>
           <div class="col-md-3">
-            <div class="card bg-info text-white">
-              <div class="card-body">
-                <h5 class="card-title">Processing</h5>
-                <h3 class="mb-0"><%= @summary[:processing_bookings] %></h3>
+            <div class="card border-0 shadow-sm" style="background: #0dcaf0 !important; color: white !important; min-height: 120px !important;">
+              <div class="card-body" style="background: transparent !important; padding: 1.5rem !important;">
+                <div class="d-flex justify-content-between align-items-center" style="display: flex !important;">
+                  <div style="display: block !important;">
+                    <h5 class="card-title mb-1" style="color: white !important; font-weight: 600 !important; font-size: 1rem !important; margin-bottom: 0.5rem !important;">Processing</h5>
+                    <h3 class="mb-0" style="color: white !important; font-weight: 700 !important; font-size: 2rem !important; margin: 0 !important;"><%= @summary[:processing_bookings] %></h3>
+                  </div>
+                  <i class="bi bi-gear fs-1" style="color: rgba(255,255,255,0.5) !important; font-size: 3rem !important;"></i>
+                </div>
               </div>
             </div>
           </div>
           <div class="col-md-3">
-            <div class="card bg-success text-white">
-              <div class="card-body">
-                <h5 class="card-title">Completed</h5>
-                <h3 class="mb-0"><%= @summary[:completed_bookings] %></h3>
+            <div class="card border-0 shadow-sm" style="background: #198754 !important; color: white !important; min-height: 120px !important;">
+              <div class="card-body" style="background: transparent !important; padding: 1.5rem !important;">
+                <div class="d-flex justify-content-between align-items-center" style="display: flex !important;">
+                  <div style="display: block !important;">
+                    <h5 class="card-title mb-1" style="color: white !important; font-weight: 600 !important; font-size: 1rem !important; margin-bottom: 0.5rem !important;">Completed</h5>
+                    <h3 class="mb-0" style="color: white !important; font-weight: 700 !important; font-size: 2rem !important; margin: 0 !important;"><%= @summary[:completed_bookings] %></h3>
+                  </div>
+                  <i class="bi bi-check-circle fs-1" style="color: rgba(255,255,255,0.5) !important; font-size: 3rem !important;"></i>
+                </div>
               </div>
             </div>
           </div>

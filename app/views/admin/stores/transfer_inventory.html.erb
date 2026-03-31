@@ -108,26 +108,26 @@
                       <span class="badge bg-light text-dark"><%= product.category&.name || 'No Category' %></span>
                     </div>
 
-                    <div class="text-muted small mb-2">
+                    <div class="text-muted small mb-3">
                       <i class="bi bi-upc me-1"></i>SKU: <%= product.sku %>
                     </div>
 
-                    <div class="row align-items-center mb-3">
-                      <div class="col">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                      <div class="flex-grow-1">
                         <% if available_qty > 0 %>
                           <span class="text-success fw-semibold">
                             <i class="bi bi-boxes me-1"></i><%= available_qty %> <%= product.unit_type %>
                           </span>
-                          <small class="text-muted d-block">Available in this store</small>
+                          <small class="text-muted d-block">Available in stock</small>
                         <% else %>
                           <span class="text-danger fw-semibold">
                             <i class="bi bi-x-circle me-1"></i>Out of Stock
                           </span>
-                          <small class="text-muted d-block">No inventory available</small>
+                          <small class="text-muted d-block">No inventory</small>
                         <% end %>
                       </div>
                       <% if product.price && product.price > 0 %>
-                        <div class="col-auto text-end">
+                        <div class="text-end ms-3">
                           <div class="fw-bold text-primary">₹<%= number_with_delimiter(product.price) %></div>
                           <small class="text-muted">per <%= product.unit_type %></small>
                         </div>
@@ -143,16 +143,26 @@
                         </h6>
                         <div class="row align-items-end">
                           <div class="col-7">
-                            <%= number_field_tag "transfer_items[#{product.id}][quantity]",
-                                nil,
-                                class: "form-control form-control-sm",
-                                placeholder: "Quantity",
-                                min: 0,
-                                max: available_qty,
-                                step: 0.01,
-                                id: "qty-#{product.id}",
-                                onchange: "updateTransferQuantity(#{product.id}, this.value, #{available_qty})",
-                                disabled: available_qty <= 0 %>
+                            <div class="input-group input-group-sm">
+                              <button type="button" class="btn btn-outline-secondary" onclick="decrementQuantity(<%= product.id %>, <%= available_qty %>)" <%= "disabled" if available_qty <= 0 %>>
+                                <i class="bi bi-dash"></i>
+                              </button>
+                              <%= number_field_tag "transfer_items[#{product.id}][quantity]",
+                                  nil,
+                                  class: "form-control form-control-sm text-center",
+                                  placeholder: "0",
+                                  min: 0,
+                                  max: available_qty,
+                                  step: 0.01,
+                                  id: "qty-#{product.id}",
+                                  oninput: "updateTransferQuantity(#{product.id}, this.value, #{available_qty})",
+                                  onchange: "updateTransferQuantity(#{product.id}, this.value, #{available_qty})",
+                                  onkeyup: "updateTransferQuantity(#{product.id}, this.value, #{available_qty})",
+                                  disabled: available_qty <= 0 %>
+                              <button type="button" class="btn btn-outline-secondary" onclick="incrementQuantity(<%= product.id %>, <%= available_qty %>)" <%= "disabled" if available_qty <= 0 %>>
+                                <i class="bi bi-plus"></i>
+                              </button>
+                            </div>
                             <%= hidden_field_tag "transfer_items[#{product.id}][product_id]", product.id %>
                           </div>
                           <div class="col-5">
@@ -381,6 +391,32 @@
     if (qtyInput) {
       qtyInput.value = maxQty;
       updateTransferQuantity(productId, maxQty, maxQty);
+    }
+  }
+
+  function incrementQuantity(productId, maxQty) {
+    const qtyInput = document.getElementById(`qty-${productId}`);
+    if (qtyInput && !qtyInput.disabled) {
+      let currentValue = parseFloat(qtyInput.value || 0);
+      let step = parseFloat(qtyInput.step || 1);
+      let newValue = currentValue + step;
+
+      if (newValue <= maxQty) {
+        qtyInput.value = newValue;
+        updateTransferQuantity(productId, newValue, maxQty);
+      }
+    }
+  }
+
+  function decrementQuantity(productId, maxQty) {
+    const qtyInput = document.getElementById(`qty-${productId}`);
+    if (qtyInput && !qtyInput.disabled) {
+      let currentValue = parseFloat(qtyInput.value || 0);
+      let step = parseFloat(qtyInput.step || 1);
+      let newValue = Math.max(0, currentValue - step);
+
+      qtyInput.value = newValue === 0 ? '' : newValue;
+      updateTransferQuantity(productId, newValue, maxQty);
     }
   }
 
