@@ -13,7 +13,10 @@
   <div class="d-flex gap-2">
     <!-- Invoice Actions -->
     <% if @booking.invoice_generated? %>
-      <!-- PDF button removed as requested -->
+      <%= link_to invoice_admin_booking_path(@booking), class: "btn btn-primary" do %>
+        <i class="bi bi-file-earmark-text me-1"></i>
+        View Invoice
+      <% end %>
     <% else %>
       <%= link_to generate_invoice_admin_booking_path(@booking), class: "btn btn-success", method: :patch do %>
         <i class="bi bi-receipt me-1"></i>

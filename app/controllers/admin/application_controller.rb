@@ -42,7 +42,12 @@ class Admin::ApplicationController < ApplicationController
 
   def ensure_admin
     unless current_user&.admin? || current_user&.user_type == 'admin'
-      redirect_to root_path, alert: 'Access denied. Admin privileges required.'
+      # If user is a store admin, redirect them to their dashboard
+      if current_user&.store_admin?
+        redirect_to store_admin_root_path, alert: 'Access denied. You are restricted to store admin functions only.'
+      else
+        redirect_to root_path, alert: 'Access denied. Admin privileges required.'
+      end
     end
   end
 end

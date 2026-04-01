@@ -411,9 +411,7 @@
             <% end %>
 
             <% if @booking.invoice_generated? %>
-              <%= link_to invoice_admin_booking_path(@booking), class: 'btn btn-info btn-sm', target: '_blank' do %>
-                <i class="bi bi-file-earmark-pdf me-1"></i>View Invoice
-              <% end %>
+              <!-- PDF button removed as requested -->
             <% end %>
           </div>
         </div>

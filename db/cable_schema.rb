@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_03_30_121614) do
+ActiveRecord::Schema[8.0].define(version: 2026_03_31_111136) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -1090,6 +1090,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_30_121614) do
     t.string "manager_email"
     t.text "operating_hours"
     t.string "timezone", default: "UTC"
+    t.string "admin_plain_password"
     t.index ["store_admin_user_id"], name: "index_stores_on_store_admin_user_id"
   end
 

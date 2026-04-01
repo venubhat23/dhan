@@ -13,45 +13,87 @@
   </div>
 </div>
 
+<!-- Custom CSS for Expenses Cards -->
+<style>
+.expense-card {
+  border-radius: 12px !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+  background: linear-gradient(135deg, #ffffff 0%, #f7fafc 100%) !important;
+  border: 1px solid #e2e8f0 !important;
+  min-height: 120px;
+}
+.expense-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+}
+.expense-card-blue {
+  border-left: 4px solid #3b82f6 !important;
+}
+.expense-card-cyan {
+  border-left: 4px solid #06b6d4 !important;
+}
+.expense-card-green {
+  border-left: 4px solid #10b981 !important;
+}
+.expense-card-title {
+  color: #2d3748 !important;
+  font-weight: 600 !important;
+  font-size: 0.9rem !important;
+}
+.expense-card-value {
+  color: #1a202c !important;
+  font-weight: 800 !important;
+  font-size: 1.8rem !important;
+  line-height: 1.1 !important;
+}
+.expense-card-icon {
+  color: rgba(45, 55, 72, 0.2) !important;
+  font-size: 3rem !important;
+}
+</style>
+
 <!-- Summary Cards -->
 <div class="row mb-4">
   <div class="col-md-4 mb-3">
-    <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white !important;">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <h6 class="card-title mb-1" style="color: white !important; font-weight: 600;">Total Expenses</h6>
-            <h3 class="mb-0" style="color: white !important; font-weight: 700;">₹<%= number_with_delimiter(@total_expenses.to_f.round(2)) %></h3>
-          </div>
-          <i class="bi bi-receipt fs-1" style="color: rgba(255,255,255,0.3);"></i>
+    <div class="card shadow-sm expense-card expense-card-blue">
+      <div class="card-body d-flex justify-content-between align-items-center">
+        <div class="flex-grow-1">
+          <h6 class="card-title mb-2 expense-card-title">Total Expenses</h6>
+          <div class="expense-card-value">₹<%= number_with_delimiter(@total_expenses.to_f.round(0)) %></div>
+          <small class="text-muted">all time spending</small>
+        </div>
+        <div>
+          <i class="bi bi-receipt expense-card-icon"></i>
         </div>
       </div>
     </div>
   </div>
 
   <div class="col-md-4 mb-3">
-    <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color: white !important;">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <h6 class="card-title mb-1" style="color: white !important; font-weight: 600;">This Month</h6>
-            <h3 class="mb-0" style="color: white !important; font-weight: 700;">₹<%= number_with_delimiter(@monthly_expenses.to_f.round(2)) %></h3>
-          </div>
-          <i class="bi bi-calendar-month fs-1" style="color: rgba(255,255,255,0.3);"></i>
+    <div class="card shadow-sm expense-card expense-card-cyan">
+      <div class="card-body d-flex justify-content-between align-items-center">
+        <div class="flex-grow-1">
+          <h6 class="card-title mb-2 expense-card-title">This Month</h6>
+          <div class="expense-card-value">₹<%= number_with_delimiter(@monthly_expenses.to_f.round(0)) %></div>
+          <small class="text-muted">current month spending</small>
+        </div>
+        <div>
+          <i class="bi bi-calendar-month expense-card-icon"></i>
         </div>
       </div>
     </div>
   </div>
 
   <div class="col-md-4 mb-3">
-    <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white !important;">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <h6 class="card-title mb-1" style="color: white !important; font-weight: 600;">Categories</h6>
-            <h3 class="mb-0" style="color: white !important; font-weight: 700;"><%= @category_breakdown.keys.count %></h3>
-          </div>
-          <i class="bi bi-tags fs-1" style="color: rgba(255,255,255,0.3);"></i>
+    <div class="card shadow-sm expense-card expense-card-green">
+      <div class="card-body d-flex justify-content-between align-items-center">
+        <div class="flex-grow-1">
+          <h6 class="card-title mb-2 expense-card-title">Categories</h6>
+          <div class="expense-card-value"><%= @category_breakdown.keys.count %></div>
+          <small class="text-muted">expense categories</small>
+        </div>
+        <div>
+          <i class="bi bi-tags expense-card-icon"></i>
         </div>
       </div>
     </div>

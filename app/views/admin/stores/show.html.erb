@@ -201,21 +201,21 @@
                 <div class="col-md-6">
                   <label class="form-label text-muted small">Username/Email</label>
                   <p class="mb-1 fw-semibold">
-                    <span id="admin-username"><%= @store.store_admin_user.email %></span>
-                    <button type="button" class="btn btn-sm btn-outline-secondary ms-2" onclick="copyToClipboard('admin-username')">
-                      <i class="bi bi-copy"></i>
-                    </button>
+                    <%= @store.store_admin_user.email %>
                   </p>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label text-muted small">Password</label>
                   <p class="mb-1 fw-semibold">
-                    <span id="admin-password" style="font-family: monospace;">••••••••</span>
-                    <button type="button" class="btn btn-sm btn-outline-secondary ms-2" onclick="togglePassword()">
-                      <i class="bi bi-eye" id="password-toggle-icon"></i>
-                    </button>
+                    <span style="font-family: monospace;"><%= @store.admin_plain_password || "••••••••" %></span>
                   </p>
-                  <small class="text-muted">Default: password123</small>
+                  <small class="text-muted">
+                    <% if @store.admin_plain_password.present? %>
+                      Password set during store creation
+                    <% else %>
+                      Password not saved (created before update)
+                    <% end %>
+                  </small>
                 </div>
               </div>
             </div>
@@ -437,47 +437,5 @@ document.addEventListener('DOMContentLoaded', function() {
   <% end %>
 });
 
-function togglePassword() {
-  const passwordSpan = document.getElementById('admin-password');
-  const toggleIcon = document.getElementById('password-toggle-icon');
-
-  if (passwordSpan.textContent === '••••••••') {
-    passwordSpan.textContent = 'password123';
-    passwordSpan.style.fontFamily = 'monospace';
-    toggleIcon.className = 'bi bi-eye-slash';
-  } else {
-    passwordSpan.textContent = '••••••••';
-    passwordSpan.style.fontFamily = 'monospace';
-    toggleIcon.className = 'bi bi-eye';
-  }
-}
-
-function copyToClipboard(elementId) {
-  const element = document.getElementById(elementId);
-  let textToCopy;
-
-  if (elementId === 'admin-password') {
-    textToCopy = element.textContent === '••••••••' ? 'password123' : element.textContent;
-  } else {
-    textToCopy = element.textContent;
-  }
-
-  navigator.clipboard.writeText(textToCopy).then(function() {
-    // Show a brief success message
-    const button = event.target.closest('button');
-    const originalHTML = button.innerHTML;
-    button.innerHTML = '<i class="bi bi-check"></i>';
-    button.classList.remove('btn-outline-secondary');
-    button.classList.add('btn-success');
-
-    setTimeout(function() {
-      button.innerHTML = originalHTML;
-      button.classList.remove('btn-success');
-      button.classList.add('btn-outline-secondary');
-    }, 1500);
-  }).catch(function(err) {
-    console.error('Could not copy text: ', err);
-  });
-}
 </script>
 <% end %>

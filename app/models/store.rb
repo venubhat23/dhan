@@ -310,7 +310,8 @@ class Store < ApplicationRecord
       is_verified: true
     )
 
-    update!(store_admin_user: user)
+    # Save the plain text password for display purposes
+    update!(store_admin_user: user, admin_plain_password: admin_password)
     user
   end
 

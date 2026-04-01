@@ -1,5 +1,6 @@
 class DashboardController < ApplicationController
   skip_load_and_authorize_resource
+  before_action :redirect_store_admin_users
 
   def index
     # Handle session validation requests
@@ -794,6 +795,13 @@ class DashboardController < ApplicationController
     rescue
       # Return empty hash if there's any error or no data
       {}
+    end
+  end
+
+  def redirect_store_admin_users
+    if current_user&.store_admin?
+      redirect_to store_admin_root_path
+      return false
     end
   end
 end

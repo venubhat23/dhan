@@ -361,7 +361,15 @@ function showCheckoutView() {
   document.getElementById('checkoutViewBtnLarge').style.display = 'none';
 
   currentView = 'checkout';
-  updateCartDisplay();
+
+  console.log('Switching to checkout view, forcing cart display update...');
+  console.log('Current cart contents before update:', Array.from(cart.entries()));
+
+  // Force cart display update
+  setTimeout(() => {
+    updateCartDisplay();
+    updateOrderSummary();
+  }, 100);
 }
 
 // Cart Management
@@ -380,6 +388,7 @@ function addToCart(productId, productName, price, maxStock, basePrice, gstRate) 
     const newQuantity = Math.min(existingItem.quantity + quantity, maxStock);
     existingItem.quantity = parseFloat(newQuantity.toFixed(1));
     cart.set(productId, existingItem);
+    console.log(`Updated existing item ${productName}: quantity ${existingItem.quantity}`);
   } else {
     // Add new item to cart
     cart.set(productId, {
@@ -391,9 +400,12 @@ function addToCart(productId, productName, price, maxStock, basePrice, gstRate) 
       quantity: parseFloat(quantity.toFixed(1)),
       maxStock: maxStock
     });
+    console.log(`Added new item ${productName}: quantity ${quantity}`);
   }
 
-  console.log('Cart after adding item:', cart); // Debug log
+  console.log('Cart after adding item (full cart):', Array.from(cart.entries())); // Debug log
+  console.log('Cart size:', cart.size); // Debug log
+
   updateCartDisplay();
   updateOrderSummary();
 
@@ -437,6 +449,7 @@ function updateCartDisplay() {
   const emptyMessage = document.getElementById('emptyCartMessage');
 
   console.log('updateCartDisplay called, cart size:', cart.size); // Debug log
+  console.log('Cart contents:', Array.from(cart.entries())); // Debug log
 
   // Check if elements exist before trying to manipulate them
   if (!cartContainer || !emptyMessage) {
@@ -445,16 +458,22 @@ function updateCartDisplay() {
   }
 
   if (cart.size === 0) {
+    console.log('Cart is empty, showing empty message');
     emptyMessage.style.display = 'block';
     cartContainer.innerHTML = '';
     updateFormFields();
     return;
   }
 
+  console.log('Cart has items, hiding empty message and building HTML');
   emptyMessage.style.display = 'none';
 
   let html = '';
+  let itemCount = 0;
   cart.forEach((item, productId) => {
+    itemCount++;
+    console.log(`Building HTML for item ${itemCount}: ${item.name} (ID: ${productId})`);
+
     const itemTotal = item.quantity * item.price;
     const currentQty = parseFloat(item.quantity);
     const minusQty = Math.max(0.1, currentQty - 0.1);
@@ -500,6 +519,7 @@ function updateCartDisplay() {
     `;
   });
 
+  console.log(`Generated HTML for ${itemCount} items, length: ${html.length}`);
   cartContainer.innerHTML = html;
   updateFormFields();
 }
@@ -585,6 +605,23 @@ function validateQuantity(productId, maxStock) {
     input.value = 0.1;
   }
 }
+
+// Debug function to check cart contents
+function debugCart() {
+  console.log('=== CART DEBUG ===');
+  console.log('Cart size:', cart.size);
+  console.log('Cart contents:');
+  cart.forEach((item, productId) => {
+    console.log(`Product ID: ${productId}, Name: ${item.name}, Quantity: ${item.quantity}, Price: ${item.price}`);
+  });
+  console.log('Cart Map entries:', Array.from(cart.entries()));
+  console.log('=== END DEBUG ===');
+  return cart;
+}
+
+// Expose debug function to window for console access
+window.debugCart = debugCart;
+window.cart = cart;
 
 // Search and Filter
 function filterProducts(type) {

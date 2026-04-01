@@ -235,12 +235,6 @@
   <!-- Footer -->
   <div class="sidebar-footer">
     <div class="d-grid gap-2">
-      <% if current_user.admin? %>
-        <%= link_to admin_stores_path,
-            class: "btn btn-outline-primary btn-sm" do %>
-          <i class="fas fa-arrow-left me-2"></i>Back to Admin
-        <% end %>
-      <% end %>
       <%= link_to destroy_user_session_path,
           method: :delete,
           class: "btn btn-outline-danger btn-sm",

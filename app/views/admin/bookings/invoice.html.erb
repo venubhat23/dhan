@@ -564,8 +564,9 @@
       has_gst = @booking.booking_items&.any? { |item| item.product&.gst_enabled }
 
       # Calculate totals with corrected GST breakdown
-      subtotal_amount = 0  # This will be the total amount INCLUDING taxes (what customer pays)
+      subtotal_amount = 0  # This will be the amount BEFORE taxes (for SUBTOTAL display)
       taxable_amount = 0   # This will be the amount BEFORE taxes
+      total_amount = 0     # This will be the final amount INCLUDING taxes
       total_cgst = 0
       total_sgst = 0
       total_igst = 0
@@ -575,7 +576,8 @@
         base_amount = item.quantity * (item.price || 0)
 
         if item.product&.gst_enabled
-          # Only add to taxable amount if GST is enabled
+          # Add to both subtotal and taxable amount if GST is enabled
+          subtotal_amount += base_amount
           taxable_amount += base_amount
 
           # Calculate total GST first, then split to avoid rounding issues
@@ -627,10 +629,11 @@
 
           # Add base amount + taxes to get final amount for this item
           item_total = base_amount + cgst_amount + sgst_amount + igst_amount
-          subtotal_amount += item_total
+          total_amount += item_total
         else
-          # For non-GST items, just add base amount (not to taxable_amount)
+          # For non-GST items, add to both subtotal and total amount
           subtotal_amount += base_amount
+          total_amount += base_amount
         end
       end
 
@@ -759,7 +762,7 @@
               </td>
               <td class="right-align">
                 <%
-                  # Calculate final amount: base amount + tax amount
+                  # Calculate base amount and tax amount separately
                   base_amount = item.quantity * (item.price || 0)
                   if item.product&.gst_enabled
                     if item.product.cgst_percentage.present? || item.product.sgst_percentage.present?
@@ -770,10 +773,11 @@
                     tax_amount = (base_amount * total_gst_rate) / 100
                     final_amount = base_amount + tax_amount
                   else
+                    tax_amount = 0
                     final_amount = base_amount
                   end
                 %>
-                ₹<%= number_with_delimiter(final_amount.round(2), delimiter: ',') %>
+                ₹<%= number_with_delimiter(base_amount.round(2), delimiter: ',') %>
               </td>
             </tr>
           <% end %>
@@ -918,7 +922,7 @@
                 </div>
                 <div class="tax-line" style="font-weight: normal; font-size: 10px;">
                   <span class="tax-label">Received Amount</span>
-                  <span class="tax-amount">₹ <%= @booking.payment_status_paid? ? number_with_delimiter(final_total.round(2), delimiter: ',') : '0' %></span>
+                  <span class="tax-amount">₹ <%= @booking.payment_status_paid? ? number_with_delimiter(subtotal_amount.round(2), delimiter: ',') : '0' %></span>
                 </div>
               </div>
               <div class="amount-words">

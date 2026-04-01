@@ -1,4 +1,5 @@
 class StoreAdmin::ApplicationController < ApplicationController
+  protect_from_forgery with: :exception
   skip_load_and_authorize_resource
   before_action :authenticate_user!
   before_action :ensure_store_admin_access

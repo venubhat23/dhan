@@ -5,7 +5,7 @@ class Admin::StoresController < Admin::ApplicationController
   skip_before_action :verify_authenticity_token, only: [:get_product_availability]
 
   def index
-    @stores = Store.all.order(:name)
+    @stores = Store.all.order(created_at: :desc)
     @can_add_more = Store.can_add_more_stores?
     @remaining_slots = Store.remaining_store_slots
     @collect_from_store_enabled = SystemSetting.collect_from_store_enabled?
