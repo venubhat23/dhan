@@ -67,8 +67,7 @@
                 <thead class="table-light">
                   <tr>
                     <th class="border-0 fw-semibold">Product Details</th>
-                    <th class="border-0 fw-semibold text-center">Available Stock</th>
-                    <th class="border-0 fw-semibold text-center">Store Stock & Price</th>
+                    <th class="border-0 fw-semibold text-center">Stock & Price Info</th>
                     <th class="border-0 fw-semibold text-center" style="width: 200px;">Transfer Quantity</th>
                   </tr>
                 </thead>
@@ -90,19 +89,19 @@
                         </div>
                       </td>
                       <td class="align-middle text-center">
-                        <span class="badge bg-<%= data[:central_available] > 0 ? 'success' : 'danger' %>-subtle text-<%= data[:central_available] > 0 ? 'success' : 'danger' %> px-3 py-2 fs-6">
-                          <%= data[:central_available] %> <%= data[:unit] %>
-                        </span>
-                      </td>
-                      <td class="align-middle text-center">
-                        <div class="mb-1">
-                          <span class="badge bg-info-subtle text-info px-2 py-1">
-                            Store: <%= data[:store_current] %> <%= data[:unit] %>
-                          </span>
-                        </div>
-                        <div>
-                          <strong class="text-primary">₹<%= '%.2f' % data[:price] %></strong>
-                          <small class="text-muted d-block">per <%= data[:unit] %></small>
+                        <div class="mb-2">
+                          <div class="d-flex justify-content-center gap-2 mb-2">
+                            <span class="badge bg-<%= data[:central_available] > 0 ? 'success' : 'danger' %>-subtle text-<%= data[:central_available] > 0 ? 'success' : 'danger' %> px-2 py-1">
+                              Available: <%= data[:central_available] %> <%= data[:unit] %>
+                            </span>
+                            <span class="badge bg-info-subtle text-info px-2 py-1">
+                              Store: <%= data[:store_current] %> <%= data[:unit] %>
+                            </span>
+                          </div>
+                          <div>
+                            <strong class="text-primary">₹<%= '%.2f' % data[:price] %></strong>
+                            <small class="text-muted d-block">per <%= data[:unit] %></small>
+                          </div>
                         </div>
                       </td>
                       <td class="align-middle">
@@ -117,10 +116,12 @@
                                    value="0"
                                    min="0"
                                    max="<%= data[:central_available] %>"
-                                   step="0.1"
+                                   step="any"
                                    data-product-id="<%= product_id %>"
+                                   oninput="updateSummary()"
                                    onchange="updateSummary()"
-                                   style="font-size: 1rem; padding: 0.5rem;">
+                                   style="font-size: 1rem; padding: 0.5rem;"
+                                   placeholder="Enter qty">
                             <button type="button" class="btn btn-outline-secondary btn-sm quantity-btn" onclick="increaseQuantity('<%= product_id %>')">
                               <i class="bi bi-plus"></i>
                             </button>
@@ -217,10 +218,10 @@ function increaseQuantity(productId) {
   const input = document.querySelector(`input[data-product-id="${productId}"]`);
   const max = parseFloat(input.getAttribute('max'));
   const current = parseFloat(input.value) || 0;
-  const step = parseFloat(input.getAttribute('step')) || 1;
+  const step = 1; // Use 1 as default step for button clicks
 
   if (current + step <= max) {
-    input.value = (current + step).toFixed(1);
+    input.value = current + step;
     updateSummary();
   }
 }
@@ -228,10 +229,10 @@ function increaseQuantity(productId) {
 function decreaseQuantity(productId) {
   const input = document.querySelector(`input[data-product-id="${productId}"]`);
   const current = parseFloat(input.value) || 0;
-  const step = parseFloat(input.getAttribute('step')) || 1;
+  const step = 1; // Use 1 as default step for button clicks
 
   if (current - step >= 0) {
-    input.value = Math.max(0, (current - step).toFixed(1));
+    input.value = Math.max(0, current - step);
     updateSummary();
   }
 }
@@ -284,7 +285,7 @@ function updateSummary() {
 
   // Update summary display
   document.getElementById('total-products').textContent = totalProducts;
-  document.getElementById('total-quantity').textContent = totalQuantity.toFixed(1);
+  document.getElementById('total-quantity').textContent = totalQuantity % 1 === 0 ? totalQuantity.toString() : totalQuantity.toFixed(2);
   document.getElementById('total-value').textContent = `₹${totalValue.toFixed(2)}`;
 
   // Update transfer button
