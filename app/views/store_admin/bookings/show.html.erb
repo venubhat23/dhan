@@ -39,19 +39,23 @@
               <tr>
                 <td><strong>Status:</strong></td>
                 <td>
-                  <% case @booking.status %>
-                  <% when 'draft', 'ordered_and_delivery_pending' %>
-                    <span class="badge bg-warning"><%= @booking.status.humanize %></span>
-                  <% when 'confirmed', 'processing', 'packed' %>
-                    <span class="badge bg-info"><%= @booking.status.humanize %></span>
-                  <% when 'shipped', 'out_for_delivery' %>
-                    <span class="badge bg-primary"><%= @booking.status.humanize %></span>
-                  <% when 'delivered', 'completed' %>
-                    <span class="badge bg-success"><%= @booking.status.humanize %></span>
-                  <% when 'cancelled', 'returned' %>
-                    <span class="badge bg-danger"><%= @booking.status.humanize %></span>
+                  <% if @booking.status.present? %>
+                    <% case @booking.status %>
+                    <% when 'draft', 'ordered_and_delivery_pending' %>
+                      <span class="badge bg-warning"><%= @booking.status.humanize %></span>
+                    <% when 'confirmed', 'processing', 'packed' %>
+                      <span class="badge bg-info"><%= @booking.status.humanize %></span>
+                    <% when 'shipped', 'out_for_delivery' %>
+                      <span class="badge bg-primary"><%= @booking.status.humanize %></span>
+                    <% when 'delivered', 'completed' %>
+                      <span class="badge bg-success"><%= @booking.status.humanize %></span>
+                    <% when 'cancelled', 'returned' %>
+                      <span class="badge bg-danger"><%= @booking.status.humanize %></span>
+                    <% else %>
+                      <span class="badge bg-secondary"><%= @booking.status.humanize %></span>
+                    <% end %>
                   <% else %>
-                    <span class="badge bg-secondary"><%= @booking.status.humanize %></span>
+                    <span class="badge bg-secondary">Unknown</span>
                   <% end %>
                 </td>
               </tr>
@@ -185,7 +189,7 @@
           <h5 class="card-title mb-0">Update Status</h5>
         </div>
         <div class="card-body">
-          <p class="small text-muted">Current Status: <strong><%= @booking.status.humanize %></strong></p>
+          <p class="small text-muted">Current Status: <strong><%= @booking.status&.humanize || 'Unknown' %></strong></p>
 
           <%= form_with url: update_status_store_admin_booking_path(@booking), method: :patch, local: true do |form| %>
             <div class="mb-3">
