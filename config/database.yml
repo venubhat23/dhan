@@ -6,10 +6,10 @@ default: &default
 development:
   primary: &primary_development
     <<: *default
-    host: <%= ENV['DB_HOST'] || 'dpg-d6mceedm5p6s73fo3ul0-a.virginia-postgres.render.com' %>
-    database: <%= ENV['DB_NAME'] || 'dhan02' %>
-    username: <%= ENV['DB_USERNAME'] || 'dhan02_user' %>
-    password: <%= ENV['DB_PASSWORD'] || 'moCc2BsPe3pOTbOK5hc6dOrydgae32Zq' %>
+    host: <%= ENV['DB_HOST'] || 'dpg-d7ah55uuk2gs73cferrg-a.virginia-postgres.render.com' %>
+    database: <%= ENV['DB_NAME'] || 'markettincer_db_tgku' %>
+    username: <%= ENV['DB_USERNAME'] || 'dhan_db_2' %>
+    password: <%= ENV['DB_PASSWORD'] || 'jUWGLWGTqcZTPGJiUT7xT2zlSUzmp4Md' %>
     port: <%= ENV['DB_PORT'] || 5432 %>
   cable:
     <<: *primary_development
@@ -32,11 +32,11 @@ test:
 production:
   primary: &primary_production
     <<: *default
-    url: <%= ENV['DATABASE_URL'] || 'postgresql://dhan02_user:moCc2BsPe3pOTbOK5hc6dOrydgae32Zq@dpg-d6mceedm5p6s73fo3ul0-a.virginia-postgres.render.com/dhan02' %>
-    host: <%= ENV['DB_HOST'] || 'dpg-d6mceedm5p6s73fo3ul0-a.virginia-postgres.render.com' %>
-    database: <%= ENV['DB_NAME'] || 'dhan02' %>
-    username: <%= ENV['DB_USERNAME'] || 'dhan02_user' %>
-    password: <%= ENV['DB_PASSWORD'] || 'moCc2BsPe3pOTbOK5hc6dOrydgae32Zq' %>
+    url: <%= ENV['DATABASE_URL'] || 'postgresql://dhan_db_2:jUWGLWGTqcZTPGJiUT7xT2zlSUzmp4Md@dpg-d7ah55uuk2gs73cferrg-a.virginia-postgres.render.com/markettincer_db_tgku' %>
+    host: <%= ENV['DB_HOST'] || 'dpg-d7ah55uuk2gs73cferrg-a.virginia-postgres.render.com' %>
+    database: <%= ENV['DB_NAME'] || 'markettincer_db_tgku' %>
+    username: <%= ENV['DB_USERNAME'] || 'dhan_db_2' %>
+    password: <%= ENV['DB_PASSWORD'] || 'jUWGLWGTqcZTPGJiUT7xT2zlSUzmp4Md' %>
     port: <%= ENV['DB_PORT'] || 5432 %>
   cable:
     <<: *primary_production
