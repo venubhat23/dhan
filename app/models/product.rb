@@ -77,6 +77,7 @@ class Product < ApplicationRecord
   validates :sgst_amount, numericality: { greater_than_or_equal_to: 0 }, allow_blank: true
   validates :igst_amount, numericality: { greater_than_or_equal_to: 0 }, allow_blank: true
   validates :final_amount_with_gst, numericality: { greater_than_or_equal_to: 0 }, allow_blank: true
+  validates :hsn_code, format: { with: /\A\d{4,8}\z/ }, allow_blank: true
 
   validate :discount_price_validation
   validate :discount_value_validation

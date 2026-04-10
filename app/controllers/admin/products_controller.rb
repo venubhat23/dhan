@@ -466,6 +466,7 @@ class Admin::ProductsController < Admin::ApplicationController
       # GST Configuration Parameters
       :gst_enabled, :gst_percentage, :cgst_percentage, :sgst_percentage, :igst_percentage,
       :gst_amount, :cgst_amount, :sgst_amount, :igst_amount, :final_amount_with_gst, :base_price_excluding_gst,
+      :hsn_code,
       :image,
       additional_images: [],
       remove_images: [],

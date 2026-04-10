@@ -245,6 +245,14 @@
                     <div class="card border-info">
                       <div class="card-body">
                         <div class="row g-3">
+                          <% if @product.hsn_code.present? %>
+                            <div class="col-md-6">
+                              <div class="d-flex justify-content-between">
+                                <span class="text-muted">HSN Code:</span>
+                                <span class="fw-medium"><%= @product.hsn_code %></span>
+                              </div>
+                            </div>
+                          <% end %>
                           <div class="col-md-6">
                             <div class="d-flex justify-content-between">
                               <span class="text-muted">GST Percentage:</span>

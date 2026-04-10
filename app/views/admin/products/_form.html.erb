@@ -326,6 +326,19 @@
             </div>
           </div>
 
+          <!-- HSN Code -->
+          <div class="col-md-6">
+            <%= form.label :hsn_code, "HSN Code", class: "form-label" %>
+            <%= form.text_field :hsn_code,
+                class: "form-control",
+                placeholder: "e.g., 1001, 12345678",
+                maxlength: "8" %>
+            <div class="form-text">
+              <i class="bi bi-info-circle me-1"></i>
+              Optional 4-8 digit HSN (Harmonized System of Nomenclature) code for GST classification
+            </div>
+          </div>
+
           <!-- GST Configuration Fields (hidden by default) -->
           <div id="gst_config" class="col-12" style="<%= 'display: none;' unless @product.gst_enabled %>">
             <div class="card border-info">
