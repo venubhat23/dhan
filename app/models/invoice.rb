@@ -98,25 +98,50 @@ class Invoice < ApplicationRecord
   def generate_invoice_number
     return if invoice_number.present?
 
-    # Get the month from invoice_date or current date
-    invoice_month = (invoice_date || Date.current).month
-    month_prefix = invoice_month.to_s.rjust(2, '0')
+    # Get the date to work with
+    current_date = invoice_date || Date.current
 
-    # Get the next invoice number for this month
-    last_invoice = Invoice.where("invoice_number LIKE ?", "INV-#{month_prefix}-%")
-                         .order(created_at: :desc)
-                         .first
-
-    if last_invoice
-      # Extract the number part and increment
-      last_number = last_invoice.invoice_number.split('-').last.to_i
-      next_number = (last_number + 1).to_s.rjust(5, '0')
+    # Calculate financial year (April to March)
+    if current_date.month >= 4
+      # April to March of next year
+      fy_start_year = current_date.year
+      fy_end_year = current_date.year + 1
     else
-      # Start from 00001 for this month
-      next_number = '00001'
+      # January to March of current year (belongs to previous FY)
+      fy_start_year = current_date.year - 1
+      fy_end_year = current_date.year
     end
 
-    self.invoice_number = "INV-#{month_prefix}-#{next_number}"
+    # Format: DN + last2digits_of_start_year + last2digits_of_end_year + month + sequential_number
+    fy_start_suffix = fy_start_year.to_s.last(2)
+    fy_end_suffix = fy_end_year.to_s.last(2)
+    month_part = current_date.month.to_s.rjust(2, '0')
+
+    # Create the pattern for this financial year and month
+    pattern_prefix = "DN#{fy_start_suffix}#{fy_end_suffix}#{month_part}"
+
+    # Find the last invoice with this pattern (checking both Invoice and BookingInvoice tables)
+    last_invoice_regular = Invoice.where("invoice_number LIKE ?", "#{pattern_prefix}%")
+                                  .order(created_at: :desc)
+                                  .first
+
+    last_booking_invoice = BookingInvoice.where("invoice_number LIKE ?", "#{pattern_prefix}%")
+                                        .order(created_at: :desc)
+                                        .first
+
+    # Find the highest number from both tables
+    last_numbers = []
+    last_numbers << last_invoice_regular.invoice_number.gsub(pattern_prefix, '').to_i if last_invoice_regular
+    last_numbers << last_booking_invoice.invoice_number.gsub(pattern_prefix, '').to_i if last_booking_invoice
+
+    if last_numbers.any?
+      next_number = last_numbers.max + 1
+    else
+      # Start from 1 for this pattern
+      next_number = 1
+    end
+
+    self.invoice_number = "#{pattern_prefix}#{next_number}"
   end
 
   # Helper method to generate month-based invoice number for specific month

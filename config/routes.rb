@@ -770,6 +770,9 @@ Rails.application.routes.draw do
     # Orders Management (Note: Bookings already defined above with full functionality)
     resources :orders
 
+    # Expenses management
+    resources :expenses
+
     # Settings namespace
     namespace :settings do
       resources :user_roles do
@@ -1122,6 +1125,9 @@ Rails.application.routes.draw do
 
     # Client requests/support tickets
     resources :client_requests, only: [:index, :show, :new, :create]
+
+    # Expenses management
+    resources :expenses, only: [:index, :show, :edit, :update, :destroy]
   end
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
