@@ -1,12 +1,12 @@
 class Expense < ApplicationRecord
-  belongs_to :store, optional: true
+  belongs_to :store
   belongs_to :created_by, class_name: 'User'
 
   validates :title, presence: true
   validates :amount, presence: true, numericality: { greater_than: 0 }
   validates :expense_date, presence: true
   validates :category, presence: true
-  validate :store_or_main_inventory_present
+  validates :store_id, presence: true
 
   CATEGORIES = [
     'Rent & Utilities',
@@ -84,10 +84,4 @@ class Expense < ApplicationRecord
   end
 
   private
-
-  def store_or_main_inventory_present
-    if store.blank? && !is_main_inventory?
-      errors.add(:store_id, "must be selected or Main Inventory must be chosen")
-    end
-  end
 end

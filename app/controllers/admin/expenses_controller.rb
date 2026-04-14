@@ -64,7 +64,19 @@ class Admin::ExpensesController < Admin::ApplicationController
 
     # Handle Main Inventory selection
     if params[:expense][:store_id] == 'main_inventory'
-      @expense.store_id = nil
+      # Find or create a special store for main inventory expenses
+      main_inventory_store = Store.find_or_create_by(name: 'Main Inventory - Administrative') do |store|
+        store.address = 'Central Administrative Office'
+        store.city = 'Administrative'
+        store.state = 'N/A'
+        store.pincode = '000000'
+        store.contact_person = 'System Admin'
+        store.contact_mobile = '0000000000'
+        store.email = ''
+        store.status = true
+      end
+
+      @expense.store_id = main_inventory_store.id
       @expense.is_main_inventory = true
     end
 
