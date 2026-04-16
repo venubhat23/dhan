@@ -707,6 +707,7 @@ Rails.application.routes.draw do
         get :categories_for_select
         get :products_chart
         post :upload_cloudinary_image
+        get :find_by_barcode
       end
     end
 
@@ -772,6 +773,9 @@ Rails.application.routes.draw do
 
     # Expenses management
     resources :expenses
+
+    # Delivery Settings management
+    resources :delivery_settings
 
     # Settings namespace
     namespace :settings do
@@ -1125,6 +1129,14 @@ Rails.application.routes.draw do
 
     # Client requests/support tickets
     resources :client_requests, only: [:index, :show, :new, :create]
+
+    # Delivery Settings management
+    resources :delivery_settings, only: [:index, :update] do
+      collection do
+        get :edit_pincode_charges
+        post :update_pincode_charges
+      end
+    end
 
     # Expenses management
     resources :expenses, only: [:index, :show, :edit, :update, :destroy]

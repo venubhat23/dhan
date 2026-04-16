@@ -71,7 +71,7 @@ class Admin::ExpensesController < Admin::ApplicationController
         store.state = 'N/A'
         store.pincode = '000000'
         store.contact_person = 'System Admin'
-        store.contact_mobile = '0000000000'
+        store.contact_mobile = '+91 9999999999'
         store.email = ''
         store.status = true
       end

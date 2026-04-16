@@ -457,7 +457,7 @@ class Admin::ProductsController < Admin::ApplicationController
     params.require(:product).permit(
       :name, :description, :category_id, :price, :discount_price, :stock, :initial_stock,
       :status, :sku, :weight, :dimensions, :meta_title, :meta_description, :tags,
-      :buying_price, :discount_type, :discount_value, :original_price, :discount_amount, :is_discounted,
+      :buying_price, :wholesale_price, :discount_type, :discount_value, :original_price, :discount_amount, :is_discounted,
       :product_type, :unit_type, :is_subscription_enabled,
       :is_occasional_product, :occasional_start_date, :occasional_end_date, :occasional_description, :occasional_auto_hide,
       :occasional_schedule_type, :occasional_recurring_from_day, :occasional_recurring_from_time,
@@ -466,7 +466,7 @@ class Admin::ProductsController < Admin::ApplicationController
       # GST Configuration Parameters
       :gst_enabled, :gst_percentage, :cgst_percentage, :sgst_percentage, :igst_percentage,
       :gst_amount, :cgst_amount, :sgst_amount, :igst_amount, :final_amount_with_gst, :base_price_excluding_gst,
-      :hsn_code,
+      :hsn_code, :barcode, :barcode_type,
       :image,
       additional_images: [],
       remove_images: [],
@@ -518,6 +518,35 @@ class Admin::ProductsController < Admin::ApplicationController
         current_additional = @product.additional_cloudinary_images
         @product.update_column(:additional_images_urls, (current_additional + additional_images).to_json)
       end
+    end
+  end
+
+  # Barcode search endpoint for barcode readers
+  def find_by_barcode
+    barcode = params[:barcode]&.strip
+
+    if barcode.blank?
+      render json: { error: 'Barcode parameter is required' }, status: :bad_request
+      return
+    end
+
+    product = Product.find_by(barcode: barcode)
+
+    if product
+      render json: {
+        id: product.id,
+        name: product.name,
+        sku: product.sku,
+        barcode: product.barcode,
+        hsn_code: product.hsn_code,
+        price: product.price,
+        stock: product.stock,
+        category: product.category&.name,
+        status: product.status,
+        image_url: product.image_url
+      }
+    else
+      render json: { error: 'Product not found with this barcode' }, status: :not_found
     end
   end
 end

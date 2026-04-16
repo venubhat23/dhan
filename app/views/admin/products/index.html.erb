@@ -101,6 +101,99 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   });
+
+  // Barcode scanner functionality
+  const barcodeInput = document.getElementById('barcodeInput');
+  const clearBarcode = document.getElementById('clearBarcode');
+  let barcodeTimeout;
+
+  barcodeInput?.addEventListener('input', function() {
+    const barcode = this.value.trim();
+
+    // Clear previous timeout
+    clearTimeout(barcodeTimeout);
+
+    if (barcode.length > 3) {
+      // Set a small delay to allow for complete barcode input
+      barcodeTimeout = setTimeout(() => {
+        searchProductByBarcode(barcode);
+      }, 300);
+    }
+  });
+
+  clearBarcode?.addEventListener('click', function() {
+    barcodeInput.value = '';
+    clearBarcodeResults();
+  });
+
+  function searchProductByBarcode(barcode) {
+    // Show loading state
+    barcodeInput.style.backgroundColor = '#fff3cd';
+
+    fetch(`/admin/products/find_by_barcode?barcode=${encodeURIComponent(barcode)}`)
+      .then(response => response.json())
+      .then(data => {
+        barcodeInput.style.backgroundColor = '';
+
+        if (data.error) {
+          showBarcodeError(data.error);
+        } else {
+          showBarcodeSuccess(data);
+          highlightProductInTable(data.id);
+        }
+      })
+      .catch(error => {
+        barcodeInput.style.backgroundColor = '';
+        showBarcodeError('Failed to search barcode');
+        console.error('Barcode search error:', error);
+      });
+  }
+
+  function showBarcodeSuccess(product) {
+    showBarcodeAlert(`Found: ${product.name} (₹${product.price})`, 'success');
+  }
+
+  function showBarcodeError(message) {
+    showBarcodeAlert(message, 'danger');
+  }
+
+  function showBarcodeAlert(message, type) {
+    // Remove existing alerts
+    document.querySelectorAll('.barcode-alert').forEach(alert => alert.remove());
+
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type} alert-dismissible fade show barcode-alert mt-2`;
+    alert.innerHTML = `
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+
+    barcodeInput.parentElement.appendChild(alert);
+
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+      alert?.remove();
+    }, 3000);
+  }
+
+  function highlightProductInTable(productId) {
+    // Remove previous highlights
+    tableRows.forEach(row => row.classList.remove('table-warning'));
+
+    // Find and highlight the matching row
+    tableRows.forEach(row => {
+      const rowId = row.getAttribute('data-product-id');
+      if (rowId == productId) {
+        row.classList.add('table-warning');
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+  }
+
+  function clearBarcodeResults() {
+    document.querySelectorAll('.barcode-alert').forEach(alert => alert.remove());
+    tableRows.forEach(row => row.classList.remove('table-warning'));
+  }
 });
 </script>
 
@@ -115,6 +208,14 @@ document.addEventListener('DOMContentLoaded', function() {
           <input type="text" class="form-control" placeholder="Search products..." id="searchInput">
           <i class="bi bi-search position-absolute top-50 end-0 translate-middle-y me-3"></i>
         </div>
+        <!-- Barcode Scanner -->
+        <div class="position-relative">
+          <input type="text" class="form-control" placeholder="Scan barcode..." id="barcodeInput" style="min-width: 180px;">
+          <i class="bi bi-upc-scan position-absolute top-50 end-0 translate-middle-y me-3 text-primary"></i>
+        </div>
+        <button type="button" class="btn btn-outline-primary" id="clearBarcode" title="Clear barcode search">
+          <i class="bi bi-x-lg"></i>
+        </button>
       </div>
     </div>
   </div>
@@ -134,7 +235,7 @@ document.addEventListener('DOMContentLoaded', function() {
           </thead>
           <tbody>
             <% @products.each do |product| %>
-              <tr>
+              <tr data-product-id="<%= product.id %>">
                 <td class="align-middle">
                   <div class="d-flex align-items-center">
                     <div class="position-relative me-3">
@@ -157,6 +258,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div>
                       <h6 class="mb-0"><%= product.name %></h6>
                       <small class="text-muted">SKU: <%= product.sku || 'N/A' %></small>
+                      <% if product.barcode.present? %>
+                        <small class="text-muted d-block font-monospace">Barcode: <%= product.barcode %></small>
+                      <% end %>
                       <% if product.image_url.present? %>
                         <small class="text-success d-block">
                           <i class="bi bi-cloud-check me-1"></i>Cloudinary

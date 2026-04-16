@@ -83,6 +83,10 @@
                     <div class="hstack gap-3 flex-wrap">
                       <div><span class="text-muted fw-medium">SKU:</span> <span class="fw-medium"><%= @product.sku %></span></div>
                       <div class="vr"></div>
+                      <% if @product.barcode.present? %>
+                        <div><span class="text-muted fw-medium">Barcode:</span> <span class="fw-medium font-monospace"><%= @product.barcode_display_format %></span></div>
+                        <div class="vr"></div>
+                      <% end %>
                       <div><span class="text-muted fw-medium">Category:</span>
                         <%= link_to @product.category.name, admin_category_path(@product.category), class: "fw-medium" %>
                       </div>

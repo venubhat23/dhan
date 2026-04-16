@@ -502,6 +502,83 @@
 <div class="enhanced-form-wrapper">
   <%= form_with(model: [:admin, product], local: true, html: { id: "enhanced-product-form" }) do |form| %>
 
+    <!-- Error Display Section -->
+    <% if @product.errors.any? %>
+      <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert" style="border-left: 4px solid #dc3545;">
+        <div class="d-flex align-items-start">
+          <div class="me-3">
+            <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 1.5rem;"></i>
+          </div>
+          <div class="flex-grow-1">
+            <h5 class="alert-heading mb-2">
+              <i class="bi bi-x-circle"></i>
+              <%= pluralize(@product.errors.count, "error") %> prevented this product from being saved:
+            </h5>
+            <hr class="my-3">
+            <ul class="mb-0 list-unstyled">
+              <% @product.errors.each do |error| %>
+                <li class="mb-2">
+                  <strong class="text-danger">
+                    <%= error.attribute.to_s.humanize %>:
+                  </strong>
+                  <span class="ms-1"><%= error.message %></span>
+
+                  <!-- Specific help for common errors -->
+                  <% if error.attribute == :sku && error.type == :taken %>
+                    <div class="mt-1">
+                      <small class="text-muted">
+                        <i class="bi bi-lightbulb"></i>
+                        <strong>Solution:</strong> The SKU "<%= @product.sku %>" is already used by another product. Try a different SKU or leave it blank to auto-generate one.
+                      </small>
+                    </div>
+                  <% elsif error.attribute == :hsn_code && error.type == :invalid %>
+                    <div class="mt-1">
+                      <small class="text-muted">
+                        <i class="bi bi-lightbulb"></i>
+                        <strong>Solution:</strong> HSN code must be 4-8 digits. Example: "1234" or "12345678".
+                        <% if @product.hsn_code.present? %>
+                          Your value "<%= @product.hsn_code %>" has only <%= @product.hsn_code.length %> digits.
+                        <% end %>
+                      </small>
+                    </div>
+                  <% elsif error.attribute == :barcode && error.type == :taken %>
+                    <div class="mt-1">
+                      <small class="text-muted">
+                        <i class="bi bi-lightbulb"></i>
+                        <strong>Solution:</strong> This barcode is already used by another product. Leave blank to auto-generate a unique barcode.
+                      </small>
+                    </div>
+                  <% elsif error.attribute == :discount_price %>
+                    <div class="mt-1">
+                      <small class="text-muted">
+                        <i class="bi bi-lightbulb"></i>
+                        <strong>Solution:</strong> If you want a discount, make sure the discount price is less than the regular price. Otherwise, uncheck the "Is Discounted" option.
+                      </small>
+                    </div>
+                  <% end %>
+                </li>
+              <% end %>
+            </ul>
+
+            <!-- General help section -->
+            <div class="mt-3 p-3 bg-light rounded">
+              <h6 class="mb-2">
+                <i class="bi bi-info-circle text-primary"></i>
+                Quick Tips:
+              </h6>
+              <ul class="small mb-0 text-muted">
+                <li>Leave <strong>SKU</strong> and <strong>Barcode</strong> fields empty to auto-generate unique values</li>
+                <li>HSN codes must be <strong>4-8 digits</strong> for GST compliance</li>
+                <li>Stock can be <strong>0</strong> for out-of-stock products</li>
+                <li>All required fields (*) must be filled</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <% end %>
+
     <!-- Basic Information Section -->
     <div class="form-section">
       <h3 class="section-title">
@@ -573,6 +650,52 @@
         <div class="form-group">
           <%= form.label :sku, "SKU", class: "form-label" %>
           <%= form.text_field :sku, class: "form-control", placeholder: "Auto-generated if left blank" %>
+        </div>
+
+        <!-- Barcode Field -->
+        <div class="form-group">
+          <div class="card border-info bg-info bg-opacity-5 p-3 mb-3">
+            <h6 class="text-info mb-2">
+              <i class="bi bi-upc-scan me-1"></i>
+              Product Barcode
+            </h6>
+            <%= form.label :barcode, "Barcode", class: "form-label" %>
+            <div class="input-group">
+              <%= form.text_field :barcode,
+                  class: "form-control",
+                  placeholder: "Auto-generated barcode",
+                  id: "barcode_field",
+                  readonly: true %>
+              <button type="button" class="btn btn-outline-secondary" id="generate_barcode_btn">
+                <i class="bi bi-arrow-clockwise"></i> Generate
+              </button>
+            </div>
+            <div class="form-text">
+              <i class="bi bi-info-circle me-1"></i>
+              EAN-13 barcode auto-generated for product identification
+            </div>
+          </div>
+        </div>
+
+        <!-- HSN Code Field -->
+        <div class="form-group">
+          <div class="card border-warning bg-warning bg-opacity-5 p-3 mb-3">
+            <h6 class="text-warning mb-2">
+              <i class="bi bi-tag me-1"></i>
+              HSN/SAC Code
+            </h6>
+            <%= form.label :hsn_code, "HSN/SAC Code", class: "form-label" %>
+            <span class="badge bg-secondary ms-2">Optional</span>
+            <%= form.text_field :hsn_code,
+                class: "form-control",
+                placeholder: "e.g., 1001, 12345678",
+                maxlength: "8",
+                id: "hsn_code" %>
+            <div class="form-text">
+              <i class="bi bi-info-circle me-1"></i>
+              Enter 4-8 digit HSN (Harmonized System of Nomenclature) or SAC (Services Accounting Code) for GST classification
+            </div>
+          </div>
         </div>
       </div>
 
@@ -653,7 +776,7 @@
         Pricing & Inventory
       </h3>
 
-      <div class="form-grid form-grid-2">
+      <div class="form-grid form-grid-3">
         <div class="form-group">
           <%= form.label :buying_price, class: "form-label" do %>
             Buying Price (₹) <span class="required-mark">*</span>
@@ -665,13 +788,50 @@
         </div>
 
         <div class="form-group">
+          <%= form.label :wholesale_price, class: "form-label" do %>
+            <i class="bi bi-building text-primary"></i>
+            Wholesale Price (₹)
+            <span class="badge bg-info ms-1">B2B</span>
+          <% end %>
+          <%= form.number_field :wholesale_price, class: "form-control",
+              step: "0.01", placeholder: "75.00",
+              id: "wholesale-price" %>
+          <div class="help-text">
+            <i class="bi bi-info-circle text-muted"></i>
+            Optional: Special pricing for B2B/wholesale customers
+          </div>
+        </div>
+
+        <div class="form-group">
           <%= form.label :price, class: "form-label" do %>
-            Base Price (₹) <span class="required-mark">*</span>
+            Retail Price (₹) <span class="required-mark">*</span>
           <% end %>
           <%= form.number_field :price, class: "form-control",
               step: "0.01", required: true, placeholder: "95.00",
               id: "selling-price" %>
-          <div class="help-text">Enter final customer price (GST will be extracted and base price calculated automatically)</div>
+          <div class="help-text">Regular customer selling price</div>
+        </div>
+      </div>
+
+      <!-- Pricing Summary Card -->
+      <div class="pricing-summary-card mt-3 p-3 border rounded bg-light" id="pricing-summary" style="display: none;">
+        <h6 class="mb-2">
+          <i class="bi bi-calculator text-primary"></i>
+          Pricing Summary
+        </h6>
+        <div class="row">
+          <div class="col-md-4">
+            <div class="text-muted small">Retail Profit</div>
+            <div class="fw-bold text-success" id="retail-profit">₹0 (0%)</div>
+          </div>
+          <div class="col-md-4" id="wholesale-summary" style="display: none;">
+            <div class="text-muted small">Wholesale Profit</div>
+            <div class="fw-bold text-info" id="wholesale-profit">₹0 (0%)</div>
+          </div>
+          <div class="col-md-4" id="wholesale-discount-summary" style="display: none;">
+            <div class="text-muted small">B2B Discount</div>
+            <div class="fw-bold text-primary" id="wholesale-discount">₹0 (0%)</div>
+          </div>
         </div>
       </div>
 
@@ -2281,5 +2441,107 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }, 5000);
   }
+
+  // Barcode Generation Script
+  const generateBarcodeBtn = document.getElementById('generate_barcode_btn');
+  const barcodeField = document.getElementById('barcode_field');
+
+  if (generateBarcodeBtn && barcodeField) {
+    generateBarcodeBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+
+      // Generate a simple EAN-13 style barcode
+      const companyPrefix = "001";
+      const productCode = Math.floor(Math.random() * 1000000000).toString().padStart(9, '0');
+      const barcodeWithoutCheck = companyPrefix + productCode;
+
+      // Calculate EAN-13 check digit
+      let sum = 0;
+      for (let i = 0; i < 12; i++) {
+        const digit = parseInt(barcodeWithoutCheck[i]);
+        if (i % 2 === 0) {
+          sum += digit;
+        } else {
+          sum += digit * 3;
+        }
+      }
+      const checkDigit = (10 - (sum % 10)) % 10;
+
+      const fullBarcode = barcodeWithoutCheck + checkDigit;
+      barcodeField.value = fullBarcode;
+
+      // Visual feedback
+      generateBarcodeBtn.innerHTML = '<i class="bi bi-check"></i> Generated';
+      setTimeout(() => {
+        generateBarcodeBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Generate';
+      }, 2000);
+    });
+  }
+
+  // Wholesale Pricing Calculator
+  const buyingPriceField = document.getElementById('buying-price');
+  const wholesalePriceField = document.getElementById('wholesale-price');
+  const sellingPriceField = document.getElementById('selling-price');
+  const pricingSummary = document.getElementById('pricing-summary');
+  const retailProfitDisplay = document.getElementById('retail-profit');
+  const wholesaleProfitDisplay = document.getElementById('wholesale-profit');
+  const wholesaleDiscountDisplay = document.getElementById('wholesale-discount');
+  const wholesaleSummary = document.getElementById('wholesale-summary');
+  const wholesaleDiscountSummary = document.getElementById('wholesale-discount-summary');
+
+  function calculatePricing() {
+    const buyingPrice = parseFloat(buyingPriceField.value) || 0;
+    const wholesalePrice = parseFloat(wholesalePriceField.value) || 0;
+    const sellingPrice = parseFloat(sellingPriceField.value) || 0;
+
+    let hasValidPrices = false;
+
+    // Calculate retail profit
+    if (buyingPrice > 0 && sellingPrice > 0) {
+      const retailProfit = sellingPrice - buyingPrice;
+      const retailProfitPercentage = ((retailProfit / buyingPrice) * 100).toFixed(1);
+      retailProfitDisplay.innerHTML = `₹${retailProfit.toFixed(2)} (${retailProfitPercentage}%)`;
+      retailProfitDisplay.className = `fw-bold ${retailProfit > 0 ? 'text-success' : 'text-danger'}`;
+      hasValidPrices = true;
+    } else {
+      retailProfitDisplay.innerHTML = '₹0 (0%)';
+      retailProfitDisplay.className = 'fw-bold text-muted';
+    }
+
+    // Calculate wholesale profit and discount
+    if (wholesalePrice > 0) {
+      wholesaleSummary.style.display = 'block';
+      wholesaleDiscountSummary.style.display = 'block';
+
+      if (buyingPrice > 0) {
+        const wholesaleProfit = wholesalePrice - buyingPrice;
+        const wholesaleProfitPercentage = ((wholesaleProfit / buyingPrice) * 100).toFixed(1);
+        wholesaleProfitDisplay.innerHTML = `₹${wholesaleProfit.toFixed(2)} (${wholesaleProfitPercentage}%)`;
+        wholesaleProfitDisplay.className = `fw-bold ${wholesaleProfit > 0 ? 'text-info' : 'text-danger'}`;
+      }
+
+      if (sellingPrice > 0) {
+        const wholesaleDiscount = sellingPrice - wholesalePrice;
+        const wholesaleDiscountPercentage = ((wholesaleDiscount / sellingPrice) * 100).toFixed(1);
+        wholesaleDiscountDisplay.innerHTML = `₹${wholesaleDiscount.toFixed(2)} (${wholesaleDiscountPercentage}%)`;
+        wholesaleDiscountDisplay.className = `fw-bold ${wholesaleDiscount > 0 ? 'text-primary' : 'text-warning'}`;
+      }
+      hasValidPrices = true;
+    } else {
+      wholesaleSummary.style.display = 'none';
+      wholesaleDiscountSummary.style.display = 'none';
+    }
+
+    // Show/hide pricing summary
+    pricingSummary.style.display = hasValidPrices ? 'block' : 'none';
+  }
+
+  // Add event listeners for real-time calculation
+  if (buyingPriceField) buyingPriceField.addEventListener('input', calculatePricing);
+  if (wholesalePriceField) wholesalePriceField.addEventListener('input', calculatePricing);
+  if (sellingPriceField) sellingPriceField.addEventListener('input', calculatePricing);
+
+  // Initial calculation if values are present
+  calculatePricing();
 });
 </script>

@@ -58,6 +58,7 @@ class Product < ApplicationRecord
   validates :product_type, presence: true, inclusion: { in: PRODUCT_TYPES.map(&:last) }
   validates :weight, numericality: { greater_than: 0 }, allow_blank: true
   validates :buying_price, numericality: { greater_than: 0 }, allow_blank: true
+  validates :wholesale_price, numericality: { greater_than: 0 }, allow_blank: true
   validates :unit_type, presence: true, inclusion: { in: UNIT_TYPES.map(&:last) }
   # validates :minimum_stock_alert, numericality: { greater_than: 0 }, allow_blank: true
   # validates :default_selling_price, numericality: { greater_than: 0 }, allow_blank: true
@@ -78,6 +79,8 @@ class Product < ApplicationRecord
   validates :igst_amount, numericality: { greater_than_or_equal_to: 0 }, allow_blank: true
   validates :final_amount_with_gst, numericality: { greater_than_or_equal_to: 0 }, allow_blank: true
   validates :hsn_code, format: { with: /\A\d{4,8}\z/ }, allow_blank: true
+  validates :barcode, uniqueness: { case_sensitive: false }, allow_blank: true
+  validates :barcode, format: { with: /\A[0-9A-Za-z\-]+\z/ }, allow_blank: true
 
   validate :discount_price_validation
   validate :discount_value_validation
@@ -114,7 +117,9 @@ class Product < ApplicationRecord
   scope :subscription_disabled, -> { where(is_subscription_enabled: false) }
 
   before_validation :generate_sku, if: -> { sku.blank? }
+  before_validation :generate_barcode, if: -> { barcode.blank? && auto_generate_barcode? }
   before_validation :set_default_status, if: :new_record?
+  before_validation :handle_empty_discount_values
   before_save :process_delivery_rules_location_data
   before_save :calculate_discount_fields
   before_save :update_price_tracking
@@ -286,6 +291,44 @@ class Product < ApplicationRecord
 
   def formatted_buying_price
     buying_price.present? ? "₹#{buying_price}" : 'Not set'
+  end
+
+  def formatted_wholesale_price
+    wholesale_price.present? ? "₹#{wholesale_price}" : 'Not set'
+  end
+
+  # B2B Customer Methods
+  def has_wholesale_pricing?
+    wholesale_price.present? && wholesale_price > 0
+  end
+
+  def wholesale_discount_percentage
+    return 0 unless has_wholesale_pricing? && price > 0
+    ((price - wholesale_price) / price * 100).round(2)
+  end
+
+  def wholesale_savings_amount
+    return 0 unless has_wholesale_pricing?
+    price - wholesale_price
+  end
+
+  def wholesale_profit_amount
+    return 0 unless buying_price.present? && wholesale_price.present?
+    wholesale_price - buying_price
+  end
+
+  def wholesale_profit_percentage
+    return 0 unless buying_price.present? && buying_price > 0 && wholesale_price.present?
+    ((wholesale_profit_amount / buying_price) * 100).round(2)
+  end
+
+  def price_for_customer_type(customer_type = 'retail')
+    case customer_type.to_s.downcase
+    when 'wholesale', 'b2b'
+      has_wholesale_pricing? ? wholesale_price : selling_price
+    else
+      selling_price
+    end
   end
 
   def profit_status
@@ -465,6 +508,28 @@ class Product < ApplicationRecord
 
   def subscription_status_text
     subscription_enabled? ? 'Subscription Available' : 'One-time Purchase Only'
+  end
+
+  # Barcode Methods
+  def regenerate_barcode!
+    self.barcode = nil
+    generate_barcode
+    save!
+  end
+
+  def barcode_display_format
+    return barcode unless barcode.present?
+
+    case barcode_type
+    when 'EAN13'
+      # Format: 001 2617802 823
+      barcode.gsub(/(\d{3})(\d{7})(\d{3})/, '\1 \2 \3')
+    when 'EAN8'
+      # Format: 1234 5678
+      barcode.gsub(/(\d{4})(\d{4})/, '\1 \2')
+    else
+      barcode
+    end
   end
 
   # Price tracking methods
@@ -1102,6 +1167,17 @@ class Product < ApplicationRecord
     self.status ||= :draft
   end
 
+  def handle_empty_discount_values
+    # If discount is enabled but discount_value is empty or zero, reset discount
+    if is_discounted? && (discount_value.blank? || discount_value.to_f <= 0)
+      self.is_discounted = false
+      self.discount_type = nil
+      self.discount_value = nil
+      self.discount_price = nil
+      self.discount_amount = nil
+    end
+  end
+
   def discount_price_validation
     if discount_price.present? && price.present? && discount_price >= price
       errors.add(:discount_price, 'must be less than regular price')
@@ -1404,5 +1480,46 @@ class Product < ApplicationRecord
         batch.update!(quantity_remaining: 0, status: 'exhausted')
       end
     end
+  end
+
+  # Barcode Methods
+  def auto_generate_barcode?
+    true # Always auto-generate barcodes for new products
+  end
+
+  def generate_barcode
+    loop do
+      # Generate EAN-13 style barcode: Company prefix (3) + Product code (9) + Check digit (1)
+      company_prefix = "001"
+      product_code = sprintf("%09d", rand(1_000_000_000))
+      barcode_without_check = "#{company_prefix}#{product_code}"
+      check_digit = calculate_ean13_check_digit(barcode_without_check)
+
+      generated_barcode = "#{barcode_without_check}#{check_digit}"
+
+      # Ensure uniqueness
+      unless Product.exists?(barcode: generated_barcode)
+        self.barcode = generated_barcode
+        self.barcode_type = 'EAN13'
+        break
+      end
+    end
+  end
+
+  private
+
+  def calculate_ean13_check_digit(barcode_12_digits)
+    # EAN-13 check digit calculation
+    sum = 0
+    barcode_12_digits.chars.each_with_index do |digit, index|
+      if index.even?
+        sum += digit.to_i
+      else
+        sum += digit.to_i * 3
+      end
+    end
+
+    remainder = sum % 10
+    remainder == 0 ? 0 : (10 - remainder)
   end
 end

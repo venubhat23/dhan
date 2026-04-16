@@ -28,10 +28,16 @@
 <div class="card border-0 shadow-sm mb-3" id="searchSection">
   <div class="card-body py-2">
     <div class="row g-2 align-items-center">
-      <div class="col-md-5">
+      <div class="col-md-4">
         <input type="text" class="form-control form-control-sm" placeholder="Search products by name, SKU, or category..." id="productSearch">
       </div>
       <div class="col-md-3">
+        <div class="position-relative">
+          <input type="text" class="form-control form-control-sm" placeholder="Scan barcode..." id="barcodeScanner">
+          <i class="bi bi-upc-scan position-absolute top-50 end-0 translate-middle-y me-2 text-primary"></i>
+        </div>
+      </div>
+      <div class="col-md-2">
         <select class="form-select form-select-sm" id="categoryFilter">
           <option value="">All Categories</option>
           <% Category.where(status: true).each do |category| %>
@@ -39,7 +45,7 @@
           <% end %>
         </select>
       </div>
-      <div class="col-md-4">
+      <div class="col-md-3">
         <div class="d-flex gap-2 align-items-center">
           <small class="text-muted">Filter:</small>
           <div class="btn-group btn-group-sm" role="group">
@@ -1605,11 +1611,134 @@ function initializePaymentStatus() {
   updatePaymentStatusDisplay();
 }
 
+// Barcode Scanner Setup
+function setupBarcodeScanner() {
+  const barcodeInput = document.getElementById('barcodeScanner');
+  let barcodeTimeout;
+
+  if (barcodeInput) {
+    barcodeInput.addEventListener('input', function() {
+      const barcode = this.value.trim();
+
+      // Clear previous timeout
+      clearTimeout(barcodeTimeout);
+
+      if (barcode.length > 3) {
+        // Set a small delay to allow for complete barcode input
+        barcodeTimeout = setTimeout(() => {
+          searchAndAddProductByBarcode(barcode);
+        }, 300);
+      }
+    });
+
+    // Clear on Enter key
+    barcodeInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const barcode = this.value.trim();
+        if (barcode.length > 3) {
+          searchAndAddProductByBarcode(barcode);
+        }
+      }
+    });
+  }
+}
+
+function searchAndAddProductByBarcode(barcode) {
+  const barcodeInput = document.getElementById('barcodeScanner');
+
+  // Show loading state
+  barcodeInput.style.backgroundColor = '#fff3cd';
+  barcodeInput.disabled = true;
+
+  fetch(`/admin/products/find_by_barcode?barcode=${encodeURIComponent(barcode)}`)
+    .then(response => response.json())
+    .then(data => {
+      barcodeInput.style.backgroundColor = '';
+      barcodeInput.disabled = false;
+
+      if (data.error) {
+        showBarcodeAlert(data.error, 'danger');
+        barcodeInput.focus();
+      } else {
+        // Add product to cart with quantity 1
+        addProductToCartFromBarcode(data);
+        showBarcodeAlert(`Added: ${data.name} (₹${data.price})`, 'success');
+
+        // Clear barcode input for next scan
+        barcodeInput.value = '';
+        barcodeInput.focus();
+      }
+    })
+    .catch(error => {
+      barcodeInput.style.backgroundColor = '';
+      barcodeInput.disabled = false;
+      showBarcodeAlert('Failed to search barcode', 'danger');
+      console.error('Barcode search error:', error);
+      barcodeInput.focus();
+    });
+}
+
+function addProductToCartFromBarcode(productData) {
+  const productId = productData.id;
+  const productName = productData.name;
+  const finalPrice = parseFloat(productData.price);
+  const stock = productData.stock;
+
+  // Assume base price and GST rate - you may need to adjust this
+  const basePrice = finalPrice; // Simplified - ideally should be calculated
+  const gstRate = 18; // Default GST rate - should come from product data
+
+  // Add to cart with quantity 1
+  if (cart[productId]) {
+    if (cart[productId].quantity + 1 > stock) {
+      showBarcodeAlert(`Cannot add more. Maximum stock: ${stock}`, 'warning');
+      return;
+    }
+    cart[productId].quantity += 1;
+  } else {
+    cart[productId] = {
+      name: productName,
+      price: finalPrice,
+      quantity: 1,
+      stock: stock,
+      basePrice: basePrice,
+      gstRate: gstRate
+    };
+  }
+
+  updateCartDisplay();
+
+  // Switch to checkout view to show added product
+  showCheckoutView();
+}
+
+function showBarcodeAlert(message, type) {
+  // Remove existing barcode alerts
+  document.querySelectorAll('.barcode-alert').forEach(alert => alert.remove());
+
+  const alert = document.createElement('div');
+  alert.className = `alert alert-${type} alert-dismissible fade show barcode-alert position-fixed`;
+  alert.style.cssText = 'top: 120px; right: 20px; z-index: 1060; min-width: 300px;';
+  alert.innerHTML = `
+    ${message}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  `;
+
+  document.body.appendChild(alert);
+
+  // Auto remove after 3 seconds
+  setTimeout(() => {
+    alert?.remove();
+  }, 3000);
+}
+
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', function() {
   initializeCart();
   setupSearch();
   initializeCustomerSearch();
+  setupBarcodeScanner();
 
   // Set default payment method
   selectPaymentMethod('cash');
