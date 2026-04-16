@@ -708,8 +708,13 @@ Rails.application.routes.draw do
         get :products_chart
         post :upload_cloudinary_image
         get :find_by_barcode
+        get :barcode_labels
+        get :pos_checkout
       end
     end
+
+    # Product Import
+    resources :product_imports, only: [:new, :create]
 
     # Coupons
     resources :coupons do

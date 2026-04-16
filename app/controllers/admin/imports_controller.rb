@@ -228,6 +228,8 @@ class Admin::ImportsController < Admin::ApplicationController
       send_delivery_person_template
     when 'products'
       send_product_template
+    when 'dhanvantri_products'
+      send_dhanvantri_product_template
     when 'customer_subscriptions'
       send_customer_subscription_template
     when 'customer_daily_tasks'
@@ -519,6 +521,151 @@ class Admin::ImportsController < Admin::ApplicationController
     end
 
     filename = format == 'xlsx' ? 'products_import_template.xlsx' : 'products_import_template.csv'
+    send_data csv_data, filename: filename, type: 'text/csv'
+  end
+
+  def send_dhanvantri_product_template
+    format = params[:format] || 'csv'
+
+    headers = [
+      # Required fields
+      'Item*',           # Product name - required
+      'Category*',       # Category name or ID - required
+
+      # Core pricing fields
+      'Purchase Price',  # Maps to buying_price in database
+      'Cost Price',      # Maps to price (MRP) in database
+      'Wholesale Price', # Maps to wholesale_price for B2B
+
+      # Basic product info (optional)
+      'Description',     # Product description
+      'SKU',            # Stock keeping unit (auto-generated if blank)
+      'Stock',          # Initial stock quantity
+      'Weight',         # Product weight
+      'Dimensions',     # Product dimensions
+      'Unit Type',      # Kg, Bottle, Box, Liter, Piece, Gram
+      'Product Type',   # Milk, Grocery, Fruit & Vegetable
+      'Status',         # active, inactive, draft
+
+      # Pricing options (optional)
+      'Original Price', # Original price before discount
+      'Discount Price', # Final price after discount
+      'Default Selling Price', # Default selling price
+
+      # Discount settings (optional)
+      'Is Discounted',  # true/false
+      'Discount Type',  # percentage/fixed
+      'Discount Value', # discount amount or percentage
+      'Discount Amount', # calculated discount amount
+
+      # GST configuration (optional)
+      'GST Enabled',    # true/false
+      'GST Percentage', # GST rate percentage
+      'HSN Code',       # HSN code for GST
+      'CGST Percentage', # Central GST percentage
+      'SGST Percentage', # State GST percentage
+      'IGST Percentage', # Integrated GST percentage
+
+      # Stock management (optional)
+      'Minimum Stock Alert', # Low stock alert level
+
+      # SEO and marketing (optional)
+      'Tags',           # Comma-separated tags
+      'Meta Title',     # SEO title
+      'Meta Description', # SEO description
+      'Image URL',      # Product image URL
+
+      # Subscription options (optional)
+      'Is Subscription Enabled', # true/false
+
+      # Occasional product settings (optional)
+      'Is Occasional Product',   # true/false
+      'Occasional Start Date',   # YYYY-MM-DD
+      'Occasional End Date',     # YYYY-MM-DD
+      'Occasional Description',  # Description for seasonal products
+      'Occasional Auto Hide'     # true/false
+    ]
+
+    # Generate unique sample data
+    timestamp = Time.current.strftime("%Y%m%d%H%M")
+    sample_data = [
+      [
+        # Required fields
+        "Organic Rice 1kg #{timestamp}", "Grains",
+        # Core pricing
+        "100", "150", "140",
+        # Basic info
+        "Premium quality organic rice", "", "50", "1.0", "1kg packet", "Kg", "Grocery", "active",
+        # Pricing options
+        "", "", "",
+        # Discount settings
+        "", "", "", "",
+        # GST
+        "true", "5", "1006", "", "", "",
+        # Stock
+        "10",
+        # SEO
+        "organic,rice,healthy", "Premium Organic Rice 1kg", "High quality organic rice for healthy cooking",
+        "",
+        # Subscription
+        "false",
+        # Occasional
+        "", "", "", "", ""
+      ],
+      [
+        # Required fields
+        "Premium Tea 500g #{timestamp}", "Beverages",
+        # Core pricing
+        "80", "120", "110",
+        # Basic info
+        "Aromatic premium tea leaves", "", "30", "0.5", "500g packet", "Gram", "Grocery", "active",
+        # Pricing options
+        "", "", "",
+        # Discount settings
+        "", "", "", "",
+        # GST
+        "true", "12", "0902", "", "", "",
+        # Stock
+        "5",
+        # SEO
+        "tea,premium,aromatic", "Premium Tea Leaves 500g", "Fresh aromatic tea leaves for perfect brewing",
+        "",
+        # Subscription
+        "true",
+        # Occasional
+        "", "", "", "", ""
+      ],
+      [
+        # Required fields
+        "Fresh Turmeric Powder 200g #{timestamp}", "Spices",
+        # Core pricing
+        "60", "90", "85",
+        # Basic info
+        "Pure turmeric powder", "", "25", "0.2", "200g pack", "Gram", "Grocery", "active",
+        # Pricing options
+        "", "", "",
+        # Discount settings
+        "", "", "", "",
+        # GST
+        "true", "5", "0910", "", "", "",
+        # Stock
+        "15",
+        # SEO
+        "turmeric,spice,pure", "Fresh Turmeric Powder 200g", "Pure and fresh turmeric powder for cooking",
+        "",
+        # Subscription
+        "false",
+        # Occasional
+        "", "", "", "", ""
+      ]
+    ]
+
+    csv_data = CSV.generate(headers: true) do |csv|
+      csv << headers
+      sample_data.each { |row| csv << row }
+    end
+
+    filename = format == 'xlsx' ? 'dhanvantri_products_import_template.xlsx' : 'dhanvantri_products_import_template.csv'
     send_data csv_data, filename: filename, type: 'text/csv'
   end
 

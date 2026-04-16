@@ -457,7 +457,7 @@ class Admin::ProductsController < Admin::ApplicationController
     params.require(:product).permit(
       :name, :description, :category_id, :price, :discount_price, :stock, :initial_stock,
       :status, :sku, :weight, :dimensions, :meta_title, :meta_description, :tags,
-      :buying_price, :wholesale_price, :discount_type, :discount_value, :original_price, :discount_amount, :is_discounted,
+      :buying_price, :wholesale_price, :cost_price, :purchase_price, :discount_type, :discount_value, :original_price, :discount_amount, :is_discounted,
       :product_type, :unit_type, :is_subscription_enabled,
       :is_occasional_product, :occasional_start_date, :occasional_end_date, :occasional_description, :occasional_auto_hide,
       :occasional_schedule_type, :occasional_recurring_from_day, :occasional_recurring_from_time,
@@ -548,5 +548,42 @@ class Admin::ProductsController < Admin::ApplicationController
     else
       render json: { error: 'Product not found with this barcode' }, status: :not_found
     end
+  end
+
+  def barcode_labels
+    @products = case params[:filter]
+                when 'recent'
+                  Product.active.recent.limit(15)
+                when 'category'
+                  Category.find(params[:category_id]).products.active if params[:category_id].present?
+                when 'selected'
+                  Product.where(id: params[:product_ids]).active if params[:product_ids].present?
+                when 'all'
+                  Product.active.recent.limit(50)
+                else
+                  if params[:id].present?
+                    [Product.find(params[:id])]
+                  else
+                    # Show all active products with barcodes
+                    Product.active.where.not(barcode: [nil, '']).recent.limit(30)
+                  end
+                end
+
+    # Fallback to sample data if no products found
+    @products = [Product.find(62)] if @products.blank?
+
+    respond_to do |format|
+      format.html { render layout: false }
+      format.pdf do
+        render pdf: "barcode_labels_#{Date.current}",
+               layout: false,
+               page_size: 'A4',
+               orientation: 'Portrait'
+      end
+    end
+  end
+
+  def pos_checkout
+    # POS checkout system for barcode scanning
   end
 end

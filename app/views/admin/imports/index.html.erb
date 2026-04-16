@@ -201,6 +201,39 @@
     </div>
   </div>
 
+  <!-- Dhanvantri Products Import Card -->
+  <div class="col-xl-6 col-lg-6 mb-4">
+    <div class="card shadow-lg border-0 h-100 import-card">
+      <div class="card-header bg-gradient-warning text-dark">
+        <div class="d-flex align-items-center">
+          <i class="fas fa-seedling fa-2x me-3"></i>
+          <div>
+            <h5 class="mb-0 text-dark"><strong>Import Dhanvantri Products</strong></h5>
+            <small class="text-dark-75"><strong>Bulk upload Dhanvantri product catalog</strong></small>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <p class="card-text text-muted mb-4">
+          Import Dhanvantri products with specific pricing structure: Purchase Price → Buying Price, Cost Price → MRP, and Wholesale Price for B2B customers.
+          Automatically maps categories and generates SKUs.
+        </p>
+
+        <div class="d-flex justify-content-between align-items-center">
+          <%= link_to download_template_admin_imports_path(template_type: 'dhanvantri_products'),
+                      class: "btn btn-outline-warning btn-sm",
+                      target: "_blank" do %>
+            <i class="fas fa-download me-1"></i> Download Template
+          <% end %>
+
+          <%= link_to new_admin_product_import_path, class: "btn btn-warning" do %>
+            <i class="fas fa-upload me-1"></i> Import Dhanvantri Products
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Customer with Subscription Import Card -->
   <div class="col-xl-6 col-lg-6 mb-4">
     <div class="card shadow-lg border-0 h-100 import-card">

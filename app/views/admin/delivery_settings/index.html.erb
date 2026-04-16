@@ -15,57 +15,41 @@
         </div>
 
         <div class="card-body">
-          <!-- Summary Cards -->
+          <!-- Summary Cards - Simple and Visible -->
           <div class="row mb-4">
             <div class="col-md-3">
-              <div class="card bg-primary text-white">
-                <div class="card-body">
-                  <div class="d-flex justify-content-between">
-                    <div>
-                      <h6 class="card-title">Total Pincodes</h6>
-                      <h4><%= @bangalore_pincodes.count %></h4>
-                    </div>
-                    <i class="fas fa-map-marker-alt fa-2x"></i>
-                  </div>
+              <div class="card border-primary border-2">
+                <div class="card-body text-center" style="background-color: #f8f9fa; color: #333;">
+                  <i class="fas fa-map-marker-alt fa-2x text-primary mb-2"></i>
+                  <h6 class="text-muted mb-1">Total Pincodes</h6>
+                  <h3 class="text-primary fw-bold"><%= @bangalore_pincodes.count %></h3>
                 </div>
               </div>
             </div>
             <div class="col-md-3">
-              <div class="card bg-success text-white">
-                <div class="card-body">
-                  <div class="d-flex justify-content-between">
-                    <div>
-                      <h6 class="card-title">Active Zones</h6>
-                      <h4><%= @bangalore_pincodes.active.count %></h4>
-                    </div>
-                    <i class="fas fa-check-circle fa-2x"></i>
-                  </div>
+              <div class="card border-success border-2">
+                <div class="card-body text-center" style="background-color: #f8f9fa; color: #333;">
+                  <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                  <h6 class="text-muted mb-1">Active Zones</h6>
+                  <h3 class="text-success fw-bold"><%= @bangalore_pincodes.active.count %></h3>
                 </div>
               </div>
             </div>
             <div class="col-md-3">
-              <div class="card bg-warning text-white">
-                <div class="card-body">
-                  <div class="d-flex justify-content-between">
-                    <div>
-                      <h6 class="card-title">Inactive Zones</h6>
-                      <h4><%= @bangalore_pincodes.inactive.count %></h4>
-                    </div>
-                    <i class="fas fa-pause-circle fa-2x"></i>
-                  </div>
+              <div class="card border-warning border-2">
+                <div class="card-body text-center" style="background-color: #f8f9fa; color: #333;">
+                  <i class="fas fa-pause-circle fa-2x text-warning mb-2"></i>
+                  <h6 class="text-muted mb-1">Inactive Zones</h6>
+                  <h3 class="text-warning fw-bold"><%= @bangalore_pincodes.inactive.count %></h3>
                 </div>
               </div>
             </div>
             <div class="col-md-3">
-              <div class="card bg-info text-white">
-                <div class="card-body">
-                  <div class="d-flex justify-content-between">
-                    <div>
-                      <h6 class="card-title">Avg. Charge</h6>
-                      <h4>₹<%= @bangalore_pincodes.active.average(:charge_amount)&.round(2) || 0 %></h4>
-                    </div>
-                    <i class="fas fa-rupee-sign fa-2x"></i>
-                  </div>
+              <div class="card border-info border-2">
+                <div class="card-body text-center" style="background-color: #f8f9fa; color: #333;">
+                  <i class="fas fa-rupee-sign fa-2x text-info mb-2"></i>
+                  <h6 class="text-muted mb-1">Avg. Charge</h6>
+                  <h3 class="text-info fw-bold">₹<%= @bangalore_pincodes.active.average(:charge_amount)&.round(2) || 0 %></h3>
                 </div>
               </div>
             </div>

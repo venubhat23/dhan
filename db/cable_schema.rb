@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_04_12_064654) do
+ActiveRecord::Schema[8.0].define(version: 2026_04_16_035533) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -360,6 +360,17 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_12_064654) do
     t.boolean "is_registered_by_mobile"
     t.index ["latitude", "longitude"], name: "index_customers_on_location"
     t.index ["whatsapp_number"], name: "index_customers_on_whatsapp_number"
+  end
+
+  create_table "delivery_charges", force: :cascade do |t|
+    t.string "pincode", null: false
+    t.string "area"
+    t.decimal "charge_amount", precision: 10, scale: 2, default: "0.0"
+    t.boolean "is_active", default: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["is_active"], name: "index_delivery_charges_on_is_active"
+    t.index ["pincode"], name: "index_delivery_charges_on_pincode", unique: true
   end
 
   create_table "delivery_people", force: :cascade do |t|
@@ -802,6 +813,12 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_12_064654) do
     t.text "additional_images_urls"
     t.integer "display_order"
     t.decimal "base_price_excluding_gst"
+    t.string "barcode", default: "", null: false
+    t.string "barcode_type", default: "EAN13"
+    t.decimal "wholesale_price"
+    t.decimal "cost_price"
+    t.decimal "purchase_price"
+    t.index ["barcode"], name: "index_products_on_barcode", unique: true, where: "((barcode)::text <> ''::text)"
     t.index ["category_id"], name: "index_products_on_category_id"
     t.index ["is_occasional_product", "occasional_start_date", "occasional_end_date"], name: "index_products_on_occasional_dates"
     t.index ["is_occasional_product"], name: "index_products_on_is_occasional_product"

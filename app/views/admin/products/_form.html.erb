@@ -220,17 +220,35 @@
       </div>
       <div class="card-body">
         <div class="row g-3">
+          <!-- Purchase and Cost Price Row -->
           <div class="col-md-6">
-            <%= form.label :buying_price, "Buying Price", class: "form-label" %>
+            <%= form.label :purchase_price, "Purchase Price", class: "form-label" %>
             <div class="input-group">
               <span class="input-group-text">₹</span>
-              <%= form.number_field :buying_price, class: "form-control", step: 0.01, min: 0, placeholder: "0.00", id: "product_buying_price" %>
+              <%= form.number_field :purchase_price, class: "form-control", step: 0.01, min: 0, placeholder: "0.00" %>
+            </div>
+            <div class="form-text">
+              <i class="bi bi-info-circle me-1"></i>
+              Price at which you purchase from supplier
             </div>
           </div>
 
           <div class="col-md-6">
+            <%= form.label :cost_price, "Cost Price", class: "form-label" %>
+            <div class="input-group">
+              <span class="input-group-text">₹</span>
+              <%= form.number_field :cost_price, class: "form-control", step: 0.01, min: 0, placeholder: "0.00" %>
+            </div>
+            <div class="form-text">
+              <i class="bi bi-info-circle me-1"></i>
+              Total cost including overhead and expenses
+            </div>
+          </div>
+
+          <!-- Selling Prices Row -->
+          <div class="col-md-6">
             <%= form.label :price, class: "form-label", id: "price_label" do %>
-              <span id="price_label_text">Base Price (Excluding GST)</span>
+              <span id="price_label_text">MRP (Excluding GST)</span>
               <span class="text-danger">*</span>
             <% end %>
             <div class="input-group">
@@ -238,7 +256,28 @@
               <%= form.number_field :price, class: "form-control", step: 0.01, min: 0, placeholder: "95.24", required: true, id: "product_price" %>
             </div>
             <div class="form-text">
-              <small id="price_help_text">Price before adding GST</small>
+              <small id="price_help_text">Maximum Retail Price before adding GST</small>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <%= form.label :wholesale_price, "Wholesale Price", class: "form-label" %>
+            <div class="input-group">
+              <span class="input-group-text">₹</span>
+              <%= form.number_field :wholesale_price, class: "form-control", step: 0.01, min: 0, placeholder: "0.00" %>
+            </div>
+            <div class="form-text">
+              <i class="bi bi-info-circle me-1"></i>
+              Special price for B2B customers and bulk orders
+            </div>
+          </div>
+
+          <!-- Legacy Buying Price (kept for compatibility) -->
+          <div class="col-md-6" style="display: none;">
+            <%= form.label :buying_price, "Buying Price (Legacy)", class: "form-label" %>
+            <div class="input-group">
+              <span class="input-group-text">₹</span>
+              <%= form.number_field :buying_price, class: "form-control", step: 0.01, min: 0, placeholder: "0.00", id: "product_buying_price" %>
             </div>
           </div>
 

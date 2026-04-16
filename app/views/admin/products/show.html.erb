@@ -9,9 +9,13 @@
       <i class="bi bi-arrow-left me-1"></i>
       Back to Products
     <% end %>
-    <%= link_to edit_admin_product_path(@product), class: "btn btn-primary" do %>
+    <%= link_to edit_admin_product_path(@product), class: "btn btn-primary me-2" do %>
       <i class="bi bi-pencil me-1"></i>
       Edit Product
+    <% end %>
+    <%= link_to barcode_labels_admin_products_path(id: @product.id), class: "btn btn-outline-secondary", target: "_blank" do %>
+      <i class="bi bi-upc me-1"></i>
+      Print Labels
     <% end %>
   </div>
 </div>
@@ -205,6 +209,31 @@
                     </div>
                   <% end %>
 
+                  <!-- Wholesale Pricing Card -->
+                  <% if @product.has_wholesale_pricing? %>
+                    <div class="col-lg-3 col-sm-6">
+                      <div class="p-2 border border-dashed rounded">
+                        <div class="d-flex align-items-center">
+                          <div class="avatar-sm me-2">
+                            <div class="avatar-title rounded bg-transparent text-info fs-24">
+                              <i class="bi bi-building"></i>
+                            </div>
+                          </div>
+                          <div class="flex-grow-1">
+                            <p class="text-muted mb-1">
+                              B2B Price
+                              <span class="badge bg-info ms-1">Wholesale</span>
+                            </p>
+                            <h5 class="mb-0 text-info">₹<%= @product.wholesale_price.round(2) %></h5>
+                            <small class="text-primary">
+                              <%= @product.wholesale_discount_percentage.round(1) %>% off retail
+                            </small>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  <% end %>
+
                   <div class="col-lg-3 col-sm-6">
                     <div class="p-2 border border-dashed rounded">
                       <div class="d-flex align-items-center">
@@ -373,6 +402,115 @@
                     </div>
                   </div>
                 <% end %>
+
+                <!-- Comprehensive Pricing Breakdown -->
+                <div class="mt-4">
+                  <div class="card">
+                    <div class="card-header">
+                      <h5 class="mb-0">
+                        <i class="bi bi-currency-rupee text-primary"></i>
+                        Pricing Breakdown
+                      </h5>
+                    </div>
+                    <div class="card-body">
+                      <div class="row g-3">
+                        <!-- Buying Price -->
+                        <% if @product.buying_price.present? %>
+                          <div class="col-md-4">
+                            <div class="text-center p-3 border rounded">
+                              <div class="avatar-sm mx-auto mb-2">
+                                <div class="avatar-title rounded-circle bg-warning bg-opacity-10 text-warning">
+                                  <i class="bi bi-cart-plus fs-20"></i>
+                                </div>
+                              </div>
+                              <h6 class="text-muted mb-1">Cost Price</h6>
+                              <h4 class="mb-1 text-warning">₹<%= @product.buying_price.round(2) %></h4>
+                              <small class="text-muted">Your purchase cost</small>
+                            </div>
+                          </div>
+                        <% end %>
+
+                        <!-- Wholesale Price -->
+                        <% if @product.has_wholesale_pricing? %>
+                          <div class="col-md-4">
+                            <div class="text-center p-3 border rounded">
+                              <div class="avatar-sm mx-auto mb-2">
+                                <div class="avatar-title rounded-circle bg-info bg-opacity-10 text-info">
+                                  <i class="bi bi-building fs-20"></i>
+                                </div>
+                              </div>
+                              <h6 class="text-muted mb-1">
+                                B2B Price
+                                <span class="badge bg-info ms-1">Wholesale</span>
+                              </h6>
+                              <h4 class="mb-1 text-info">₹<%= @product.wholesale_price.round(2) %></h4>
+                              <small class="text-muted">
+                                <% if @product.buying_price.present? %>
+                                  ₹<%= @product.wholesale_profit_amount.round(2) %> profit
+                                  (<%= @product.wholesale_profit_percentage.round(1) %>%)
+                                <% else %>
+                                  B2B customers
+                                <% end %>
+                              </small>
+                            </div>
+                          </div>
+                        <% end %>
+
+                        <!-- Retail Price -->
+                        <div class="col-md-4">
+                          <div class="text-center p-3 border rounded">
+                            <div class="avatar-sm mx-auto mb-2">
+                              <div class="avatar-title rounded-circle bg-primary bg-opacity-10 text-primary">
+                                <i class="bi bi-person fs-20"></i>
+                              </div>
+                            </div>
+                            <h6 class="text-muted mb-1">Retail Price</h6>
+                            <h4 class="mb-1 text-primary">₹<%= @product.selling_price.round(2) %></h4>
+                            <small class="text-muted">
+                              <% if @product.buying_price.present? %>
+                                ₹<%= @product.profit_amount.round(2) %> profit
+                                (<%= @product.profit_percentage.round(1) %>%)
+                              <% else %>
+                                Regular customers
+                              <% end %>
+                            </small>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Pricing Summary -->
+                      <% if @product.has_wholesale_pricing? || @product.buying_price.present? %>
+                        <div class="mt-4 p-3 bg-light rounded">
+                          <h6 class="mb-3">
+                            <i class="bi bi-calculator text-success"></i>
+                            Pricing Analysis
+                          </h6>
+                          <div class="row g-2">
+                            <% if @product.has_wholesale_pricing? %>
+                              <div class="col-md-6">
+                                <small class="text-muted d-block">B2B Discount from Retail</small>
+                                <span class="fw-bold text-info">
+                                  ₹<%= @product.wholesale_savings_amount.round(2) %>
+                                  (<%= @product.wholesale_discount_percentage.round(1) %>% off)
+                                </span>
+                              </div>
+                            <% end %>
+
+                            <% if @product.buying_price.present? %>
+                              <div class="col-md-6">
+                                <small class="text-muted d-block">Best Profit Margin</small>
+                                <span class="fw-bold text-success">
+                                  <%= @product.has_wholesale_pricing? && @product.profit_percentage > @product.wholesale_profit_percentage ? 'Retail' : (@product.has_wholesale_pricing? ? 'Wholesale' : 'Retail') %>
+                                  (<%= [@product.profit_percentage, @product.has_wholesale_pricing? ? @product.wholesale_profit_percentage : 0].max.round(1) %>%)
+                                </span>
+                              </div>
+                            <% end %>
+                          </div>
+                        </div>
+                      <% end %>
+                    </div>
+                  </div>
+                </div>
 
                 <% if @product.tags.present? %>
                   <div class="mt-3">
