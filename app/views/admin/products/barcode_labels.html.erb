@@ -150,9 +150,9 @@
 
     <div style="background: #e7f3ff; padding: 10px; margin-bottom: 15px; border-radius: 4px;">
       <strong>📊 Current Selection:</strong>
-      <%= @products.count %> products |
-      Total labels: <%= (@products.count * (params[:quantity]&.to_i || 1)) %>
-      <% if @products.count > 0 %>
+      <%= @products&.count || 0 %> products |
+      Total labels: <%= ((@products&.count || 0) * (params[:quantity]&.to_i || 1)) %>
+      <% if @products&.any? %>
         | First: <%= @products.first.name.truncate(20) %>
         <% if @products.count > 1 %>
           | Last: <%= @products.last.name.truncate(20) %>
@@ -190,7 +190,7 @@
     </div>
 
     <div class="form-group">
-      <button class="btn" onclick="window.print()">🖨️ Print <%= (@products.count * (params[:quantity]&.to_i || 1)) %> Labels</button>
+      <button class="btn" onclick="window.print()">🖨️ Print <%= ((@products&.count || 0) * (params[:quantity]&.to_i || 1)) %> Labels</button>
       <button class="btn btn-secondary" onclick="window.location.reload()">🔄 Refresh</button>
       <button class="btn btn-secondary" onclick="window.history.back()">← Back to Products</button>
     </div>
@@ -198,7 +198,7 @@
 
   <div class="label-page">
     <%
-      products = @products.presence || [Product.find(62)]
+      products = @products.presence || []
       quantity = params[:quantity]&.to_i || 1
       label_count = 0
     %>
@@ -279,7 +279,7 @@
       console.log('Barcode labels ready for <%= products.count %> products');
 
       // Show helpful info
-      const productCount = <%= @products.count %>;
+      const productCount = <%= @products&.count || 0 %>;
       const labelCount = productCount * <%= params[:quantity]&.to_i || 1 %>;
 
       if (productCount > 50) {

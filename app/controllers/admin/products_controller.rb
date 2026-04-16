@@ -569,8 +569,18 @@ class Admin::ProductsController < Admin::ApplicationController
                   end
                 end
 
-    # Fallback to sample data if no products found
-    @products = [Product.find(62)] if @products.blank?
+    # Ensure @products is never nil - fallback to empty collection
+    @products ||= Product.none
+
+    # If still empty, try to find any active products with barcodes
+    if @products.empty?
+      @products = Product.active.where.not(barcode: [nil, '']).limit(5)
+    end
+
+    # Final fallback to any active products
+    if @products.empty?
+      @products = Product.active.limit(5)
+    end
 
     respond_to do |format|
       format.html { render layout: false }
