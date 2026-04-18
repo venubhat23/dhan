@@ -75,13 +75,13 @@ class Admin::ProductImportsController < ApplicationController
           discount_value: parse_decimal(row['Discount Value']),
           discount_amount: parse_decimal(row['Discount Amount']),
 
-          # GST configuration
+          # GST configuration (with percentage limits)
           gst_enabled: parse_boolean(row['GST Enabled']),
-          gst_percentage: parse_decimal(row['GST Percentage']),
+          gst_percentage: parse_decimal(row['GST Percentage'], 999.99),
           hsn_code: row['HSN Code']&.strip.presence,
-          cgst_percentage: parse_decimal(row['CGST Percentage']),
-          sgst_percentage: parse_decimal(row['SGST Percentage']),
-          igst_percentage: parse_decimal(row['IGST Percentage']),
+          cgst_percentage: parse_decimal(row['CGST Percentage'], 999.99),
+          sgst_percentage: parse_decimal(row['SGST Percentage'], 999.99),
+          igst_percentage: parse_decimal(row['IGST Percentage'], 999.99),
 
           # Stock management
           minimum_stock_alert: parse_integer(row['Minimum Stock Alert']),
@@ -134,14 +134,19 @@ class Admin::ProductImportsController < ApplicationController
     end
   end
 
-  def parse_decimal(value)
+  def parse_decimal(value, max_value = nil)
     return nil if value.blank?
 
     # Remove currency symbols and convert to decimal
     cleaned_value = value.to_s.gsub(/[₹,]/, '').strip
     return nil if cleaned_value.blank?
 
-    Float(cleaned_value)
+    decimal_value = Float(cleaned_value)
+
+    # Apply max value constraint if specified (for GST percentages)
+    decimal_value = [decimal_value, max_value].min if max_value
+
+    decimal_value
   rescue
     nil
   end

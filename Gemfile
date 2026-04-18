@@ -42,6 +42,9 @@ gem "mini_magick"
 # Cloudinary for file uploads
 gem "cloudinary"
 
+# AWS SDK for S3-compatible storage (Cloudflare R2)
+gem "aws-sdk-s3", require: false
+
 # Charts and data visualization
 gem "chartkick"
 gem "groupdate"

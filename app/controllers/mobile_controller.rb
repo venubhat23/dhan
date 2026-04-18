@@ -5,7 +5,7 @@ class MobileController < ApplicationController
   # Skip all authorization checks for mobile controller
   skip_before_action :authenticate_user!, raise: false
   skip_load_and_authorize_resource
-  skip_before_action :verify_authenticity_token, only: [:authenticate]
+  skip_before_action :verify_authenticity_token, only: [:authenticate, :add_to_cart, :remove_from_cart, :update_cart, :get_cart, :search_products, :search_customers, :update_booking_status, :generate_invoice]
 
   def login
     # Public login page

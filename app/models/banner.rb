@@ -76,7 +76,7 @@ class Banner < ApplicationRecord
     if image_url.present?
       cloudinary_image_url
     elsif banner_image.attached?
-      Rails.application.routes.url_helpers.rails_blob_url(banner_image, only_path: true)
+      Rails.application.routes.url_helpers.rails_blob_path(banner_image, only_path: true)
     else
       nil
     end

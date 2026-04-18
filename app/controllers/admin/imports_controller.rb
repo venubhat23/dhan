@@ -38,6 +38,14 @@ class Admin::ImportsController < Admin::ApplicationController
     # Show customer with daily tasks import form
   end
 
+  def vendors_form
+    # Show vendors import form
+  end
+
+  def dhanvantri_customers_form
+    # Show Dhanvantri customers import form
+  end
+
   # POST /admin/import/customers
   def customers
     uploaded_file = params[:file]
@@ -199,6 +207,52 @@ class Admin::ImportsController < Admin::ApplicationController
     end
   end
 
+  # POST /admin/import/vendors
+  def vendors
+    uploaded_file = params[:file]
+
+    if uploaded_file.blank?
+      redirect_back fallback_location: admin_imports_path, alert: 'Please select a file to import.'
+      return
+    end
+
+    begin
+      import_result = ImportService::VendorImporter.new(uploaded_file).import
+
+      if import_result[:success]
+        redirect_to admin_vendors_path, notice: "Successfully imported #{import_result[:imported_count]} vendors. #{import_result[:skipped_count]} records were skipped due to validation errors."
+      else
+        redirect_back fallback_location: admin_imports_path, alert: "Import failed: #{import_result[:error]}"
+      end
+    rescue => e
+      Rails.logger.error "Vendor import error: #{e.message}"
+      redirect_back fallback_location: admin_imports_path, alert: 'An error occurred during import. Please check your file format and try again.'
+    end
+  end
+
+  # POST /admin/import/dhanvantri_customers
+  def dhanvantri_customers
+    uploaded_file = params[:file]
+
+    if uploaded_file.blank?
+      redirect_back fallback_location: admin_imports_path, alert: 'Please select a file to import.'
+      return
+    end
+
+    begin
+      import_result = ImportService::DhanvantriCustomerImporter.new(uploaded_file).import
+
+      if import_result[:success]
+        redirect_to admin_customers_path, notice: "Successfully imported #{import_result[:imported_count]} Dhanvantri customers. #{import_result[:skipped_count]} records were skipped due to validation errors."
+      else
+        redirect_back fallback_location: admin_imports_path, alert: "Import failed: #{import_result[:error]}"
+      end
+    rescue => e
+      Rails.logger.error "Dhanvantri customer import error: #{e.message}"
+      redirect_back fallback_location: admin_imports_path, alert: 'An error occurred during import. Please check your file format and try again.'
+    end
+  end
+
   # CSV Validation endpoint
   def validate_csv
     uploaded_file = params[:file]
@@ -261,6 +315,10 @@ class Admin::ImportsController < Admin::ApplicationController
       send_customer_subscription_template
     when 'customer_daily_tasks'
       send_customer_daily_task_template
+    when 'vendors'
+      send_vendor_template
+    when 'dhanvantri_customers'
+      send_dhanvantri_customer_template
     else
       redirect_to admin_imports_path, alert: 'Invalid template type'
     end
@@ -841,6 +899,119 @@ class Admin::ImportsController < Admin::ApplicationController
     end
 
     filename = format == 'xlsx' ? 'customer_daily_tasks_import_template.xlsx' : 'customer_daily_tasks_import_template.csv'
+    send_data csv_data, filename: filename, type: 'text/csv'
+  end
+
+  def send_vendor_template
+    format = params[:format] || 'csv'
+
+    headers = [
+      # Required fields (marked with *)
+      'name*', 'phone*',
+
+      # Optional fields
+      'email', 'address', 'gst_number',
+
+      # Payment and status settings (optional)
+      'payment_type', 'opening_balance', 'status'
+    ]
+
+    sample_data = [
+      [
+        # Required fields
+        'ABC Suppliers', '9876543210',
+
+        # Optional fields
+        'abc.suppliers@example.com', '123 Supplier Street, Mumbai, Maharashtra, 400001', '27ABCDE1234F1Z5',
+
+        # Payment and status
+        'Credit', '5000', 'true'
+      ],
+      [
+        # Required fields
+        'Fresh Vegetable Vendors', '9876543211',
+
+        # Optional fields
+        'fresh.vegetables@example.com', '456 Market Road, Delhi, 110001', '',
+
+        # Payment and status
+        'Cash', '0', 'true'
+      ],
+      [
+        # Required fields
+        'Dhanvantri Natural Products', '9876543212',
+
+        # Optional fields
+        'contact@dhanvantri.com', '789 Industrial Area, Bangalore, Karnataka, 560001', '29FGHIJ5678K1L6',
+
+        # Payment and status
+        'Credit', '15000', 'true'
+      ]
+    ]
+
+    csv_data = CSV.generate(headers: true) do |csv|
+      csv << headers
+      sample_data.each { |row| csv << row }
+    end
+
+    filename = format == 'xlsx' ? 'vendors_import_template.xlsx' : 'vendors_import_template.csv'
+    send_data csv_data, filename: filename, type: 'text/csv'
+  end
+
+  def send_dhanvantri_customer_template
+    format = params[:format] || 'csv'
+
+    headers = [
+      # Required fields that you specified
+      'Name*',              # Customer name - required (maps to first_name)
+      'Number*',            # Mobile number - required (maps to mobile)
+
+      # Optional fields based on customer model and your requirements
+      'Alternate Number',   # Maps to emergency_contact_number
+      'WhatsApp No',        # Maps to whatsapp_number
+      'Gender',             # Maps to gender
+      'GST Number',         # Maps to gst_no
+      'Address',            # Maps to address
+      'Location',           # Could map to location notes or general location info
+      'Email'               # Maps to email
+    ]
+
+    sample_data = [
+      [
+        # Required fields
+        'Rajesh Kumar', '9876543210',
+
+        # Optional fields
+        '9876543211', '9876543210', 'male', 'GSTIN1234567890',
+        '123 Business Street, Mumbai, Maharashtra, 400001',
+        'Andheri West', 'rajesh.kumar@example.com'
+      ],
+      [
+        # Required fields
+        'Priya Sharma', '9876543212',
+
+        # Optional fields
+        '', '9876543212', 'female', '',
+        '456 Residential Colony, Delhi, 110001',
+        'CP Area', 'priya.sharma@example.com'
+      ],
+      [
+        # Required fields
+        'Suresh Patel', '9876543213',
+
+        # Optional fields
+        '9876543214', '9876543213', 'male', 'GSTIN9876543210',
+        '789 Trade Center, Ahmedabad, Gujarat, 380001',
+        'Commercial Area', 'suresh.patel@example.com'
+      ]
+    ]
+
+    csv_data = CSV.generate(headers: true) do |csv|
+      csv << headers
+      sample_data.each { |row| csv << row }
+    end
+
+    filename = format == 'xlsx' ? 'dhanvantri_customers_import_template.xlsx' : 'dhanvantri_customers_import_template.csv'
     send_data csv_data, filename: filename, type: 'text/csv'
   end
 

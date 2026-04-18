@@ -267,6 +267,72 @@
     </div>
   </div>
 
+  <!-- Dhanvantri Customer Import Card -->
+  <div class="col-xl-6 col-lg-6 mb-4">
+    <div class="card shadow-lg border-0 h-100 import-card">
+      <div class="card-header bg-gradient-success text-white">
+        <div class="d-flex align-items-center">
+          <i class="fas fa-user-friends fa-2x me-3"></i>
+          <div>
+            <h5 class="mb-0 text-dark"><strong>Import Dhanvantri Customers</strong></h5>
+            <small class="text-dark-75"><strong>Bulk upload Dhanvantri customer database</strong></small>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <p class="card-text text-muted mb-4">
+          Import Dhanvantri customer data with simplified format: name, mobile, alternate number, WhatsApp, gender, GST, address, location, and email.
+          Perfect for migrating existing customer databases.
+        </p>
+
+        <div class="d-flex justify-content-between align-items-center">
+          <%= link_to download_template_admin_imports_path(template_type: 'dhanvantri_customers'),
+                      class: "btn btn-outline-success btn-sm",
+                      target: "_blank" do %>
+            <i class="fas fa-download me-1"></i> Download Template
+          <% end %>
+
+          <%= link_to dhanvantri_customers_form_admin_imports_path, class: "btn btn-success" do %>
+            <i class="fas fa-upload me-1"></i> Import Dhanvantri Customers
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vendor Import Card -->
+  <div class="col-xl-6 col-lg-6 mb-4">
+    <div class="card shadow-lg border-0 h-100 import-card">
+      <div class="card-header bg-gradient-danger text-white">
+        <div class="d-flex align-items-center">
+          <i class="fas fa-truck fa-2x me-3"></i>
+          <div>
+            <h5 class="mb-0 text-dark"><strong>Import Vendors</strong></h5>
+            <small class="text-dark-75"><strong>Bulk upload vendor/supplier records</strong></small>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <p class="card-text text-muted mb-4">
+          Import vendor data including contact details, GST information, payment preferences, and opening balance.
+          Supports both cash and credit payment vendors with comprehensive validation.
+        </p>
+
+        <div class="d-flex justify-content-between align-items-center">
+          <%= link_to download_template_admin_imports_path(template_type: 'vendors'),
+                      class: "btn btn-outline-danger btn-sm",
+                      target: "_blank" do %>
+            <i class="fas fa-download me-1"></i> Download Template
+          <% end %>
+
+          <%= link_to vendors_form_admin_imports_path, class: "btn btn-danger" do %>
+            <i class="fas fa-upload me-1"></i> Import Vendors
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Customer with Daily Tasks Import Card -->
   <div class="col-xl-6 col-lg-6 mb-4">
     <div class="card shadow-lg border-0 h-100 import-card">

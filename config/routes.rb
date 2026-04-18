@@ -668,6 +668,8 @@ Rails.application.routes.draw do
         get :products_form
         get :customer_subscriptions_form
         get :customer_daily_tasks_form
+        get :vendors_form
+        get :dhanvantri_customers_form
         get :download_template
         post :validate_csv
       end
@@ -684,6 +686,8 @@ Rails.application.routes.draw do
     post 'import/dhanvantri_products', to: 'imports#dhanvantri_products'
     post 'import/customer_subscriptions', to: 'imports#customer_subscriptions'
     post 'import/customer_daily_tasks', to: 'imports#customer_daily_tasks'
+    post 'import/vendors', to: 'imports#vendors'
+    post 'import/dhanvantri_customers', to: 'imports#dhanvantri_customers'
     post 'import/agencies', to: 'imports#agencies'
 
     # E-commerce Management
