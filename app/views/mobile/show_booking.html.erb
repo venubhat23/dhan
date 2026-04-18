@@ -1,0 +1,157 @@
+<!-- Booking Header -->
+<div class="card card-modern mb-3">
+  <div class="card-header card-header-modern">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h5 class="mb-0">#<%= @booking.booking_number %></h5>
+        <small class="opacity-75"><%= @booking.created_at.strftime('%d %b, %Y at %I:%M %p') %></small>
+      </div>
+      <div class="badge bg-light text-dark fs-6">
+        <%= @booking.status&.humanize || 'Draft' %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Customer Information -->
+<div class="card card-modern mb-3">
+  <div class="card-header">
+    <h6 class="mb-0"><i class="fas fa-user me-2"></i>Customer Details</h6>
+  </div>
+  <div class="card-body">
+    <% if @booking.customer_name.present? %>
+      <div class="row mb-2">
+        <div class="col-4 text-muted">Name:</div>
+        <div class="col-8 fw-bold"><%= @booking.customer_name %></div>
+      </div>
+    <% end %>
+
+    <% if @booking.customer_phone.present? %>
+      <div class="row mb-2">
+        <div class="col-4 text-muted">Mobile:</div>
+        <div class="col-8">
+          <a href="tel:<%= @booking.customer_phone %>" class="text-decoration-none">
+            <i class="fas fa-phone me-1"></i><%= @booking.customer_phone %>
+          </a>
+        </div>
+      </div>
+    <% end %>
+
+    <% if @booking.delivery_address.present? %>
+      <div class="row">
+        <div class="col-4 text-muted">Address:</div>
+        <div class="col-8"><%= @booking.delivery_address %></div>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Payment Information -->
+<div class="card card-modern mb-3">
+  <div class="card-header">
+    <h6 class="mb-0"><i class="fas fa-rupee-sign me-2"></i>Payment Details</h6>
+  </div>
+  <div class="card-body">
+    <div class="row mb-2">
+      <div class="col-6 text-muted">Total Amount:</div>
+      <div class="col-6 text-end">
+        <h5 class="mb-0 text-success">₹<%= @booking.total_amount %></h5>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-6 text-muted">Payment Status:</div>
+      <div class="col-6 text-end">
+        <% case @booking.payment_status %>
+        <% when 'paid' %>
+          <span class="badge bg-success"><i class="fas fa-check me-1"></i>Paid</span>
+        <% when 'partial' %>
+          <span class="badge bg-warning"><i class="fas fa-clock me-1"></i>Partial</span>
+        <% else %>
+          <span class="badge bg-danger"><i class="fas fa-times me-1"></i>Unpaid</span>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Booking Items (if any) -->
+<% if @booking.booking_items&.any? %>
+  <div class="card card-modern mb-3">
+    <div class="card-header">
+      <h6 class="mb-0"><i class="fas fa-list me-2"></i>Items</h6>
+    </div>
+    <div class="card-body">
+      <% @booking.booking_items.each do |item| %>
+        <div class="row border-bottom py-2">
+          <div class="col-8">
+            <strong><%= item.product.name if item.product %></strong><br>
+            <small class="text-muted">Qty: <%= item.quantity %></small>
+          </div>
+          <div class="col-4 text-end">
+            ₹<%= item.price %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+<% end %>
+
+<!-- Action Buttons -->
+<div class="row">
+  <div class="col-6">
+    <%= link_to mobile_bookings_path, class: "btn btn-outline-secondary btn-modern w-100" do %>
+      <i class="fas fa-arrow-left me-2"></i> Back
+    <% end %>
+  </div>
+  <div class="col-6">
+    <%= link_to mobile_invoice_path(@booking), class: "btn btn-success-modern btn-modern w-100", target: "_blank" do %>
+      <i class="fas fa-file-invoice me-2"></i> Invoice
+    <% end %>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="mt-3">
+  <div class="card card-modern">
+    <div class="card-header">
+      <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h6>
+    </div>
+    <div class="card-body">
+      <div class="d-grid gap-2">
+        <% if @booking.customer_phone.present? %>
+          <a href="https://wa.me/+91<%= @booking.customer_phone.gsub(/\D/, '') %>?text=Hello%20<%= @booking.customer_name %>, your booking #<%= @booking.booking_number %> is confirmed!"
+             class="btn btn-outline-success btn-sm"
+             target="_blank">
+            <i class="fab fa-whatsapp me-2"></i> Send WhatsApp Message
+          </a>
+        <% end %>
+
+        <% if @booking.customer_phone.present? %>
+          <a href="sms:+91<%= @booking.customer_phone.gsub(/\D/, '') %>?body=Your booking #<%= @booking.booking_number %> is confirmed. Total amount: ₹<%= @booking.total_amount %>"
+             class="btn btn-outline-primary btn-sm">
+            <i class="fas fa-sms me-2"></i> Send SMS
+          </a>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Add some interactivity
+document.addEventListener('DOMContentLoaded', function() {
+  // Animate cards on load
+  const cards = document.querySelectorAll('.card');
+  cards.forEach((card, index) => {
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(20px)';
+
+    setTimeout(() => {
+      card.style.transition = 'all 0.3s ease';
+      card.style.opacity = '1';
+      card.style.transform = 'translateY(0)';
+    }, index * 100);
+  });
+});
+</script>

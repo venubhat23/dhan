@@ -45,9 +45,9 @@ class Admin::ProductImportsController < ApplicationController
       begin
         # Map CSV columns to our database columns based on Dhanvantri requirements
         product_data = {
-          # Required fields
-          name: row['Item']&.strip,                              # Item → Product Name
-          category_id: parse_category_id(row['Category']),       # Category → category_id
+          # Required fields (handle both Item and Item*)
+          name: (row['Item*'] || row['Item'])&.strip,            # Item/Item* → Product Name
+          category_id: parse_category_id(row['Category*'] || row['Category']), # Category/Category* → category_id
 
           # Core pricing fields
           buying_price: parse_decimal(row['Purchase Price']),    # Purchase Price → Buying Price (₹)

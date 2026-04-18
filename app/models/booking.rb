@@ -68,7 +68,42 @@ class Booking < ApplicationRecord
   def generate_invoice_number
     return if invoice_number.present?
 
-    self.invoice_number = "INV#{Date.current.strftime('%Y%m%d')}#{SecureRandom.hex(3).upcase}"
+    # Generate DN format: DN + Financial Year + Month + 4-digit sequential number
+    current_date = Date.current
+
+    # Financial year logic: April-March (Indian financial year)
+    if current_date.month >= 4
+      # April to December - current year to next year
+      financial_year = "#{current_date.year.to_s[-2..]}#{(current_date.year + 1).to_s[-2..]}"
+    else
+      # January to March - previous year to current year
+      financial_year = "#{(current_date.year - 1).to_s[-2..]}#{current_date.year.to_s[-2..]}"
+    end
+
+    # Month as 2-digit number
+    month = current_date.strftime('%m')
+
+    # Get next sequential number for this month/year combination
+    prefix = "DN#{financial_year}#{month}"
+
+    # Find highest existing invoice number for this prefix
+    latest_booking = Booking.where("invoice_number LIKE ?", "#{prefix}%")
+                            .order(:invoice_number)
+                            .last
+
+    if latest_booking&.invoice_number
+      # Extract the last 4 digits and increment
+      last_number = latest_booking.invoice_number.split(prefix).last.to_i
+      next_number = last_number + 1
+    else
+      # First invoice for this month/year
+      next_number = 1
+    end
+
+    # Format as 4-digit number (0001, 0002, etc.)
+    sequential_number = next_number.to_s.rjust(4, '0')
+
+    self.invoice_number = "#{prefix}#{sequential_number}"
     self.invoice_generated = true
 
     # Save the booking first

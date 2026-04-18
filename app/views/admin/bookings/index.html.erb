@@ -73,6 +73,16 @@
   color: #4a148c;
 }
 
+/* WhatsApp icon - green */
+.action-icon.whatsapp {
+  background: #e8f5e8;
+  color: #25d366;
+}
+.action-icon.whatsapp:hover {
+  background: #c8e6c9;
+  color: #1ebe57;
+}
+
 .action-icon i {
   font-size: 14px;
 }
@@ -528,6 +538,11 @@
                           <i class="bi bi-receipt-cutoff"></i>
                         <% end %>
                       <% end %>
+                      <% if booking.has_invoice? && (booking.customer&.mobile || booking.customer_phone) %>
+                        <a href="#" class="action-icon whatsapp" title="Share Invoice via WhatsApp" onclick="shareInvoiceWhatsApp(<%= booking.id %>, '<%= booking.customer&.mobile || booking.customer_phone %>', '<%= booking.customer&.display_name || booking.customer_name %>', '<%= booking.booking_number %>', '<%= booking.display_invoice_number %>', '<%= number_with_delimiter(booking.total_amount || 0) %>')">
+                          <i class="bi bi-whatsapp"></i>
+                        </a>
+                      <% end %>
                     </div>
                   </div>
                 </td>
@@ -634,6 +649,54 @@
 <!-- Modal removed - using manage_stage page instead -->
 
 <script>
+// WhatsApp share invoice function
+function shareInvoiceWhatsApp(bookingId, customerPhone, customerName, bookingNumber, invoiceNumber, totalAmount) {
+  // Clean phone number - remove spaces, hyphens, and country code prefix if present
+  let phone = customerPhone.replace(/[\s\-\(\)]/g, '');
+
+  // Remove +91 or 91 prefix if present
+  if (phone.startsWith('+91')) {
+    phone = phone.substring(3);
+  } else if (phone.startsWith('91') && phone.length === 12) {
+    phone = phone.substring(2);
+  }
+
+  // Ensure phone number starts with 91 for India
+  if (!phone.startsWith('91') && phone.length === 10) {
+    phone = '91' + phone;
+  }
+
+  // Create WhatsApp message
+  const message = `🎉 *Hi ${customerName}!*
+
+📋 Your invoice is ready for order *${bookingNumber}*
+
+🧾 *Invoice Details:*
+📄 Invoice No: *${invoiceNumber}*
+💰 Total Amount: *₹${totalAmount}*
+
+✅ Thank you for choosing our services! Your order has been processed successfully.
+
+🔗 You can view your complete invoice details by visiting our store or contacting us.
+
+For any queries, feel free to reach out to us.
+
+Have a great day! 😊
+
+---
+*Dhanvantri Naturals*
+Your trusted natural products store`;
+
+  // Encode message for URL
+  const encodedMessage = encodeURIComponent(message);
+
+  // Create WhatsApp URL
+  const whatsappUrl = `https://wa.me/${phone}?text=${encodedMessage}`;
+
+  // Open WhatsApp in new window
+  window.open(whatsappUrl, '_blank');
+}
+
 // Delete confirmation function
 function confirmDelete(bookingId, bookingNumber, customerName) {
   const confirmation = confirm(

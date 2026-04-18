@@ -681,6 +681,7 @@ Rails.application.routes.draw do
     post 'import/motor_insurances', to: 'imports#motor_insurances'
     post 'import/delivery_people', to: 'imports#delivery_people'
     post 'import/products', to: 'imports#products'
+    post 'import/dhanvantri_products', to: 'imports#dhanvantri_products'
     post 'import/customer_subscriptions', to: 'imports#customer_subscriptions'
     post 'import/customer_daily_tasks', to: 'imports#customer_daily_tasks'
     post 'import/agencies', to: 'imports#agencies'
@@ -1145,6 +1146,21 @@ Rails.application.routes.draw do
 
     # Expenses management
     resources :expenses, only: [:index, :show, :edit, :update, :destroy]
+  end
+
+  # Mobile public access routes
+  scope :mobile do
+    get '/', to: 'mobile#login', as: 'mobile_root'
+    get '/login', to: 'mobile#login', as: 'mobile_login'
+    post '/authenticate', to: 'mobile#authenticate', as: 'mobile_authenticate'
+    get '/logout', to: 'mobile#logout', as: 'mobile_logout'
+
+    # Protected mobile routes
+    get '/bookings', to: 'mobile#bookings', as: 'mobile_bookings'
+    get '/bookings/new', to: 'mobile#new_booking', as: 'mobile_new_booking'
+    post '/bookings', to: 'mobile#create_booking', as: 'mobile_create_booking'
+    get '/bookings/:id', to: 'mobile#show_booking', as: 'mobile_booking'
+    get '/bookings/:id/invoice', to: 'mobile#invoice', as: 'mobile_invoice'
   end
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

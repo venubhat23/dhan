@@ -740,13 +740,28 @@
         <!-- Products -->
         <% if current_user.has_sidebar_permission?('products') %>
           <li class="nav-item">
-            <%= link_to admin_products_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/products')}" do %>
+            <%= link_to admin_products_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/products') && !request.path.include?('barcode_labels')}" do %>
               <div class="nav-icon-modern">
                 <div class="icon-bg gradient-sky">
                   <i class="bi bi-box-seam-fill"></i>
                 </div>
               </div>
               <span class="nav-text">Products</span>
+              <div class="nav-indicator"></div>
+            <% end %>
+          </li>
+        <% end %>
+
+        <!-- Barcode Labels -->
+        <% if current_user.has_sidebar_permission?('products') %>
+          <li class="nav-item">
+            <%= link_to barcode_labels_admin_products_path, class: "nav-link-modern #{'active' if request.path.include?('barcode_labels')}" do %>
+              <div class="nav-icon-modern">
+                <div class="icon-bg gradient-purple">
+                  <i class="bi bi-upc-scan"></i>
+                </div>
+              </div>
+              <span class="nav-text">Barcode Labels</span>
               <div class="nav-indicator"></div>
             <% end %>
           </li>

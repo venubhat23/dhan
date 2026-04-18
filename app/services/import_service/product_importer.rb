@@ -55,19 +55,23 @@ module ImportService
     private
 
     def process_product_row(row, row_number)
+      # Get product name and SKU
+      product_name = get_row_value(row, 'item') || get_row_value(row, 'name')
+      product_sku = get_row_value(row, 'sku')
+
       # Check if product already exists by SKU or name
       existing_product = nil
 
-      if get_row_value(row, 'sku').present?
-        existing_product = Product.find_by(sku: get_row_value(row, 'sku').to_s.strip)
+      if product_sku.present?
+        existing_product = Product.find_by(sku: product_sku.to_s.strip)
       end
 
-      if existing_product.nil?
-        existing_product = Product.find_by(name: get_row_value(row, 'name').to_s.strip)
+      if existing_product.nil? && product_name.present?
+        existing_product = Product.find_by(name: product_name.to_s.strip)
       end
 
       if existing_product
-        @errors << "Row #{row_number}: Product with name '#{get_row_value(row, 'name')}' or SKU '#{get_row_value(row, 'sku')}' already exists"
+        @errors << "Row #{row_number}: Product with name '#{product_name}' or SKU '#{product_sku}' already exists"
         @skipped_count += 1
         return
       end
@@ -75,24 +79,50 @@ module ImportService
       # Find or create category
       category = find_or_create_category_from_row(row)
 
+      # Parse pricing - Handle both formats
+      purchase_price = parse_decimal(get_row_value(row, 'purchase price') || get_row_value(row, 'buying_price'))
+      cost_price = parse_decimal(get_row_value(row, 'cost price') || get_row_value(row, 'price'))
+      wholesale_price = parse_decimal(get_row_value(row, 'wholesale price') || get_row_value(row, 'wholesale_price'))
+
+      # Use cost price as main price if available, otherwise use price field
+      main_price = cost_price || parse_decimal(get_row_value(row, 'price'))
+
       # Prepare product parameters
       product_params = {
-        name: get_row_value(row, 'name'),
+        name: product_name,
         description: get_row_value(row, 'description'),
         category_id: category&.id,
-        price: parse_decimal(get_row_value(row, 'price')),
-        discount_price: parse_decimal(get_row_value(row, 'discount_price')),
+        price: main_price,
+        buying_price: purchase_price,
+        wholesale_price: wholesale_price,
+        discount_price: parse_decimal(get_row_value(row, 'discount_price') || get_row_value(row, 'discount price')),
         stock: parse_integer(get_row_value(row, 'stock')) || 0,
         status: parse_status(get_row_value(row, 'status')),
         sku: generate_sku(row),
         weight: parse_decimal(get_row_value(row, 'weight')),
         dimensions: get_row_value(row, 'dimensions'),
-        gst_enabled: parse_boolean(get_row_value(row, 'gst_enabled')),
-        gst_percentage: parse_decimal(get_row_value(row, 'gst_percentage')),
-        buying_price: parse_decimal(get_row_value(row, 'buying_price')),
-        product_type: parse_product_type(get_row_value(row, 'product_type')),
-        is_subscription_enabled: parse_boolean(get_row_value(row, 'is_subscription_enabled')),
-        unit_type: parse_unit_type(get_row_value(row, 'unit_type'))
+        gst_enabled: parse_boolean(get_row_value(row, 'gst_enabled') || get_row_value(row, 'gst enabled')),
+        gst_percentage: parse_decimal(get_row_value(row, 'gst_percentage') || get_row_value(row, 'gst percentage')),
+        hsn_code: get_row_value(row, 'hsn_code') || get_row_value(row, 'hsn code'),
+        product_type: parse_product_type(get_row_value(row, 'product_type') || get_row_value(row, 'product type')),
+        is_subscription_enabled: parse_boolean(get_row_value(row, 'is_subscription_enabled') || get_row_value(row, 'is subscription enabled')),
+        unit_type: parse_unit_type(get_row_value(row, 'unit_type') || get_row_value(row, 'unit type')),
+        original_price: parse_decimal(get_row_value(row, 'original_price') || get_row_value(row, 'original price')),
+        default_selling_price: parse_decimal(get_row_value(row, 'default_selling_price') || get_row_value(row, 'default selling price')),
+        is_discounted: parse_boolean(get_row_value(row, 'is_discounted') || get_row_value(row, 'is discounted')),
+        discount_type: get_row_value(row, 'discount_type') || get_row_value(row, 'discount type'),
+        discount_value: parse_decimal(get_row_value(row, 'discount_value') || get_row_value(row, 'discount value')),
+        discount_amount: parse_decimal(get_row_value(row, 'discount_amount') || get_row_value(row, 'discount amount')),
+        minimum_stock_alert: parse_integer(get_row_value(row, 'minimum_stock_alert') || get_row_value(row, 'minimum stock alert')),
+        tags: get_row_value(row, 'tags'),
+        meta_title: get_row_value(row, 'meta_title') || get_row_value(row, 'meta title'),
+        meta_description: get_row_value(row, 'meta_description') || get_row_value(row, 'meta description'),
+        image_url: get_row_value(row, 'image_url') || get_row_value(row, 'image url'),
+        is_occasional_product: parse_boolean(get_row_value(row, 'is_occasional_product') || get_row_value(row, 'is occasional product')),
+        occasional_start_date: parse_date(get_row_value(row, 'occasional_start_date') || get_row_value(row, 'occasional start date')),
+        occasional_end_date: parse_date(get_row_value(row, 'occasional_end_date') || get_row_value(row, 'occasional end date')),
+        occasional_description: get_row_value(row, 'occasional_description') || get_row_value(row, 'occasional description'),
+        occasional_auto_hide: parse_boolean(get_row_value(row, 'occasional_auto_hide') || get_row_value(row, 'occasional auto hide'))
       }
 
       # Calculate GST amounts if GST is enabled
@@ -114,6 +144,12 @@ module ImportService
           product_params[:sgst_percentage] = 2.5
           product_params[:cgst_amount] = product_params[:gst_amount] / 2
           product_params[:sgst_amount] = product_params[:gst_amount] / 2
+        else
+          # For other GST rates, split evenly
+          product_params[:cgst_percentage] = product_params[:gst_percentage] / 2
+          product_params[:sgst_percentage] = product_params[:gst_percentage] / 2
+          product_params[:cgst_amount] = product_params[:gst_amount] / 2
+          product_params[:sgst_amount] = product_params[:gst_amount] / 2
         end
       end
 
@@ -126,8 +162,15 @@ module ImportService
       @imported_count += 1
     end
 
+    def parse_date(date_string)
+      return nil if date_string.blank?
+      Date.parse(date_string.to_s)
+    rescue ArgumentError
+      nil
+    end
+
     def find_or_create_category_from_row(row)
-      # Try category_id first, then category_name
+      # Try category_id first, then category_name and category field
       if get_row_value(row, 'category_id').present?
         begin
           category_id = Integer(get_row_value(row, 'category_id'))
@@ -137,7 +180,8 @@ module ImportService
         end
       end
 
-      category_name = get_row_value(row, 'category_name')
+      # Try multiple category field names (for Dhanvantri format and standard format)
+      category_name = get_row_value(row, 'category_name') || get_row_value(row, 'category')
       find_or_create_category(category_name)
     end
 

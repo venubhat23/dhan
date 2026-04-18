@@ -1,290 +1,478 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Product Barcode Labels</title>
+  <title>Barcode Labels - All Products</title>
   <style>
     @media print {
       .no-print { display: none !important; }
+      body { font-size: 12pt; }
+      .table-responsive { overflow: visible !important; }
     }
 
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 0;
       padding: 20px;
+      background-color: #f8f9fa;
     }
 
-    .label-page {
-      width: 210mm;
-      margin: 0 auto;
-    }
-
-    .label-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10mm;
-      margin-bottom: 10mm;
-    }
-
-    .barcode-label {
-      width: 60mm;
-      height: 40mm;
-      border: 1px solid #ddd;
-      padding: 3mm;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      box-sizing: border-box;
-      page-break-inside: avoid;
-    }
-
-    .product-name {
-      font-size: 9pt;
-      font-weight: bold;
+    .page-header {
       text-align: center;
-      line-height: 1.2;
-      max-height: 12mm;
-      overflow: hidden;
-      margin-bottom: 2mm;
-    }
-
-    .barcode-container {
-      text-align: center;
-      flex-grow: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-
-    .barcode-visual {
-      height: 15mm;
-      background: repeating-linear-gradient(
-        to right,
-        #000 0px, #000 1px,
-        #fff 1px, #fff 2px
-      );
-      margin: 2mm 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      margin-bottom: 30px;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
+      border-radius: 10px;
+    }
+
+    .page-header h1 {
+      margin: 0;
+      font-size: 2.5em;
       font-weight: bold;
-      font-size: 8pt;
     }
 
-    .barcode-number {
-      font-size: 8pt;
-      font-family: monospace;
-      text-align: center;
-      margin: 1mm 0;
-    }
-
-    .price-info {
-      display: flex;
-      justify-content: space-between;
-      font-size: 8pt;
-      margin-top: 2mm;
-    }
-
-    .retail-price {
-      font-weight: bold;
-      color: #000;
-    }
-
-    .wholesale-price {
-      color: #0066cc;
+    .page-header .subtitle {
+      margin-top: 10px;
+      font-size: 1.1em;
+      opacity: 0.9;
     }
 
     .controls {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
       margin-bottom: 20px;
-      padding: 15px;
-      background: #f5f5f5;
-      border-radius: 5px;
     }
 
-    .controls h3 {
-      margin: 0 0 15px 0;
+    .filter-row {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      flex-wrap: wrap;
     }
 
-    .form-group {
-      margin-bottom: 10px;
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
     }
 
-    .form-group label {
-      display: inline-block;
-      width: 120px;
-      font-weight: bold;
+    .filter-group label {
+      font-weight: 600;
+      color: #333;
+      font-size: 0.9em;
     }
 
-    .form-group select, .form-group input {
-      padding: 5px;
-      border: 1px solid #ddd;
-      border-radius: 3px;
+    .filter-group select, .filter-group input {
+      padding: 8px 12px;
+      border: 2px solid #e9ecef;
+      border-radius: 6px;
+      background: white;
+      transition: border-color 0.3s;
+    }
+
+    .filter-group select:focus, .filter-group input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
 
     .btn {
-      padding: 8px 16px;
-      background: #007bff;
-      color: white;
+      padding: 10px 20px;
       border: none;
-      border-radius: 4px;
+      border-radius: 6px;
       cursor: pointer;
-      margin-right: 10px;
+      font-weight: 600;
+      transition: all 0.3s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
     }
 
-    .btn:hover {
-      background: #0056b3;
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #5a6fd8;
+      transform: translateY(-2px);
     }
 
     .btn-secondary {
       background: #6c757d;
+      color: white;
     }
 
     .btn-secondary:hover {
       background: #5a6268;
     }
+
+    .btn-success {
+      background: #28a745;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #218838;
+    }
+
+    .stats-bar {
+      background: #e7f3ff;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border-left: 4px solid #007bff;
+    }
+
+    .table-container {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+
+    .table-responsive {
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+
+    .products-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0;
+    }
+
+    .products-table th {
+      background: #f8f9fa;
+      padding: 15px 12px;
+      text-align: left;
+      font-weight: 700;
+      color: #333;
+      border-bottom: 2px solid #dee2e6;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .products-table td {
+      padding: 12px;
+      border-bottom: 1px solid #dee2e6;
+      vertical-align: middle;
+    }
+
+    .products-table tbody tr:hover {
+      background-color: #f8f9fa;
+    }
+
+    .product-name {
+      font-weight: 600;
+      color: #333;
+      max-width: 200px;
+    }
+
+    .product-id {
+      font-family: monospace;
+      background: #e9ecef;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+
+    .barcode-cell {
+      text-align: center;
+    }
+
+    .barcode-display {
+      background: linear-gradient(45deg, #000 25%, transparent 25%),
+                  linear-gradient(-45deg, #000 25%, transparent 25%),
+                  linear-gradient(45deg, transparent 75%, #000 75%),
+                  linear-gradient(-45deg, transparent 75%, #000 75%);
+      background-size: 3px 3px;
+      background-position: 0 0, 0 1.5px, 1.5px -1.5px, -1.5px 0px;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-weight: bold;
+      color: white;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+      margin-bottom: 5px;
+    }
+
+    .barcode-number {
+      font-family: monospace;
+      font-size: 0.85em;
+      color: #666;
+    }
+
+    .qr-code {
+      width: 60px;
+      height: 60px;
+      background: #f0f0f0;
+      border: 2px solid #ddd;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      font-size: 0.7em;
+      color: #666;
+      position: relative;
+    }
+
+    .qr-code::after {
+      content: "QR";
+      font-weight: bold;
+    }
+
+    .price-cell {
+      text-align: right;
+      font-weight: 600;
+      color: #28a745;
+    }
+
+    .sku-cell {
+      font-family: monospace;
+      font-size: 0.9em;
+      color: #666;
+    }
+
+    .category-cell {
+      background: #e7f3ff;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.85em;
+      color: #0066cc;
+    }
+
+    .print-section {
+      margin-top: 30px;
+      page-break-before: always;
+    }
+
+    @page {
+      margin: 1in;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #666;
+    }
+
+    .empty-state h3 {
+      font-size: 1.5em;
+      margin-bottom: 10px;
+    }
   </style>
+  <!-- Include QRCode.js for QR code generation -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 </head>
 <body>
+  <div class="page-header no-print">
+    <h1>🏷️ Barcode Labels Manager</h1>
+    <div class="subtitle">Complete product catalog with barcodes and QR codes</div>
+  </div>
+
   <div class="no-print controls">
-    <h3>🏷️ Barcode Label Generator</h3>
+    <div class="filter-row" style="margin-bottom: 15px;">
+      <div class="filter-group">
+        <label>Filter Products:</label>
+        <select onchange="updateFilter('filter', this.value)">
+          <option value="" <%= 'selected' if params[:filter].blank? %>>All Active Products</option>
+          <option value="all" <%= 'selected' if params[:filter] == 'all' %>>All Products</option>
+          <option value="recent" <%= 'selected' if params[:filter] == 'recent' %>>Recent Products (15)</option>
+          <option value="low_stock" <%= 'selected' if params[:filter] == 'low_stock' %>>Low Stock</option>
+        </select>
+      </div>
 
-    <div style="background: #e7f3ff; padding: 10px; margin-bottom: 15px; border-radius: 4px;">
-      <strong>📊 Current Selection:</strong>
-      <%= @products&.count || 0 %> products |
-      Total labels: <%= ((@products&.count || 0) * (params[:quantity]&.to_i || 1)) %>
-      <% if @products&.any? %>
-        | First: <%= @products.first.name.truncate(20) %>
-        <% if @products.count > 1 %>
-          | Last: <%= @products.last.name.truncate(20) %>
-        <% end %>
-      <% end %>
-    </div>
+      <div class="filter-group">
+        <label>Category:</label>
+        <select onchange="updateFilter('category_id', this.value)">
+          <option value="">All Categories</option>
+          <% Category.all.each do |category| %>
+            <option value="<%= category.id %>" <%= 'selected' if params[:category_id] == category.id.to_s %>>
+              <%= category.name %> (<%= category.products.active.count %>)
+            </option>
+          <% end %>
+        </select>
+      </div>
 
-    <div class="form-group">
-      <label>Filter Products:</label>
-      <select onchange="updateFilter('filter', this.value)">
-        <option value="" <%= 'selected' if params[:filter].blank? %>>All Active Products</option>
-        <option value="all" <%= 'selected' if params[:filter] == 'all' %>>All Products (50 max)</option>
-        <option value="recent" <%= 'selected' if params[:filter] == 'recent' %>>Recent Products (15)</option>
-      </select>
+      <div class="filter-group">
+        <label>Search:</label>
+        <input type="text"
+               value="<%= params[:search] %>"
+               onkeyup="debounceSearch(this.value)"
+               placeholder="Product name, SKU..."
+               style="min-width: 200px;">
+      </div>
 
-      <select onchange="updateFilter('category_id', this.value)" style="margin-left: 10px;">
-        <option value="">All Categories</option>
-        <% Category.all.each do |category| %>
-          <option value="<%= category.id %>" <%= 'selected' if params[:category_id] == category.id.to_s %>>
-            <%= category.name %> (<%= category.products.active.count %>)
-          </option>
-        <% end %>
-      </select>
-    </div>
+      <div class="filter-group">
+        <label>&nbsp;</label>
+        <button class="btn btn-primary" onclick="window.print()">
+          🖨️ Print Table
+        </button>
+      </div>
 
-    <div class="form-group">
-      <label>Labels per Product:</label>
-      <select onchange="updateFilter('quantity', this.value)">
-        <option value="1" <%= 'selected' if params[:quantity] == '1' || params[:quantity].blank? %>>1 Label</option>
-        <option value="2" <%= 'selected' if params[:quantity] == '2' %>>2 Labels</option>
-        <option value="3" <%= 'selected' if params[:quantity] == '3' %>>3 Labels</option>
-        <option value="5" <%= 'selected' if params[:quantity] == '5' %>>5 Labels</option>
-        <option value="10" <%= 'selected' if params[:quantity] == '10' %>>10 Labels</option>
-      </select>
-    </div>
-
-    <div class="form-group">
-      <button class="btn" onclick="window.print()">🖨️ Print <%= ((@products&.count || 0) * (params[:quantity]&.to_i || 1)) %> Labels</button>
-      <button class="btn btn-secondary" onclick="window.location.reload()">🔄 Refresh</button>
-      <button class="btn btn-secondary" onclick="window.history.back()">← Back to Products</button>
+      <div class="filter-group">
+        <label>&nbsp;</label>
+        <button class="btn btn-secondary" onclick="window.history.back()">
+          ← Back to Products
+        </button>
+      </div>
     </div>
   </div>
 
-  <div class="label-page">
-    <%
-      products = @products.presence || []
-      quantity = params[:quantity]&.to_i || 1
-      label_count = 0
-    %>
-
-    <div class="label-grid">
-      <% products.each do |product| %>
-        <% quantity.times do |copy_number| %>
-          <div class="barcode-label">
-            <div class="product-name">
-              <%= product.name.truncate(30) %>
-              <% if quantity > 1 %>
-                <small style="display: block; font-size: 7pt; color: #666;">
-                  Copy <%= copy_number + 1 %> of <%= quantity %>
-                </small>
-              <% end %>
-            </div>
-
-            <div class="barcode-container">
-              <div class="barcode-visual">
-                <%= product.barcode || 'NO-BARCODE' %>
-              </div>
-              <div class="barcode-number">
-                <%= product.respond_to?(:barcode_display_format) ? product.barcode_display_format : (product.barcode || 'N/A') %>
-              </div>
-              <% if product.sku.present? %>
-                <div style="font-size: 6pt; color: #888; margin-top: 1mm;">
-                  SKU: <%= product.sku %>
-                </div>
-              <% end %>
-            </div>
-
-            <div class="price-info">
-              <div class="retail-price">₹<%= product.price || '0.00' %></div>
-              <% if product.respond_to?(:has_wholesale_pricing?) && product.has_wholesale_pricing? %>
-                <div class="wholesale-price">B2B: ₹<%= product.wholesale_price %></div>
-              <% else %>
-                <div class="wholesale-price">B2B: ₹<%= (product.price.to_f * 0.85).round(2) %></div>
-              <% end %>
-            </div>
-          </div>
-
-          <%
-            label_count += 1
-            if label_count % 9 == 0 && !(product == products.last && copy_number == quantity - 1)
-          %>
-            </div>
-            <div class="label-grid">
-          <% end %>
-        <% end %>
-      <% end %>
-    </div>
-
-    <% if products.empty? %>
-      <div style="text-align: center; padding: 40px; color: #666;">
-        <h3>No products found</h3>
-        <p>Try adjusting your filters or adding some products with barcodes.</p>
-      </div>
+  <div class="stats-bar no-print">
+    <strong>📊 Summary:</strong>
+    <%= @products&.count || 0 %> products shown
+    <% if @products&.any? %>
+      | <%= @products.where.not(barcode: [nil, '']).count %> with barcodes
+      | <%= @products.where(barcode: [nil, '']).count %> missing barcodes
     <% end %>
   </div>
 
+  <div class="table-container">
+    <div class="table-responsive">
+      <table class="products-table">
+        <thead>
+          <tr>
+            <th style="width: 80px;">ID</th>
+            <th style="width: 250px;">Product Name</th>
+            <th style="width: 100px;">SKU</th>
+            <th style="width: 120px;">Category</th>
+            <th style="width: 200px;">Barcode</th>
+            <th style="width: 80px;">QR Code</th>
+            <th style="width: 100px;">Price</th>
+            <th style="width: 80px;">Stock</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%
+            products = @products.presence || Product.none
+            products = products.includes(:category)
+          %>
+
+          <% if products.any? %>
+            <% products.each do |product| %>
+              <tr data-product-id="<%= product.id %>">
+                <td class="product-id">#<%= product.id %></td>
+
+                <td class="product-name">
+                  <%= product.name %>
+                  <% if product.respond_to?(:status) && product.status == 'inactive' %>
+                    <span style="color: #dc3545; font-size: 0.8em;">(Inactive)</span>
+                  <% end %>
+                </td>
+
+                <td class="sku-cell">
+                  <%= product.sku.presence || '-' %>
+                </td>
+
+                <td>
+                  <% if product.category %>
+                    <span class="category-cell"><%= product.category.name %></span>
+                  <% else %>
+                    <span style="color: #666;">No Category</span>
+                  <% end %>
+                </td>
+
+                <td class="barcode-cell">
+                  <% if product.barcode.present? %>
+                    <div class="barcode-display">
+                      <%= product.barcode %>
+                    </div>
+                    <div class="barcode-number">
+                      <%= product.respond_to?(:barcode_display_format) ? product.barcode_display_format : product.barcode %>
+                    </div>
+                  <% else %>
+                    <span style="color: #dc3545; font-style: italic;">No Barcode</span>
+                  <% end %>
+                </td>
+
+                <td class="barcode-cell">
+                  <div class="qr-code" id="qr-<%= product.id %>"></div>
+                </td>
+
+                <td class="price-cell">
+                  ₹<%= number_with_precision(product.price || 0, precision: 2) %>
+                </td>
+
+                <td class="barcode-cell">
+                  <%= product.respond_to?(:available_quantity) ? product.available_quantity : (product.stock || 0) %>
+                </td>
+              </tr>
+            <% end %>
+          <% else %>
+            <tr>
+              <td colspan="8" style="text-align: center; padding: 40px; color: #666;">
+                <div class="empty-state">
+                  <h3>No products found</h3>
+                  <p>Try adjusting your filters or add some products first.</p>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
   <script>
+    let searchTimeout;
+
     function updateFilter(param, value) {
       const url = new URL(window.location);
 
-      // Update the specific parameter
       if (value && value !== '') {
         url.searchParams.set(param, value);
       } else {
         url.searchParams.delete(param);
       }
 
-      // Navigate to the updated URL
       window.location.href = url.toString();
     }
 
-    // Auto-print dialog for better UX
+    function debounceSearch(value) {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        updateFilter('search', value);
+      }, 500);
+    }
+
+    // Generate QR codes for each product
     document.addEventListener('DOMContentLoaded', function() {
-      console.log('Barcode labels ready for <%= products.count %> products');
+      console.log('🚀 Generating QR codes for products...');
 
-      // Show helpful info
-      const productCount = <%= @products&.count || 0 %>;
-      const labelCount = productCount * <%= params[:quantity]&.to_i || 1 %>;
+      <% products.each do |product| %>
+        <% if product.barcode.present? %>
+          try {
+            QRCode.toCanvas(
+              document.getElementById('qr-<%= product.id %>'),
+              '<%= product.barcode %>',
+              {
+                width: 60,
+                height: 60,
+                margin: 1,
+                color: {
+                  dark: '#000000',
+                  light: '#FFFFFF'
+                }
+              },
+              function (error) {
+                if (error) console.error('QR Code generation error for product <%= product.id %>:', error);
+              }
+            );
+          } catch (error) {
+            console.error('QR Code generation failed for product <%= product.id %>:', error);
+            // Fallback display
+            document.getElementById('qr-<%= product.id %>').innerHTML = '<span style="font-size: 8px;">QR<br/>Error</span>';
+          }
+        <% end %>
+      <% end %>
 
-      if (productCount > 50) {
-        alert('⚠️ Many labels detected (' + labelCount + '). Consider printing in batches for better performance.');
-      }
+      console.log('✅ QR code generation complete!');
     });
 
     // Keyboard shortcuts
@@ -296,7 +484,24 @@
       if (e.key === 'Escape') {
         window.history.back();
       }
+      if (e.ctrlKey && e.key === 'f') {
+        e.preventDefault();
+        document.querySelector('input[type="text"]').focus();
+      }
     });
+
+    // Print optimization
+    window.addEventListener('beforeprint', function() {
+      console.log('🖨️ Preparing for print...');
+      // Ensure all QR codes are visible
+      document.querySelectorAll('.qr-code canvas').forEach(canvas => {
+        if (canvas) {
+          canvas.style.display = 'block';
+        }
+      });
+    });
+
+    console.log('📊 Loaded <%= products.count %> products with barcodes and QR codes');
   </script>
 </body>
 </html>

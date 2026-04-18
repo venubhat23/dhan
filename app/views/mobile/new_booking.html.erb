@@ -1,0 +1,155 @@
+<div class="card card-modern">
+  <div class="card-header card-header-modern">
+    <h5 class="mb-0">
+      <i class="fas fa-plus-circle me-2"></i> New Booking
+    </h5>
+  </div>
+  <div class="card-body">
+    <%= form_with model: [@store, @booking], url: mobile_create_booking_path, local: true do |form| %>
+      <% if @booking.errors.any? %>
+        <div class="alert alert-danger">
+          <h6>Please fix these errors:</h6>
+          <ul class="mb-0">
+            <% @booking.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <!-- Customer Details -->
+      <div class="mb-3">
+        <%= form.label :customer_name, class: "form-label fw-bold" do %>
+          <i class="fas fa-user me-2"></i>Customer Name
+        <% end %>
+        <%= form.text_field :customer_name, class: "form-control", placeholder: "Enter customer name" %>
+      </div>
+
+      <div class="mb-3">
+        <%= form.label :customer_phone, class: "form-label fw-bold" do %>
+          <i class="fas fa-phone me-2"></i>Mobile Number
+        <% end %>
+        <%= form.tel_field :customer_phone, class: "form-control", placeholder: "+91 9999999999" %>
+      </div>
+
+      <div class="mb-3">
+        <%= form.label :delivery_address, class: "form-label fw-bold" do %>
+          <i class="fas fa-map-marker-alt me-2"></i>Address
+        <% end %>
+        <%= form.text_area :delivery_address, rows: 2, class: "form-control", placeholder: "Enter delivery address" %>
+      </div>
+
+      <!-- Booking Details -->
+      <div class="row">
+        <div class="col-6">
+          <div class="mb-3">
+            <%= form.label :total_amount, class: "form-label fw-bold" do %>
+              <i class="fas fa-rupee-sign me-2"></i>Amount
+            <% end %>
+            <%= form.number_field :total_amount, step: 0.01, class: "form-control", placeholder: "0.00", id: "total_amount" %>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="mb-3">
+            <%= form.label :payment_status, class: "form-label fw-bold" do %>
+              <i class="fas fa-credit-card me-2"></i>Payment
+            <% end %>
+            <%= form.select :payment_status,
+                options_for_select([
+                  ['Unpaid', 'unpaid'],
+                  ['Paid', 'paid'],
+                  ['Partial', 'partial']
+                ], 'unpaid'),
+                {},
+                { class: "form-select" } %>
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <%= form.label :status, class: "form-label fw-bold" do %>
+          <i class="fas fa-info-circle me-2"></i>Status
+        <% end %>
+        <%= form.select :status,
+            options_for_select([
+              ['Draft', 'draft'],
+              ['Confirmed', 'confirmed'],
+              ['Processing', 'processing'],
+              ['Ready', 'ready']
+            ], 'draft'),
+            {},
+            { class: "form-select" } %>
+      </div>
+
+      <!-- Quick Amount Buttons -->
+      <div class="mb-3">
+        <label class="form-label fw-bold">
+          <i class="fas fa-calculator me-2"></i>Quick Amounts
+        </label>
+        <div class="d-grid gap-2 d-md-flex">
+          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setAmount(100)">₹100</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setAmount(500)">₹500</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setAmount(1000)">₹1000</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setAmount(2000)">₹2000</button>
+        </div>
+      </div>
+
+      <!-- Auto-generated fields -->
+      <%= form.hidden_field :booking_number, value: "BK#{Time.current.strftime('%Y%m%d%H%M%S')}" %>
+
+      <!-- Submit Button -->
+      <div class="d-grid gap-2">
+        <%= form.submit "Create Booking", class: "btn btn-primary-modern btn-modern", data: { disable_with: "Creating..." } %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<script>
+function setAmount(amount) {
+  document.getElementById('total_amount').value = amount;
+
+  // Add visual feedback
+  event.target.classList.add('btn-success');
+  setTimeout(() => {
+    event.target.classList.remove('btn-success');
+  }, 300);
+}
+
+// Auto-generate booking number
+document.addEventListener('DOMContentLoaded', function() {
+  // Format mobile number as user types
+  const mobileField = document.querySelector('input[name="booking[customer_phone]"]');
+  if (mobileField) {
+    mobileField.addEventListener('input', function(e) {
+      let value = e.target.value.replace(/\D/g, '');
+      if (value.length > 10) value = value.substring(0, 10);
+
+      if (value.length >= 6) {
+        value = value.substring(0, 5) + ' ' + value.substring(5);
+      }
+
+      e.target.value = '+91 ' + value;
+    });
+  }
+
+  // Form validation
+  const form = document.querySelector('form');
+  form.addEventListener('submit', function(e) {
+    const customerName = form.querySelector('input[name="booking[customer_name]"]').value;
+    const totalAmount = form.querySelector('input[name="booking[total_amount]"]').value;
+
+    if (!customerName.trim()) {
+      alert('Please enter customer name');
+      e.preventDefault();
+      return;
+    }
+
+    if (!totalAmount || parseFloat(totalAmount) <= 0) {
+      alert('Please enter a valid amount');
+      e.preventDefault();
+      return;
+    }
+  });
+});
+</script>

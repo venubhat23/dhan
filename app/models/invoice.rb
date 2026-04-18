@@ -120,19 +120,24 @@ class Invoice < ApplicationRecord
     # Create the pattern for this financial year and month
     pattern_prefix = "DN#{fy_start_suffix}#{fy_end_suffix}#{month_part}"
 
-    # Find the last invoice with this pattern (checking both Invoice and BookingInvoice tables)
+    # Find the last invoice with this pattern (checking Invoice, BookingInvoice, and Booking tables)
     last_invoice_regular = Invoice.where("invoice_number LIKE ?", "#{pattern_prefix}%")
                                   .order(created_at: :desc)
                                   .first
 
     last_booking_invoice = BookingInvoice.where("invoice_number LIKE ?", "#{pattern_prefix}%")
                                         .order(created_at: :desc)
-                                        .first
+                                        .first rescue nil
 
-    # Find the highest number from both tables
+    last_booking = Booking.where("invoice_number LIKE ?", "#{pattern_prefix}%")
+                          .order(created_at: :desc)
+                          .first rescue nil
+
+    # Find the highest number from all tables
     last_numbers = []
     last_numbers << last_invoice_regular.invoice_number.gsub(pattern_prefix, '').to_i if last_invoice_regular
     last_numbers << last_booking_invoice.invoice_number.gsub(pattern_prefix, '').to_i if last_booking_invoice
+    last_numbers << last_booking.invoice_number.gsub(pattern_prefix, '').to_i if last_booking
 
     if last_numbers.any?
       next_number = last_numbers.max + 1
@@ -141,7 +146,9 @@ class Invoice < ApplicationRecord
       next_number = 1
     end
 
-    self.invoice_number = "#{pattern_prefix}#{next_number}"
+    # Format as 4-digit number (0001, 0002, etc.)
+    sequential_number = next_number.to_s.rjust(4, '0')
+    self.invoice_number = "#{pattern_prefix}#{sequential_number}"
   end
 
   # Helper method to generate month-based invoice number for specific month

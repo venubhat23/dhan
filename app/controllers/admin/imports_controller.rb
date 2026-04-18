@@ -26,6 +26,10 @@ class Admin::ImportsController < Admin::ApplicationController
     # Show products import form
   end
 
+  def dhanvantri_products_form
+    # Show Dhanvantri products import form
+  end
+
   def customer_subscriptions_form
     # Show customer subscriptions import form
   end
@@ -122,6 +126,29 @@ class Admin::ImportsController < Admin::ApplicationController
       end
     rescue => e
       Rails.logger.error "Products import error: #{e.message}"
+      redirect_back fallback_location: admin_imports_path, alert: 'An error occurred during import. Please check your file format and try again.'
+    end
+  end
+
+  # POST /admin/import/dhanvantri_products
+  def dhanvantri_products
+    uploaded_file = params[:file]
+
+    if uploaded_file.blank?
+      redirect_back fallback_location: admin_imports_path, alert: 'Please select a file to import.'
+      return
+    end
+
+    begin
+      import_result = ImportService::ProductImporter.new(uploaded_file).import
+
+      if import_result[:success]
+        redirect_to admin_products_path, notice: "Successfully imported #{import_result[:imported_count]} Dhanvantri products. #{import_result[:skipped_count]} records were skipped due to validation errors."
+      else
+        redirect_back fallback_location: admin_imports_path, alert: "Import failed: #{import_result[:error]}"
+      end
+    rescue => e
+      Rails.logger.error "Dhanvantri products import error: #{e.message}"
       redirect_back fallback_location: admin_imports_path, alert: 'An error occurred during import. Please check your file format and try again.'
     end
   end

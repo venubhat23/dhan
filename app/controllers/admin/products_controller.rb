@@ -551,36 +551,35 @@ class Admin::ProductsController < Admin::ApplicationController
   end
 
   def barcode_labels
-    @products = case params[:filter]
-                when 'recent'
-                  Product.active.recent.limit(15)
-                when 'category'
-                  Category.find(params[:category_id]).products.active if params[:category_id].present?
-                when 'selected'
-                  Product.where(id: params[:product_ids]).active if params[:product_ids].present?
-                when 'all'
-                  Product.active.recent.limit(50)
-                else
-                  if params[:id].present?
-                    [Product.find(params[:id])]
-                  else
-                    # Show all active products with barcodes
-                    Product.active.where.not(barcode: [nil, '']).recent.limit(30)
-                  end
-                end
+    @products = Product.includes(:category)
 
-    # Ensure @products is never nil - fallback to empty collection
-    @products ||= Product.none
+    # Apply status filter
+    @products = @products.active unless params[:filter] == 'all'
 
-    # If still empty, try to find any active products with barcodes
-    if @products.empty?
-      @products = Product.active.where.not(barcode: [nil, '']).limit(5)
+    # Apply search filter
+    if params[:search].present?
+      @products = @products.search(params[:search])
     end
 
-    # Final fallback to any active products
-    if @products.empty?
-      @products = Product.active.limit(5)
+    # Apply category filter
+    if params[:category_id].present?
+      @products = @products.by_category(params[:category_id])
     end
+
+    # Apply specific filters
+    case params[:filter]
+    when 'recent'
+      @products = @products.recent.limit(15)
+    when 'low_stock'
+      @products = @products.out_of_stock.limit(50)
+    when 'all'
+      @products = @products.limit(100)
+    else
+      # Default: Show all active products with barcodes
+      @products = @products.where.not(barcode: [nil, ''])
+    end
+
+    @products = @products.order(:name)
 
     respond_to do |format|
       format.html { render layout: false }
