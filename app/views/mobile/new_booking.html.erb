@@ -1,125 +1,673 @@
-<div class="card card-modern">
-  <div class="card-header card-header-modern">
-    <h5 class="mb-0">
-      <i class="fas fa-plus-circle me-2"></i> New Booking
-    </h5>
-  </div>
-  <div class="card-body">
-    <%= form_with model: [@store, @booking], url: mobile_create_booking_path, local: true do |form| %>
-      <% if @booking.errors.any? %>
-        <div class="alert alert-danger">
-          <h6>Please fix these errors:</h6>
-          <ul class="mb-0">
-            <% @booking.errors.full_messages.each do |message| %>
-              <li><%= message %></li>
-            <% end %>
-          </ul>
-        </div>
-      <% end %>
+<!-- Mobile Booking Interface -->
+<!-- Cart Summary (Floating) -->
+<div class="position-fixed" style="top: 80px; right: 15px; z-index: 1050;" id="cartSummary">
+  <button class="btn btn-primary btn-lg rounded-circle" onclick="toggleCheckoutView()" id="cartButton">
+    <i class="fas fa-shopping-cart"></i>
+    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="cartCount">0</span>
+  </button>
+</div>
 
-      <!-- Customer Details -->
-      <div class="mb-3">
-        <%= form.label :customer_name, class: "form-label fw-bold" do %>
-          <i class="fas fa-user me-2"></i>Customer Name
-        <% end %>
-        <%= form.text_field :customer_name, class: "form-control", placeholder: "Enter customer name" %>
-      </div>
-
-      <div class="mb-3">
-        <%= form.label :customer_phone, class: "form-label fw-bold" do %>
-          <i class="fas fa-phone me-2"></i>Mobile Number
-        <% end %>
-        <%= form.tel_field :customer_phone, class: "form-control", placeholder: "+91 9999999999" %>
-      </div>
-
-      <div class="mb-3">
-        <%= form.label :delivery_address, class: "form-label fw-bold" do %>
-          <i class="fas fa-map-marker-alt me-2"></i>Address
-        <% end %>
-        <%= form.text_area :delivery_address, rows: 2, class: "form-control", placeholder: "Enter delivery address" %>
-      </div>
-
-      <!-- Booking Details -->
-      <div class="row">
-        <div class="col-6">
-          <div class="mb-3">
-            <%= form.label :total_amount, class: "form-label fw-bold" do %>
-              <i class="fas fa-rupee-sign me-2"></i>Amount
-            <% end %>
-            <%= form.number_field :total_amount, step: 0.01, class: "form-control", placeholder: "0.00", id: "total_amount" %>
-          </div>
-        </div>
-        <div class="col-6">
-          <div class="mb-3">
-            <%= form.label :payment_status, class: "form-label fw-bold" do %>
-              <i class="fas fa-credit-card me-2"></i>Payment
-            <% end %>
-            <%= form.select :payment_status,
-                options_for_select([
-                  ['Unpaid', 'unpaid'],
-                  ['Paid', 'paid'],
-                  ['Partial', 'partial']
-                ], 'unpaid'),
-                {},
-                { class: "form-select" } %>
-          </div>
-        </div>
-      </div>
-
-      <div class="mb-3">
-        <%= form.label :status, class: "form-label fw-bold" do %>
-          <i class="fas fa-info-circle me-2"></i>Status
-        <% end %>
-        <%= form.select :status,
-            options_for_select([
-              ['Draft', 'draft'],
-              ['Confirmed', 'confirmed'],
-              ['Processing', 'processing'],
-              ['Ready', 'ready']
-            ], 'draft'),
-            {},
-            { class: "form-select" } %>
-      </div>
-
-      <!-- Quick Amount Buttons -->
-      <div class="mb-3">
-        <label class="form-label fw-bold">
-          <i class="fas fa-calculator me-2"></i>Quick Amounts
-        </label>
-        <div class="d-grid gap-2 d-md-flex">
-          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setAmount(100)">₹100</button>
-          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setAmount(500)">₹500</button>
-          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setAmount(1000)">₹1000</button>
-          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setAmount(2000)">₹2000</button>
-        </div>
-      </div>
-
-      <!-- Auto-generated fields -->
-      <%= form.hidden_field :booking_number, value: "BK#{Time.current.strftime('%Y%m%d%H%M%S')}" %>
-
-      <!-- Submit Button -->
-      <div class="d-grid gap-2">
-        <%= form.submit "Create Booking", class: "btn btn-primary-modern btn-modern", data: { disable_with: "Creating..." } %>
-      </div>
-    <% end %>
+<!-- View Toggle Buttons -->
+<div class="mb-3">
+  <div class="btn-group w-100" role="group">
+    <button type="button" class="btn btn-primary" id="productsViewBtn" onclick="showProductsView()">
+      <i class="fas fa-boxes me-2"></i>Products
+    </button>
+    <button type="button" class="btn btn-outline-primary" id="checkoutViewBtn" onclick="showCheckoutView()">
+      <i class="fas fa-shopping-cart me-2"></i>Cart & Checkout
+    </button>
   </div>
 </div>
 
-<script>
-function setAmount(amount) {
-  document.getElementById('total_amount').value = amount;
+<!-- Products View -->
+<div id="productsView">
+  <!-- Search and Filters -->
+  <div class="card card-modern mb-3">
+    <div class="card-body py-2">
+      <div class="row g-2">
+        <div class="col-12">
+          <div class="position-relative">
+            <input type="text" class="form-control" placeholder="Search products by name, SKU..." id="productSearch">
+            <i class="fas fa-search position-absolute top-50 end-0 translate-middle-y me-3 text-muted"></i>
+          </div>
+        </div>
+        <div class="col-6">
+          <input type="text" class="form-control" placeholder="Scan barcode..." id="barcodeScanner">
+        </div>
+        <div class="col-6">
+          <select class="form-select" id="categoryFilter">
+            <option value="">All Categories</option>
+            <% @categories.each do |category| %>
+              <option value="<%= category.id %>"><%= category.name %></option>
+            <% end %>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  // Add visual feedback
-  event.target.classList.add('btn-success');
-  setTimeout(() => {
-    event.target.classList.remove('btn-success');
-  }, 300);
+  <!-- Products Grid -->
+  <div id="productsGrid">
+    <div class="row g-2" id="productsList">
+      <% @products.limit(20).each do |product| %>
+        <div class="col-6 product-item" data-product-id="<%= product.id %>" data-category="<%= product.category_id %>">
+          <div class="card h-100">
+            <% if product.image.attached? %>
+              <%= image_tag product.image, class: "card-img-top", style: "height: 120px; object-fit: cover;" %>
+            <% elsif product.additional_images.any? %>
+              <%= image_tag product.additional_images.first, class: "card-img-top", style: "height: 120px; object-fit: cover;" %>
+            <% else %>
+              <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 120px;">
+                <i class="fas fa-box text-muted"></i>
+              </div>
+            <% end %>
+
+            <div class="card-body p-2">
+              <h6 class="card-title mb-1" style="font-size: 0.875rem;"><%= truncate(product.name, length: 30) %></h6>
+              <p class="card-text mb-1">
+                <small class="text-success fw-bold">₹<%= number_with_delimiter(product.price) %></small>
+              </p>
+              <% current_stock = product.cached_total_batch_stock %>
+              <p class="card-text mb-2">
+                <% if current_stock > 0 %>
+                  <small class="text-muted"><%= current_stock.to_i %> in stock</small>
+                <% else %>
+                  <small class="text-danger">Out of stock</small>
+                <% end %>
+              </p>
+              <% if current_stock > 0 %>
+                <div class="d-grid">
+                  <button class="btn btn-primary btn-sm" onclick="addToCart(<%= product.id %>, '<%= j(product.name) %>', <%= product.price %>, '<%= product.image.attached? ? j(url_for(product.image)) : (product.additional_images.any? ? j(url_for(product.additional_images.first)) : '') %>')">
+                    <i class="fas fa-plus"></i>
+                  </button>
+                </div>
+              <% else %>
+                <div class="d-grid">
+                  <button class="btn btn-outline-secondary btn-sm" disabled>
+                    <i class="fas fa-times"></i> Out of Stock
+                  </button>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Load More Button -->
+    <div class="text-center mt-3" id="loadMoreContainer">
+      <button class="btn btn-outline-primary" onclick="loadMoreProducts()" id="loadMoreBtn">
+        Load More Products
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Checkout View -->
+<div id="checkoutView" style="display: none;">
+  <%= form_with model: [@store, @booking], url: mobile_create_booking_path, local: true, id: "bookingForm" do |form| %>
+    <% if @booking.errors.any? %>
+      <div class="alert alert-danger">
+        <h6>Please fix these errors:</h6>
+        <ul class="mb-0">
+          <% @booking.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <!-- Cart Items -->
+    <div class="card card-modern mb-3">
+      <div class="card-header card-header-modern">
+        <h6 class="mb-0">
+          <i class="fas fa-shopping-cart me-2"></i>Cart Items
+        </h6>
+      </div>
+      <div class="card-body">
+        <div id="cartItems">
+          <div class="text-center py-3" id="emptyCart">
+            <i class="fas fa-shopping-cart fa-2x text-muted mb-2"></i>
+            <p class="text-muted mb-0">No items in cart</p>
+            <small class="text-muted">Add products from the Products tab</small>
+          </div>
+        </div>
+        <div class="border-top pt-2 mt-2" id="cartTotal" style="display: none;">
+          <div class="d-flex justify-content-between align-items-center">
+            <strong>Total:</strong>
+            <strong class="text-success" id="cartTotalAmount">₹0</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Customer Search and Details -->
+    <div class="card card-modern mb-3">
+      <div class="card-header card-header-modern">
+        <h6 class="mb-0">
+          <i class="fas fa-user me-2"></i>Customer Details
+        </h6>
+      </div>
+      <div class="card-body">
+        <!-- Customer Search -->
+        <div class="mb-3">
+          <label class="form-label fw-bold">Search Existing Customer</label>
+          <div class="position-relative">
+            <input type="text" class="form-control" placeholder="Search by name or phone..." id="customerSearch">
+            <i class="fas fa-search position-absolute top-50 end-0 translate-middle-y me-3 text-muted"></i>
+          </div>
+          <div id="customerSearchResults" class="mt-2"></div>
+        </div>
+
+        <!-- Manual Customer Entry -->
+        <div class="mb-3">
+          <%= form.label :customer_name, class: "form-label fw-bold" do %>
+            <i class="fas fa-user me-2"></i>Customer Name
+          <% end %>
+          <%= form.text_field :customer_name, class: "form-control", placeholder: "Enter customer name", id: "customerNameField" %>
+        </div>
+
+        <div class="mb-3">
+          <%= form.label :customer_phone, class: "form-label fw-bold" do %>
+            <i class="fas fa-phone me-2"></i>Mobile Number
+          <% end %>
+          <%= form.telephone_field :customer_phone, class: "form-control", placeholder: "+91 9999999999", id: "customerPhoneField" %>
+        </div>
+
+        <div class="mb-3">
+          <%= form.label :delivery_address, class: "form-label fw-bold" do %>
+            <i class="fas fa-map-marker-alt me-2"></i>Address
+          <% end %>
+          <%= form.text_area :delivery_address, rows: 2, class: "form-control", placeholder: "Enter delivery address", id: "customerAddressField" %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Booking Details -->
+    <div class="card card-modern mb-3">
+      <div class="card-header card-header-modern">
+        <h6 class="mb-0">
+          <i class="fas fa-cog me-2"></i>Booking Settings
+        </h6>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-6">
+            <div class="mb-3">
+              <%= form.label :payment_status, class: "form-label fw-bold" do %>
+                <i class="fas fa-credit-card me-2"></i>Payment
+              <% end %>
+              <%= form.select :payment_status,
+                  options_for_select([
+                    ['Unpaid', 'unpaid'],
+                    ['Paid', 'paid'],
+                    ['Partial', 'partial']
+                  ], 'unpaid'),
+                  {},
+                  { class: "form-select" } %>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="mb-3">
+              <%= form.label :status, class: "form-label fw-bold" do %>
+                <i class="fas fa-info-circle me-2"></i>Status
+              <% end %>
+              <%= form.select :status,
+                  options_for_select([
+                    ['Draft', 'draft'],
+                    ['Confirmed', 'confirmed']
+                  ], 'draft'),
+                  {},
+                  { class: "form-select" } %>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <%= form.label :notes, class: "form-label fw-bold" do %>
+            <i class="fas fa-sticky-note me-2"></i>Notes
+          <% end %>
+          <%= form.text_area :notes, rows: 2, class: "form-control", placeholder: "Optional booking notes..." %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Auto-generated fields -->
+    <%= form.hidden_field :booking_number, value: "BK#{Time.current.strftime('%Y%m%d%H%M%S')}" %>
+    <%= form.hidden_field :total_amount, id: "totalAmountField" %>
+
+    <!-- Submit Button -->
+    <div class="d-grid gap-2">
+      <%= form.submit "Create Booking", class: "btn btn-primary-modern btn-modern btn-lg", data: { disable_with: "Creating..." }, id: "submitBookingBtn" %>
+    </div>
+  <% end %>
+</div>
+
+<script>
+// Mobile booking application variables
+let cart = [];
+let currentView = 'products';
+let loadedProductsCount = 0;
+let searchTimeout;
+
+// Initialize cart from session
+fetch('/mobile/get_cart')
+  .then(response => response.json())
+  .then(data => {
+    cart = data.cart_items || [];
+    updateCartDisplay();
+    updateCartCount();
+  });
+
+// View switching functions
+function showProductsView() {
+  document.getElementById('productsView').style.display = 'block';
+  document.getElementById('checkoutView').style.display = 'none';
+  document.getElementById('productsViewBtn').classList.add('btn-primary');
+  document.getElementById('productsViewBtn').classList.remove('btn-outline-primary');
+  document.getElementById('checkoutViewBtn').classList.remove('btn-primary');
+  document.getElementById('checkoutViewBtn').classList.add('btn-outline-primary');
+  currentView = 'products';
 }
 
-// Auto-generate booking number
+function showCheckoutView() {
+  document.getElementById('productsView').style.display = 'none';
+  document.getElementById('checkoutView').style.display = 'block';
+  document.getElementById('checkoutViewBtn').classList.add('btn-primary');
+  document.getElementById('checkoutViewBtn').classList.remove('btn-outline-primary');
+  document.getElementById('productsViewBtn').classList.remove('btn-primary');
+  document.getElementById('productsViewBtn').classList.add('btn-outline-primary');
+  updateCartDisplay();
+  currentView = 'checkout';
+}
+
+function toggleCheckoutView() {
+  if (currentView === 'products') {
+    showCheckoutView();
+  } else {
+    showProductsView();
+  }
+}
+
+// Cart management functions
+function addToCart(productId, productName, price, imageUrl) {
+  const quantity = 1; // Default quantity
+
+  fetch('/mobile/add_to_cart', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+    },
+    body: JSON.stringify({
+      product_id: productId,
+      quantity: quantity
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Update local cart
+      const existingItem = cart.find(item => item.product_id == productId);
+      if (existingItem) {
+        existingItem.quantity += quantity;
+      } else {
+        cart.push({
+          product_id: productId,
+          product_name: productName,
+          quantity: quantity,
+          price: price,
+          image_url: imageUrl
+        });
+      }
+
+      updateCartDisplay();
+      updateCartCount();
+      showAlert(data.message, 'success');
+
+      // Visual feedback
+      const button = event.target;
+      button.innerHTML = '<i class="fas fa-check"></i>';
+      button.classList.add('btn-success');
+      setTimeout(() => {
+        button.innerHTML = '<i class="fas fa-plus"></i>';
+        button.classList.remove('btn-success');
+        button.classList.add('btn-primary');
+      }, 500);
+    }
+  })
+  .catch(error => {
+    console.error('Error adding to cart:', error);
+    showAlert('Error adding item to cart', 'error');
+  });
+}
+
+function removeFromCart(productId) {
+  fetch('/mobile/remove_from_cart', {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+    },
+    body: JSON.stringify({
+      product_id: productId
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      cart = cart.filter(item => item.product_id != productId);
+      updateCartDisplay();
+      updateCartCount();
+    }
+  });
+}
+
+function updateCartQuantity(productId, newQuantity) {
+  if (newQuantity <= 0) {
+    removeFromCart(productId);
+    return;
+  }
+
+  fetch('/mobile/update_cart', {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+    },
+    body: JSON.stringify({
+      product_id: productId,
+      quantity: newQuantity
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      const cartItem = cart.find(item => item.product_id == productId);
+      if (cartItem) {
+        cartItem.quantity = newQuantity;
+      }
+      updateCartDisplay();
+      updateCartCount();
+    }
+  });
+}
+
+function updateCartDisplay() {
+  const cartItemsContainer = document.getElementById('cartItems');
+  const emptyCart = document.getElementById('emptyCart');
+  const cartTotal = document.getElementById('cartTotal');
+  const cartTotalAmount = document.getElementById('cartTotalAmount');
+  const totalAmountField = document.getElementById('totalAmountField');
+
+  if (cart.length === 0) {
+    emptyCart.style.display = 'block';
+    cartTotal.style.display = 'none';
+    cartItemsContainer.innerHTML = '';
+    cartItemsContainer.appendChild(emptyCart);
+    totalAmountField.value = 0;
+    return;
+  }
+
+  emptyCart.style.display = 'none';
+  cartTotal.style.display = 'flex';
+
+  let cartHTML = '';
+  let totalAmount = 0;
+
+  cart.forEach(item => {
+    const itemTotal = item.quantity * item.price;
+    totalAmount += itemTotal;
+
+    cartHTML += `
+      <div class="d-flex align-items-center mb-2 pb-2 border-bottom">
+        <div class="flex-shrink-0">
+          ${item.image_url ?
+            `<img src="${item.image_url}" class="rounded" style="width: 40px; height: 40px; object-fit: cover;">` :
+            `<div class="bg-light rounded d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;"><i class="fas fa-box text-muted"></i></div>`
+          }
+        </div>
+        <div class="flex-grow-1 ms-2">
+          <h6 class="mb-0" style="font-size: 0.875rem;">${item.product_name}</h6>
+          <small class="text-muted">₹${item.price} each</small>
+        </div>
+        <div class="flex-shrink-0">
+          <div class="d-flex align-items-center">
+            <button class="btn btn-sm btn-outline-secondary" onclick="updateCartQuantity(${item.product_id}, ${item.quantity - 1})" style="padding: 2px 6px;">
+              <i class="fas fa-minus" style="font-size: 0.75rem;"></i>
+            </button>
+            <span class="mx-2 fw-bold">${item.quantity}</span>
+            <button class="btn btn-sm btn-outline-secondary" onclick="updateCartQuantity(${item.product_id}, ${item.quantity + 1})" style="padding: 2px 6px;">
+              <i class="fas fa-plus" style="font-size: 0.75rem;"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger ms-2" onclick="removeFromCart(${item.product_id})" style="padding: 2px 6px;">
+              <i class="fas fa-trash" style="font-size: 0.75rem;"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  cartItemsContainer.innerHTML = cartHTML;
+  cartTotalAmount.textContent = `₹${totalAmount.toLocaleString()}`;
+  totalAmountField.value = totalAmount;
+}
+
+function updateCartCount() {
+  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const cartCountElement = document.getElementById('cartCount');
+  cartCountElement.textContent = totalItems;
+  cartCountElement.style.display = totalItems > 0 ? 'block' : 'none';
+}
+
+// Product search functionality
+function setupProductSearch() {
+  const productSearch = document.getElementById('productSearch');
+  const barcodeScanner = document.getElementById('barcodeScanner');
+  const categoryFilter = document.getElementById('categoryFilter');
+
+  productSearch.addEventListener('input', debounce(searchProducts, 300));
+  barcodeScanner.addEventListener('input', searchProducts);
+  categoryFilter.addEventListener('change', searchProducts);
+}
+
+function searchProducts() {
+  const query = document.getElementById('productSearch').value;
+  const barcode = document.getElementById('barcodeScanner').value;
+  const categoryId = document.getElementById('categoryFilter').value;
+
+  const searchQuery = query || barcode;
+
+  if (searchQuery.length < 2 && !categoryId) {
+    return; // Don't search for very short queries
+  }
+
+  fetch('/mobile/search_products?' + new URLSearchParams({
+    q: searchQuery,
+    category_id: categoryId
+  }))
+  .then(response => response.json())
+  .then(data => {
+    displayProducts(data.products);
+  })
+  .catch(error => {
+    console.error('Search error:', error);
+  });
+}
+
+function displayProducts(products) {
+  const productsList = document.getElementById('productsList');
+
+  if (products.length === 0) {
+    productsList.innerHTML = '<div class="col-12 text-center py-4"><p class="text-muted">No products found</p></div>';
+    return;
+  }
+
+  let productsHTML = '';
+  products.forEach(product => {
+    productsHTML += `
+      <div class="col-6 product-item" data-product-id="${product.id}" data-category="${product.category_id || ''}">
+        <div class="card h-100">
+          ${product.image_url ?
+            `<img src="${product.image_url}" class="card-img-top" style="height: 120px; object-fit: cover;">` :
+            `<div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 120px;"><i class="fas fa-box text-muted"></i></div>`
+          }
+          <div class="card-body p-2">
+            <h6 class="card-title mb-1" style="font-size: 0.875rem;">${product.name.length > 30 ? product.name.substring(0, 30) + '...' : product.name}</h6>
+            <p class="card-text mb-1">
+              <small class="text-success fw-bold">₹${product.price.toLocaleString()}</small>
+            </p>
+            <p class="card-text mb-2">
+              ${product.stock > 0 ?
+                `<small class="text-muted">${product.stock} in stock</small>` :
+                `<small class="text-danger">Out of stock</small>`
+              }
+            </p>
+            ${product.stock > 0 ?
+              `<div class="d-grid">
+                <button class="btn btn-primary btn-sm" onclick="addToCart(${product.id}, '${product.name.replace(/'/g, '\\\'')}', ${product.price}, '${product.image_url || ''}')">
+                  <i class="fas fa-plus"></i>
+                </button>
+              </div>` :
+              `<div class="d-grid">
+                <button class="btn btn-outline-secondary btn-sm" disabled>
+                  <i class="fas fa-times"></i> Out of Stock
+                </button>
+              </div>`
+            }
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  productsList.innerHTML = productsHTML;
+}
+
+// Customer search functionality
+function setupCustomerSearch() {
+  const customerSearch = document.getElementById('customerSearch');
+  customerSearch.addEventListener('input', debounce(searchCustomers, 300));
+}
+
+function searchCustomers() {
+  const query = document.getElementById('customerSearch').value;
+
+  if (query.length < 2) {
+    document.getElementById('customerSearchResults').innerHTML = '';
+    return;
+  }
+
+  fetch('/mobile/search_customers?' + new URLSearchParams({ q: query }))
+  .then(response => response.json())
+  .then(data => {
+    displayCustomerResults(data.customers);
+  })
+  .catch(error => {
+    console.error('Customer search error:', error);
+  });
+}
+
+function displayCustomerResults(customers) {
+  const resultsContainer = document.getElementById('customerSearchResults');
+
+  if (customers.length === 0) {
+    resultsContainer.innerHTML = '<small class="text-muted">No customers found</small>';
+    return;
+  }
+
+  let resultsHTML = '<div class="list-group">';
+  customers.forEach(customer => {
+    resultsHTML += `
+      <a href="#" class="list-group-item list-group-item-action" onclick="selectCustomer('${customer.name}', '${customer.mobile}', '${customer.address || ''}')">
+        <div class="d-flex w-100 justify-content-between">
+          <h6 class="mb-1">${customer.name}</h6>
+        </div>
+        <p class="mb-1">${customer.mobile}</p>
+        ${customer.address ? `<small>${customer.address}</small>` : ''}
+      </a>
+    `;
+  });
+  resultsHTML += '</div>';
+
+  resultsContainer.innerHTML = resultsHTML;
+}
+
+function selectCustomer(name, mobile, address) {
+  document.getElementById('customerNameField').value = name;
+  document.getElementById('customerPhoneField').value = mobile;
+  document.getElementById('customerAddressField').value = address;
+  document.getElementById('customerSearch').value = name;
+  document.getElementById('customerSearchResults').innerHTML = '';
+}
+
+// Utility functions
+function debounce(func, wait) {
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(searchTimeout);
+      func(...args);
+    };
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(later, wait);
+  };
+}
+
+function showAlert(message, type = 'info') {
+  const alertClass = type === 'success' ? 'alert-success' : type === 'error' ? 'alert-danger' : 'alert-info';
+  const alertDiv = document.createElement('div');
+  alertDiv.className = `alert ${alertClass} alert-dismissible position-fixed`;
+  alertDiv.style.cssText = 'top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; min-width: 300px;';
+  alertDiv.innerHTML = `
+    ${message}
+    <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+  `;
+  document.body.appendChild(alertDiv);
+
+  setTimeout(() => {
+    if (alertDiv.parentElement) {
+      alertDiv.remove();
+    }
+  }, 5000);
+}
+
+// Form validation and submission
+function setupFormValidation() {
+  const form = document.getElementById('bookingForm');
+  form.addEventListener('submit', function(e) {
+    const customerName = document.getElementById('customerNameField').value;
+    const totalAmount = document.getElementById('totalAmountField').value;
+
+    if (!customerName.trim()) {
+      e.preventDefault();
+      showAlert('Please enter customer name', 'error');
+      showCheckoutView(); // Switch to checkout view to show the error
+      return;
+    }
+
+    if (!totalAmount || parseFloat(totalAmount) <= 0) {
+      e.preventDefault();
+      showAlert('Please add items to cart', 'error');
+      return;
+    }
+
+    if (cart.length === 0) {
+      e.preventDefault();
+      showAlert('Please add items to cart before creating booking', 'error');
+      return;
+    }
+  });
+}
+
+// Initialize when page loads
 document.addEventListener('DOMContentLoaded', function() {
+  setupProductSearch();
+  setupCustomerSearch();
+  setupFormValidation();
+
   // Format mobile number as user types
-  const mobileField = document.querySelector('input[name="booking[customer_phone]"]');
+  const mobileField = document.getElementById('customerPhoneField');
   if (mobileField) {
     mobileField.addEventListener('input', function(e) {
       let value = e.target.value.replace(/\D/g, '');
@@ -129,27 +677,58 @@ document.addEventListener('DOMContentLoaded', function() {
         value = value.substring(0, 5) + ' ' + value.substring(5);
       }
 
-      e.target.value = '+91 ' + value;
+      e.target.value = value.length > 0 ? '+91 ' + value : '';
     });
   }
-
-  // Form validation
-  const form = document.querySelector('form');
-  form.addEventListener('submit', function(e) {
-    const customerName = form.querySelector('input[name="booking[customer_name]"]').value;
-    const totalAmount = form.querySelector('input[name="booking[total_amount]"]').value;
-
-    if (!customerName.trim()) {
-      alert('Please enter customer name');
-      e.preventDefault();
-      return;
-    }
-
-    if (!totalAmount || parseFloat(totalAmount) <= 0) {
-      alert('Please enter a valid amount');
-      e.preventDefault();
-      return;
-    }
-  });
 });
 </script>
+
+<style>
+.product-item {
+  transition: transform 0.2s ease;
+}
+
+.product-item:hover {
+  transform: translateY(-2px);
+}
+
+.list-group-item {
+  cursor: pointer;
+  border-radius: 8px !important;
+  margin-bottom: 2px;
+}
+
+.list-group-item:hover {
+  background-color: #f8f9fa;
+}
+
+#cartSummary {
+  animation: bounce 0.3s ease;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
+
+.btn-group .btn {
+  border-radius: 8px !important;
+}
+
+.btn-group .btn:not(:last-child) {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.btn-group .btn:not(:first-child) {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+</style>

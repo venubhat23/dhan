@@ -1,43 +1,137 @@
-<!-- Quick Stats -->
-<div class="row mb-3">
-  <div class="col-6">
+<!-- Enhanced Stats Dashboard -->
+<div class="row mb-3 g-2">
+  <div class="col-3">
     <div class="card card-modern text-center">
-      <div class="card-body py-3">
-        <h5 class="mb-1"><%= @bookings.count %></h5>
-        <small class="text-muted">Total Bookings</small>
+      <div class="card-body py-2">
+        <div class="text-primary">
+          <i class="fas fa-calendar-alt"></i>
+        </div>
+        <h6 class="mb-0 mt-1"><%= @booking_stats[:total] %></h6>
+        <small class="text-muted">Total</small>
       </div>
     </div>
   </div>
-  <div class="col-6">
+  <div class="col-3">
     <div class="card card-modern text-center">
-      <div class="card-body py-3">
-        <h5 class="mb-1">₹<%= @bookings.sum(:total_amount) %></h5>
-        <small class="text-muted">Total Value</small>
+      <div class="card-body py-2">
+        <div class="text-warning">
+          <i class="fas fa-clock"></i>
+        </div>
+        <h6 class="mb-0 mt-1"><%= @booking_stats[:draft] %></h6>
+        <small class="text-muted">Draft</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-3">
+    <div class="card card-modern text-center">
+      <div class="card-body py-2">
+        <div class="text-info">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <h6 class="mb-0 mt-1"><%= @booking_stats[:confirmed] %></h6>
+        <small class="text-muted">Confirmed</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-3">
+    <div class="card card-modern text-center">
+      <div class="card-body py-2">
+        <div class="text-success">
+          <i class="fas fa-trophy"></i>
+        </div>
+        <h6 class="mb-0 mt-1"><%= @booking_stats[:completed] %></h6>
+        <small class="text-muted">Done</small>
       </div>
     </div>
   </div>
 </div>
 
-<!-- New Booking Button -->
-<div class="mb-3">
-  <%= link_to mobile_new_booking_path, class: "btn btn-primary-modern btn-modern w-100" do %>
-    <i class="fas fa-plus me-2"></i> Create New Booking
-  <% end %>
+<!-- Total Value Card -->
+<div class="card card-modern mb-3">
+  <div class="card-body text-center py-3">
+    <h4 class="text-success mb-1">₹<%= number_with_delimiter(@booking_stats[:total_value]) %></h4>
+    <small class="text-muted">Total Business Value</small>
+  </div>
+</div>
+
+<!-- Action Buttons -->
+<div class="row mb-3 g-2">
+  <div class="col-8">
+    <%= link_to mobile_new_booking_path, class: "btn btn-primary-modern btn-modern w-100" do %>
+      <i class="fas fa-plus me-2"></i> Create New Booking
+    <% end %>
+  </div>
+  <div class="col-4">
+    <button class="btn btn-outline-secondary btn-modern w-100" onclick="toggleSearchFilters()">
+      <i class="fas fa-filter"></i>
+    </button>
+  </div>
+</div>
+
+<!-- Search and Filters (Hidden by default) -->
+<div class="card card-modern mb-3" id="searchFilters" style="display: none;">
+  <div class="card-header card-header-modern">
+    <h6 class="mb-0">
+      <i class="fas fa-search me-2"></i>Search & Filters
+    </h6>
+  </div>
+  <div class="card-body">
+    <%= form_with url: mobile_bookings_path, method: :get, local: true, class: "row g-2" do |form| %>
+      <div class="col-12">
+        <%= form.text_field :search, value: params[:search], class: "form-control", placeholder: "Search by booking #, customer name, or phone..." %>
+      </div>
+      <div class="col-6">
+        <%= form.select :status,
+            options_for_select([
+              ['All Status', ''],
+              ['Draft', 'draft'],
+              ['Confirmed', 'confirmed'],
+              ['Processing', 'processing'],
+              ['Shipped', 'shipped'],
+              ['Delivered', 'delivered'],
+              ['Completed', 'completed'],
+              ['Cancelled', 'cancelled']
+            ], params[:status]),
+            {},
+            { class: "form-select" } %>
+      </div>
+      <div class="col-6">
+        <div class="d-grid">
+          <%= form.submit "Apply", class: "btn btn-primary-modern btn-sm" %>
+        </div>
+      </div>
+      <% if params[:search].present? || params[:status].present? %>
+        <div class="col-12">
+          <%= link_to "Clear Filters", mobile_bookings_path, class: "btn btn-outline-secondary btn-sm w-100" %>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
 </div>
 
 <!-- Bookings List -->
 <% if @bookings.any? %>
   <% @bookings.each do |booking| %>
-    <div class="card card-modern mb-3">
+    <div class="card card-modern mb-3 booking-card" data-booking-id="<%= booking.id %>">
       <div class="card-header card-header-modern d-flex justify-content-between align-items-center">
         <div>
           <h6 class="mb-0">#<%= booking.booking_number %></h6>
-          <small class="opacity-75"><%= booking.created_at.strftime('%d %b, %Y') %></small>
+          <small class="opacity-75"><%= booking.created_at.strftime('%d %b, %Y at %I:%M %p') %></small>
         </div>
         <div class="text-end">
-          <div class="badge bg-light text-dark">
+          <% status_class = case booking.status
+                           when 'draft' then 'bg-secondary'
+                           when 'confirmed' then 'bg-info'
+                           when 'processing' then 'bg-warning'
+                           when 'shipped' then 'bg-primary'
+                           when 'delivered' then 'bg-success'
+                           when 'completed' then 'bg-success'
+                           when 'cancelled' then 'bg-danger'
+                           else 'bg-light text-dark'
+                           end %>
+          <span class="badge <%= status_class %>">
             <%= booking.status&.humanize || 'Draft' %>
-          </div>
+          </span>
         </div>
       </div>
       <div class="card-body">
@@ -49,15 +143,62 @@
             <% if booking.customer_phone.present? %>
               <p class="mb-1"><i class="fas fa-phone me-2 text-muted"></i><%= booking.customer_phone %></p>
             <% end %>
-            <p class="mb-0"><i class="fas fa-rupee-sign me-2 text-muted"></i>₹<%= booking.total_amount %></p>
+            <% if booking.booking_items.any? %>
+              <p class="mb-1"><i class="fas fa-boxes me-2 text-muted"></i><%= pluralize(booking.booking_items.count, 'item') %></p>
+            <% end %>
+            <p class="mb-0"><i class="fas fa-rupee-sign me-2 text-muted"></i>₹<%= number_with_delimiter(booking.total_amount) %></p>
+            <% if booking.payment_status.present? %>
+              <% payment_class = case booking.payment_status
+                                when 'paid' then 'text-success'
+                                when 'unpaid' then 'text-danger'
+                                when 'partial' then 'text-warning'
+                                else 'text-muted'
+                                end %>
+              <small class="<%= payment_class %>">
+                <i class="fas fa-credit-card me-1"></i><%= booking.payment_status.humanize %>
+              </small>
+            <% end %>
           </div>
           <div class="col-4 text-end">
-            <%= link_to mobile_booking_path(booking), class: "btn btn-sm btn-outline-primary btn-modern mb-1" do %>
-              <i class="fas fa-eye"></i>
+            <!-- View Button -->
+            <%= link_to mobile_booking_path(booking), class: "btn btn-sm btn-outline-primary btn-modern mb-1 d-block" do %>
+              <i class="fas fa-eye me-1"></i>View
             <% end %>
-            <br>
-            <%= link_to mobile_invoice_path(booking), class: "btn btn-sm btn-success-modern btn-modern", target: "_blank" do %>
-              <i class="fas fa-file-invoice"></i>
+
+            <!-- Invoice Button -->
+            <% if booking.has_invoice? %>
+              <%= link_to mobile_invoice_path(booking), class: "btn btn-sm btn-success-modern btn-modern mb-1 d-block", target: "_blank" do %>
+                <i class="fas fa-file-invoice me-1"></i>Invoice
+              <% end %>
+            <% else %>
+              <button class="btn btn-sm btn-outline-success btn-modern mb-1 d-block" onclick="generateInvoice(<%= booking.id %>)">
+                <i class="fas fa-file-plus me-1"></i>Generate
+              </button>
+            <% end %>
+
+            <!-- Status Update -->
+            <% if booking.status != 'completed' && booking.status != 'cancelled' %>
+              <div class="btn-group" role="group">
+                <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                  <i class="fas fa-cog"></i>
+                </button>
+                <ul class="dropdown-menu">
+                  <% case booking.status
+                     when 'draft' %>
+                    <li><a class="dropdown-item" href="#" onclick="updateBookingStatus(<%= booking.id %>, 'confirmed')">Confirm</a></li>
+                  <% when 'confirmed' %>
+                    <li><a class="dropdown-item" href="#" onclick="updateBookingStatus(<%= booking.id %>, 'processing')">Start Processing</a></li>
+                  <% when 'processing' %>
+                    <li><a class="dropdown-item" href="#" onclick="updateBookingStatus(<%= booking.id %>, 'shipped')">Mark Shipped</a></li>
+                  <% when 'shipped' %>
+                    <li><a class="dropdown-item" href="#" onclick="updateBookingStatus(<%= booking.id %>, 'delivered')">Mark Delivered</a></li>
+                  <% when 'delivered' %>
+                    <li><a class="dropdown-item" href="#" onclick="updateBookingStatus(<%= booking.id %>, 'completed')">Complete</a></li>
+                  <% end %>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item text-danger" href="#" onclick="updateBookingStatus(<%= booking.id %>, 'cancelled')">Cancel</a></li>
+                </ul>
+              </div>
             <% end %>
           </div>
         </div>
@@ -67,8 +208,13 @@
 <% else %>
   <div class="text-center py-5">
     <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
-    <h4 class="text-muted">No Bookings Yet</h4>
-    <p class="text-muted">Create your first booking to get started</p>
+    <h4 class="text-muted">No Bookings Found</h4>
+    <% if params[:search].present? || params[:status].present? %>
+      <p class="text-muted">No bookings match your search criteria</p>
+      <%= link_to "Clear Filters", mobile_bookings_path, class: "btn btn-outline-secondary me-2" %>
+    <% else %>
+      <p class="text-muted">Create your first booking to get started</p>
+    <% end %>
     <%= link_to mobile_new_booking_path, class: "btn btn-primary-modern btn-modern" do %>
       <i class="fas fa-plus me-2"></i> Create Booking
     <% end %>
@@ -76,10 +222,133 @@
 <% end %>
 
 <script>
-// Auto refresh every 30 seconds
+// Toggle search filters
+function toggleSearchFilters() {
+  const filters = document.getElementById('searchFilters');
+  filters.style.display = filters.style.display === 'none' ? 'block' : 'none';
+}
+
+// Update booking status
+function updateBookingStatus(bookingId, newStatus) {
+  if (confirm(`Are you sure you want to update this booking to ${newStatus}?`)) {
+    showLoading();
+
+    fetch('/mobile/update_booking_status', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+      },
+      body: JSON.stringify({
+        id: bookingId,
+        status: newStatus
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      hideLoading();
+      if (data.success) {
+        showAlert(data.message, 'success');
+        // Refresh the page or update the status badge
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        showAlert(data.message, 'error');
+      }
+    })
+    .catch(error => {
+      hideLoading();
+      showAlert('An error occurred', 'error');
+    });
+  }
+}
+
+// Generate invoice
+function generateInvoice(bookingId) {
+  showLoading();
+
+  fetch('/mobile/generate_invoice', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+    },
+    body: JSON.stringify({
+      id: bookingId
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    hideLoading();
+    if (data.success) {
+      showAlert(data.message, 'success');
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } else {
+      showAlert(data.message, 'error');
+    }
+  })
+  .catch(error => {
+    hideLoading();
+    showAlert('An error occurred', 'error');
+  });
+}
+
+// Utility functions
+function showLoading() {
+  const loadingDiv = document.createElement('div');
+  loadingDiv.id = 'loadingOverlay';
+  loadingDiv.innerHTML = `
+    <div class="d-flex justify-content-center align-items-center position-fixed" style="top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999;">
+      <div class="bg-white p-3 rounded">
+        <div class="spinner-border text-primary me-2"></div>
+        Loading...
+      </div>
+    </div>
+  `;
+  document.body.appendChild(loadingDiv);
+}
+
+function hideLoading() {
+  const loading = document.getElementById('loadingOverlay');
+  if (loading) {
+    loading.remove();
+  }
+}
+
+function showAlert(message, type = 'info') {
+  const alertClass = type === 'success' ? 'alert-success' : type === 'error' ? 'alert-danger' : 'alert-info';
+  const alertDiv = document.createElement('div');
+  alertDiv.className = `alert ${alertClass} alert-dismissible position-fixed`;
+  alertDiv.style.cssText = 'top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; min-width: 300px;';
+  alertDiv.innerHTML = `
+    ${message}
+    <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+  `;
+  document.body.appendChild(alertDiv);
+
+  // Auto remove after 5 seconds
+  setTimeout(() => {
+    if (alertDiv.parentElement) {
+      alertDiv.remove();
+    }
+  }, 5000);
+}
+
+// Auto refresh every 60 seconds (increased from 30)
 setInterval(function() {
-  window.location.reload();
-}, 30000);
+  // Only refresh if user hasn't interacted recently
+  if (Date.now() - lastUserActivity > 30000) {
+    window.location.reload();
+  }
+}, 60000);
+
+// Track user activity
+let lastUserActivity = Date.now();
+document.addEventListener('click', () => lastUserActivity = Date.now());
+document.addEventListener('touchstart', () => lastUserActivity = Date.now());
 
 // Pull to refresh simulation
 let isRefreshing = false;
@@ -106,3 +375,22 @@ document.addEventListener('touchmove', function(e) {
   }
 }, { passive: true });
 </script>
+
+<style>
+.booking-card {
+  transition: all 0.2s ease;
+}
+
+.booking-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.dropdown-menu {
+  font-size: 0.875rem;
+}
+
+.badge {
+  font-size: 0.75rem;
+}
+</style>

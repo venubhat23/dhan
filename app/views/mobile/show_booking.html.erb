@@ -1,3 +1,10 @@
+<!-- Back Button -->
+<div class="mb-3">
+  <%= link_to mobile_bookings_path, class: "btn btn-outline-secondary" do %>
+    <i class="fas fa-arrow-left me-2"></i>Back to Bookings
+  <% end %>
+</div>
+
 <!-- Booking Header -->
 <div class="card card-modern mb-3">
   <div class="card-header card-header-modern">
@@ -5,10 +12,62 @@
       <div>
         <h5 class="mb-0">#<%= @booking.booking_number %></h5>
         <small class="opacity-75"><%= @booking.created_at.strftime('%d %b, %Y at %I:%M %p') %></small>
+        <% if @booking.invoice_number.present? %>
+          <br><small class="text-success"><i class="fas fa-file-invoice me-1"></i>Invoice: <%= @booking.invoice_number %></small>
+        <% end %>
       </div>
-      <div class="badge bg-light text-dark fs-6">
-        <%= @booking.status&.humanize || 'Draft' %>
+      <div class="text-end">
+        <% status_class = case @booking.status
+                         when 'draft' then 'bg-secondary'
+                         when 'confirmed' then 'bg-info'
+                         when 'processing' then 'bg-warning'
+                         when 'shipped' then 'bg-primary'
+                         when 'delivered' then 'bg-success'
+                         when 'completed' then 'bg-success'
+                         when 'cancelled' then 'bg-danger'
+                         else 'bg-light text-dark'
+                         end %>
+        <span class="badge <%= status_class %> fs-6">
+          <%= @booking.status&.humanize || 'Draft' %>
+        </span>
+        <% if @booking.status != 'completed' && @booking.status != 'cancelled' %>
+          <br><small class="text-muted mt-1 d-block">Tap to update</small>
+        <% end %>
       </div>
+    </div>
+  </div>
+
+  <!-- Progress Bar -->
+  <div class="card-body py-2">
+    <%
+      stages = ['draft', 'confirmed', 'processing', 'shipped', 'delivered', 'completed']
+      current_stage_index = stages.index(@booking.status) || 0
+      progress_percentage = ((current_stage_index + 1).to_f / stages.length * 100).round(0)
+
+      if ['cancelled', 'returned'].include?(@booking.status)
+        progress_percentage = 0
+        progress_color = 'bg-danger'
+      else
+        progress_color = case progress_percentage
+                        when 0..20 then 'bg-secondary'
+                        when 21..40 then 'bg-warning'
+                        when 41..60 then 'bg-info'
+                        when 61..80 then 'bg-primary'
+                        else 'bg-success'
+                        end
+      end
+    %>
+
+    <div class="progress mb-2" style="height: 8px;">
+      <div class="progress-bar <%= progress_color %>"
+           role="progressbar"
+           style="width: <%= progress_percentage %>%">
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-between">
+      <small class="text-muted">Progress: <%= progress_percentage %>%</small>
+      <small class="text-muted">Stage <%= current_stage_index + 1 %>/6</small>
     </div>
   </div>
 </div>
@@ -55,11 +114,20 @@
     <div class="row mb-2">
       <div class="col-6 text-muted">Total Amount:</div>
       <div class="col-6 text-end">
-        <h5 class="mb-0 text-success">₹<%= @booking.total_amount %></h5>
+        <h5 class="mb-0 text-success">₹<%= number_with_delimiter(@booking.total_amount) %></h5>
       </div>
     </div>
 
-    <div class="row">
+    <% if @booking.booking_items.any? %>
+      <div class="row mb-2">
+        <div class="col-6 text-muted">Items Count:</div>
+        <div class="col-6 text-end">
+          <span class="badge bg-info"><%= pluralize(@booking.booking_items.count, 'item') %></span>
+        </div>
+      </div>
+    <% end %>
+
+    <div class="row mb-2">
       <div class="col-6 text-muted">Payment Status:</div>
       <div class="col-6 text-end">
         <% case @booking.payment_status %>
@@ -72,6 +140,15 @@
         <% end %>
       </div>
     </div>
+
+    <% if @booking.payment_method.present? %>
+      <div class="row">
+        <div class="col-6 text-muted">Payment Method:</div>
+        <div class="col-6 text-end">
+          <span class="badge bg-secondary"><%= @booking.payment_method.humanize %></span>
+        </div>
+      </div>
+    <% end %>
   </div>
 </div>
 
@@ -79,66 +156,298 @@
 <% if @booking.booking_items&.any? %>
   <div class="card card-modern mb-3">
     <div class="card-header">
-      <h6 class="mb-0"><i class="fas fa-list me-2"></i>Items</h6>
+      <h6 class="mb-0"><i class="fas fa-shopping-cart me-2"></i>Order Items</h6>
     </div>
     <div class="card-body">
-      <% @booking.booking_items.each do |item| %>
-        <div class="row border-bottom py-2">
-          <div class="col-8">
-            <strong><%= item.product.name if item.product %></strong><br>
-            <small class="text-muted">Qty: <%= item.quantity %></small>
+      <% total_amount = 0 %>
+      <% @booking.booking_items.each_with_index do |item, index| %>
+        <% item_total = item.quantity * item.price %>
+        <% total_amount += item_total %>
+        <div class="d-flex align-items-center <%= 'border-bottom' unless index == @booking.booking_items.count - 1 %> py-2">
+          <div class="flex-shrink-0 me-3">
+            <% if item.product&.image&.attached? %>
+              <%= image_tag item.product.image, class: "rounded", style: "width: 50px; height: 50px; object-fit: cover;" %>
+            <% elsif item.product&.additional_images&.any? %>
+              <%= image_tag item.product.additional_images.first, class: "rounded", style: "width: 50px; height: 50px; object-fit: cover;" %>
+            <% else %>
+              <div class="bg-light rounded d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                <i class="fas fa-box text-muted"></i>
+              </div>
+            <% end %>
           </div>
-          <div class="col-4 text-end">
-            ₹<%= item.price %>
+          <div class="flex-grow-1">
+            <h6 class="mb-1"><%= item.product&.name || item.product_name || 'Product' %></h6>
+            <div class="d-flex justify-content-between align-items-center">
+              <small class="text-muted">Qty: <%= item.quantity %> × ₹<%= number_with_delimiter(item.price) %></small>
+              <strong class="text-success">₹<%= number_with_delimiter(item_total) %></strong>
+            </div>
           </div>
         </div>
       <% end %>
+
+      <!-- Total -->
+      <div class="border-top pt-2 mt-2">
+        <div class="d-flex justify-content-between align-items-center">
+          <strong>Total:</strong>
+          <h5 class="mb-0 text-success">₹<%= number_with_delimiter(total_amount) %></h5>
+        </div>
+      </div>
     </div>
   </div>
 <% end %>
 
-<!-- Action Buttons -->
-<div class="row">
-  <div class="col-6">
-    <%= link_to mobile_bookings_path, class: "btn btn-outline-secondary btn-modern w-100" do %>
-      <i class="fas fa-arrow-left me-2"></i> Back
-    <% end %>
-  </div>
-  <div class="col-6">
-    <%= link_to mobile_invoice_path(@booking), class: "btn btn-success-modern btn-modern w-100", target: "_blank" do %>
-      <i class="fas fa-file-invoice me-2"></i> Invoice
-    <% end %>
-  </div>
-</div>
-
-<!-- Quick Actions -->
-<div class="mt-3">
-  <div class="card card-modern">
+<!-- Status Management -->
+<% if @booking.status != 'completed' && @booking.status != 'cancelled' %>
+  <div class="card card-modern mb-3">
     <div class="card-header">
-      <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h6>
+      <h6 class="mb-0"><i class="fas fa-cog me-2"></i>Order Management</h6>
     </div>
     <div class="card-body">
-      <div class="d-grid gap-2">
-        <% if @booking.customer_phone.present? %>
-          <a href="https://wa.me/+91<%= @booking.customer_phone.gsub(/\D/, '') %>?text=Hello%20<%= @booking.customer_name %>, your booking #<%= @booking.booking_number %> is confirmed!"
-             class="btn btn-outline-success btn-sm"
-             target="_blank">
-            <i class="fab fa-whatsapp me-2"></i> Send WhatsApp Message
-          </a>
-        <% end %>
-
-        <% if @booking.customer_phone.present? %>
-          <a href="sms:+91<%= @booking.customer_phone.gsub(/\D/, '') %>?body=Your booking #<%= @booking.booking_number %> is confirmed. Total amount: ₹<%= @booking.total_amount %>"
-             class="btn btn-outline-primary btn-sm">
-            <i class="fas fa-sms me-2"></i> Send SMS
-          </a>
+      <div class="row g-2">
+        <% case @booking.status
+           when 'draft' %>
+          <div class="col-6">
+            <button class="btn btn-info w-100" onclick="updateStatus('confirmed')">
+              <i class="fas fa-check me-1"></i>Confirm
+            </button>
+          </div>
+          <div class="col-6">
+            <button class="btn btn-danger w-100" onclick="updateStatus('cancelled')">
+              <i class="fas fa-times me-1"></i>Cancel
+            </button>
+          </div>
+        <% when 'confirmed' %>
+          <div class="col-12">
+            <button class="btn btn-warning w-100 mb-2" onclick="updateStatus('processing')">
+              <i class="fas fa-play me-1"></i>Start Processing
+            </button>
+          </div>
+        <% when 'processing' %>
+          <div class="col-12">
+            <button class="btn btn-primary w-100 mb-2" onclick="updateStatus('shipped')">
+              <i class="fas fa-truck me-1"></i>Mark as Shipped
+            </button>
+          </div>
+        <% when 'shipped' %>
+          <div class="col-12">
+            <button class="btn btn-success w-100 mb-2" onclick="updateStatus('delivered')">
+              <i class="fas fa-home me-1"></i>Mark as Delivered
+            </button>
+          </div>
+        <% when 'delivered' %>
+          <div class="col-12">
+            <button class="btn btn-success w-100 mb-2" onclick="updateStatus('completed')">
+              <i class="fas fa-trophy me-1"></i>Complete Order
+            </button>
+          </div>
         <% end %>
       </div>
     </div>
   </div>
+<% end %>
+
+<!-- Invoice Management -->
+<div class="card card-modern mb-3">
+  <div class="card-header">
+    <h6 class="mb-0"><i class="fas fa-file-invoice me-2"></i>Invoice</h6>
+  </div>
+  <div class="card-body">
+    <% if @booking.has_invoice? %>
+      <div class="d-grid gap-2">
+        <%= link_to mobile_invoice_path(@booking), class: "btn btn-success", target: "_blank" do %>
+          <i class="fas fa-eye me-2"></i>View Invoice
+        <% end %>
+        <% if @booking.customer_phone.present? %>
+          <button class="btn btn-outline-success" onclick="shareInvoiceWhatsApp()">
+            <i class="fab fa-whatsapp me-2"></i>Share via WhatsApp
+          </button>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="d-grid">
+        <button class="btn btn-primary" onclick="generateInvoice()">
+          <i class="fas fa-file-plus me-2"></i>Generate Invoice
+        </button>
+      </div>
+    <% end %>
+  </div>
 </div>
 
+<!-- Action Buttons -->
+<div class="row g-2">
+  <div class="col-12">
+    <%= link_to mobile_bookings_path, class: "btn btn-outline-secondary btn-modern w-100" do %>
+      <i class="fas fa-list me-2"></i> View All Bookings
+    <% end %>
+  </div>
+</div>
+
+<!-- Quick Communication -->
+<% if @booking.customer_phone.present? %>
+  <div class="card card-modern mb-3">
+    <div class="card-header">
+      <h6 class="mb-0"><i class="fas fa-comments me-2"></i>Customer Communication</h6>
+    </div>
+    <div class="card-body">
+      <div class="row g-2">
+        <div class="col-6">
+          <a href="tel:<%= @booking.customer_phone %>" class="btn btn-outline-primary w-100">
+            <i class="fas fa-phone me-1"></i>Call
+          </a>
+        </div>
+        <div class="col-6">
+          <a href="sms:<%= @booking.customer_phone %>?body=Hi <%= @booking.customer_name %>, regarding your booking #<%= @booking.booking_number %>" class="btn btn-outline-info w-100">
+            <i class="fas fa-sms me-1"></i>SMS
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+<% end %>
+
 <script>
+// Update booking status
+function updateStatus(newStatus) {
+  const confirmMessage = `Are you sure you want to update this booking to ${newStatus.replace('_', ' ')}?`;
+
+  if (confirm(confirmMessage)) {
+    showLoading();
+
+    fetch('/mobile/update_booking_status', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+      },
+      body: JSON.stringify({
+        id: <%= @booking.id %>,
+        status: newStatus
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      hideLoading();
+      if (data.success) {
+        showAlert(data.message, 'success');
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } else {
+        showAlert(data.message || 'Failed to update status', 'error');
+      }
+    })
+    .catch(error => {
+      hideLoading();
+      showAlert('An error occurred', 'error');
+    });
+  }
+}
+
+// Generate invoice
+function generateInvoice() {
+  showLoading();
+
+  fetch('/mobile/generate_invoice', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+    },
+    body: JSON.stringify({
+      id: <%= @booking.id %>
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    hideLoading();
+    if (data.success) {
+      showAlert(data.message, 'success');
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } else {
+      showAlert(data.message || 'Failed to generate invoice', 'error');
+    }
+  })
+  .catch(error => {
+    hideLoading();
+    showAlert('An error occurred', 'error');
+  });
+}
+
+<% if @booking.has_invoice? && @booking.customer_phone.present? %>
+// Share invoice via WhatsApp
+function shareInvoiceWhatsApp() {
+  const phone = '<%= @booking.customer_phone.gsub(/\D/, '') %>';
+  const customerName = '<%= j(@booking.customer_name) %>';
+  const bookingNumber = '<%= @booking.booking_number %>';
+  const invoiceNumber = '<%= @booking.invoice_number %>';
+  const totalAmount = '<%= number_with_delimiter(@booking.total_amount) %>';
+
+  const message = `🎉 Hi ${customerName}!
+
+📋 Your invoice is ready for booking ${bookingNumber}
+
+🧾 Invoice Details:
+📄 Invoice No: ${invoiceNumber}
+💰 Total Amount: ₹${totalAmount}
+
+✅ Thank you for choosing our services!
+
+For any queries, feel free to reach out.
+
+Have a great day! 😊
+
+---
+Dhanvantri Naturals`;
+
+  const encodedMessage = encodeURIComponent(message);
+  const whatsappUrl = `https://wa.me/91${phone}?text=${encodedMessage}`;
+
+  window.open(whatsappUrl, '_blank');
+}
+<% end %>
+
+// Utility functions
+function showLoading() {
+  const loadingDiv = document.createElement('div');
+  loadingDiv.id = 'loadingOverlay';
+  loadingDiv.innerHTML = `
+    <div class="d-flex justify-content-center align-items-center position-fixed" style="top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999;">
+      <div class="bg-white p-3 rounded text-center">
+        <div class="spinner-border text-primary mb-2"></div>
+        <div>Updating...</div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(loadingDiv);
+}
+
+function hideLoading() {
+  const loading = document.getElementById('loadingOverlay');
+  if (loading) {
+    loading.remove();
+  }
+}
+
+function showAlert(message, type = 'info') {
+  const alertClass = type === 'success' ? 'alert-success' : type === 'error' ? 'alert-danger' : 'alert-info';
+  const alertDiv = document.createElement('div');
+  alertDiv.className = `alert ${alertClass} alert-dismissible position-fixed`;
+  alertDiv.style.cssText = 'top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; min-width: 300px;';
+  alertDiv.innerHTML = `
+    ${message}
+    <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+  `;
+  document.body.appendChild(alertDiv);
+
+  setTimeout(() => {
+    if (alertDiv.parentElement) {
+      alertDiv.remove();
+    }
+  }, 5000);
+}
+
 // Add some interactivity
 document.addEventListener('DOMContentLoaded', function() {
   // Animate cards on load
@@ -155,3 +464,32 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 </script>
+
+<style>
+.progress {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  transition: width 0.6s ease;
+}
+
+.card {
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.btn {
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+</style>

@@ -350,8 +350,9 @@
         </thead>
         <tbody>
           <%
-            products = @products.presence || Product.none
-            products = products.includes(:category)
+            # Fix: Don't redefine products, use @products directly
+            # The controller already includes :category
+            products = @products || Product.none
           %>
 
           <% if products.any? %>

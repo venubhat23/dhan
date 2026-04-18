@@ -551,36 +551,41 @@ class Admin::ProductsController < Admin::ApplicationController
   end
 
   def barcode_labels
-    @products = Product.includes(:category)
+    Rails.logger.info "🏷️ Barcode Labels - Starting method"
 
-    # Apply status filter
-    @products = @products.active unless params[:filter] == 'all'
+    # Start with a simple base query
+    @products = Product.includes(:category)
+    Rails.logger.info "Step 1: Initial products count: #{@products.count}"
+
+    # Apply filters based on params
+    if params[:filter] == 'all'
+      @products = @products.limit(200)
+    elsif params[:filter] == 'recent'
+      @products = @products.where(status: 'active').recent.limit(15)
+    elsif params[:filter] == 'low_stock'
+      @products = @products.where(status: 'active').where('stock IS NULL OR stock <= ?', 5).limit(50)
+    else
+      # Default: Active products with barcodes
+      @products = @products.where(status: 'active').where.not(barcode: [nil, ''])
+    end
+
+    Rails.logger.info "Step 2: After filter, products count: #{@products.count}"
 
     # Apply search filter
     if params[:search].present?
-      @products = @products.search(params[:search])
+      search_term = "%#{params[:search]}%"
+      @products = @products.where("name ILIKE ? OR sku ILIKE ?", search_term, search_term)
     end
 
     # Apply category filter
     if params[:category_id].present?
-      @products = @products.by_category(params[:category_id])
+      @products = @products.where(category_id: params[:category_id])
     end
 
-    # Apply specific filters
-    case params[:filter]
-    when 'recent'
-      @products = @products.recent.limit(15)
-    when 'low_stock'
-      @products = @products.out_of_stock.limit(50)
-    when 'all'
-      @products = @products.limit(100)
-    else
-      # Default: Show all active products with barcodes
-      @products = @products.where.not(barcode: [nil, ''])
-    end
-
+    # Order results
     @products = @products.order(:name)
 
+    Rails.logger.info "Step 3: Final products count: #{@products.count}"
     respond_to do |format|
       format.html { render layout: false }
       format.pdf do

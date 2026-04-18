@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_04_16_035533) do
+ActiveRecord::Schema[8.0].define(version: 2026_04_18_021528) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -358,6 +358,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_16_035533) do
     t.text "notes"
     t.boolean "status", default: true, null: false
     t.boolean "is_registered_by_mobile"
+    t.boolean "vip"
     t.index ["latitude", "longitude"], name: "index_customers_on_location"
     t.index ["whatsapp_number"], name: "index_customers_on_whatsapp_number"
   end

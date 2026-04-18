@@ -1161,6 +1161,20 @@ Rails.application.routes.draw do
     post '/bookings', to: 'mobile#create_booking', as: 'mobile_create_booking'
     get '/bookings/:id', to: 'mobile#show_booking', as: 'mobile_booking'
     get '/bookings/:id/invoice', to: 'mobile#invoice', as: 'mobile_invoice'
+
+    # Cart management routes
+    post '/add_to_cart', to: 'mobile#add_to_cart'
+    delete '/remove_from_cart', to: 'mobile#remove_from_cart'
+    patch '/update_cart', to: 'mobile#update_cart'
+    get '/get_cart', to: 'mobile#get_cart'
+
+    # Search routes
+    get '/search_products', to: 'mobile#search_products'
+    get '/search_customers', to: 'mobile#search_customers'
+
+    # Booking management routes
+    post '/update_booking_status', to: 'mobile#update_booking_status'
+    post '/generate_invoice', to: 'mobile#generate_invoice'
   end
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
