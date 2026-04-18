@@ -325,15 +325,20 @@ function addToCart(productId, productName, price, imageUrl) {
       updateCartCount();
       showAlert(data.message, 'success');
 
-      // Visual feedback
-      const button = event.target;
-      button.innerHTML = '<i class="fas fa-check"></i>';
-      button.classList.add('btn-success');
-      setTimeout(() => {
-        button.innerHTML = '<i class="fas fa-plus"></i>';
-        button.classList.remove('btn-success');
-        button.classList.add('btn-primary');
-      }, 500);
+      // Visual feedback - find the button that was clicked
+      const buttons = document.querySelectorAll(`button[onclick*="addToCart(${productId}"]`);
+      if (buttons.length > 0) {
+        const button = buttons[0];
+        const originalHTML = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check"></i>';
+        button.classList.add('btn-success');
+        button.classList.remove('btn-primary');
+        setTimeout(() => {
+          button.innerHTML = originalHTML;
+          button.classList.remove('btn-success');
+          button.classList.add('btn-primary');
+        }, 500);
+      }
     }
   })
   .catch(error => {
@@ -400,6 +405,12 @@ function updateCartDisplay() {
   const cartTotalAmount = document.getElementById('cartTotalAmount');
   const totalAmountField = document.getElementById('totalAmountField');
 
+  // Check if elements exist before using them
+  if (!cartItemsContainer || !emptyCart || !cartTotal || !cartTotalAmount || !totalAmountField) {
+    console.warn('Cart display elements not found');
+    return;
+  }
+
   if (cart.length === 0) {
     emptyCart.style.display = 'block';
     cartTotal.style.display = 'none';
@@ -457,8 +468,11 @@ function updateCartDisplay() {
 function updateCartCount() {
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartCountElement = document.getElementById('cartCount');
-  cartCountElement.textContent = totalItems;
-  cartCountElement.style.display = totalItems > 0 ? 'block' : 'none';
+
+  if (cartCountElement) {
+    cartCountElement.textContent = totalItems;
+    cartCountElement.style.display = totalItems > 0 ? 'block' : 'none';
+  }
 }
 
 // Product search functionality

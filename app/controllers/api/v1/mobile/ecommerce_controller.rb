@@ -127,7 +127,8 @@ class Api::V1::Mobile::EcommerceController < Api::V1::Mobile::BaseController
       @products = @products.order(:name)
     end
 
-    total_count = @products.count
+    count_result = @products.count
+    total_count = count_result.is_a?(Hash) ? count_result.keys.count : count_result
     @products = @products.offset((page - 1) * per_page).limit(per_page)
 
     products_data = @products.map { |product| format_product_data(product) }

@@ -73,8 +73,7 @@ class MobileController < ApplicationController
         @booking.booking_items.build(
           product_id: cart_item['product_id'],
           quantity: cart_item['quantity'],
-          price: cart_item['price'],
-          product_name: cart_item['product_name']
+          price: cart_item['price']
         )
       end
     end
@@ -289,6 +288,6 @@ class MobileController < ApplicationController
     params.require(:booking).permit(:booking_number, :customer_name, :customer_phone,
                                    :delivery_address, :total_amount, :payment_status,
                                    :status, :customer_id, :payment_method, :notes,
-                                   booking_items_attributes: [:id, :product_id, :quantity, :price, :product_name, :_destroy])
+                                   booking_items_attributes: [:id, :product_id, :quantity, :price, :_destroy])
   end
 end
