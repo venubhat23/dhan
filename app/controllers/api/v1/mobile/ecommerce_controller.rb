@@ -1,7 +1,7 @@
 class Api::V1::Mobile::EcommerceController < Api::V1::Mobile::BaseController
-  before_action :authenticate_customer!, except: [:products, :banners, :featured_products]
+  before_action :authenticate_customer!, except: [:products, :banners, :featured_products, :check_delivery]
   before_action :set_category, only: [:category_details, :category_products]
-  before_action :set_product, only: [:product_details, :check_delivery]
+  before_action :set_product, only: [:product_details]
 
   # GET /api/v1/mobile/ecommerce/categories
   def categories
@@ -164,7 +164,7 @@ class Api::V1::Mobile::EcommerceController < Api::V1::Mobile::BaseController
   def create_booking
     booking_params = params.require(:booking).permit(
       :customer_id, :customer_name, :customer_email, :customer_phone, :delivery_address,
-      :payment_method, :notes, :pincode, :latitude, :longitude,
+      :payment_method, :notes, :pincode, :latitude, :longitude, :delivery_charges,
       booking_items_attributes: [:product_id, :quantity, :price]
     )
 
@@ -835,32 +835,47 @@ class Api::V1::Mobile::EcommerceController < Api::V1::Mobile::BaseController
     json_response({ success: false, message: 'Product not found' }, :not_found)
   end
 
-  # POST /api/v1/mobile/ecommerce/products/:id/check_delivery
+  # POST /api/v1/mobile/ecommerce/check_delivery
   def check_delivery
-    @product = Product.find(params[:id])
     pincode = params[:pincode]
 
     return json_response({ success: false, message: 'Pincode is required' }, :bad_request) if pincode.blank?
 
-    # Check if product can be delivered to pincode
-    delivery_info = @product.delivery_info_for(pincode)
+    # Validate pincode format and check general delivery availability
+    pincode_validation = validate_pincode(pincode)
 
-    json_response({
-      success: true,
-      data: {
-        product_id: @product.id,
-        pincode: pincode,
-        deliverable: delivery_info[:deliverable],
-        estimated_days: delivery_info[:delivery_days],
-        delivery_charge: delivery_info[:delivery_charge].to_f,
-        message: delivery_info[:deliverable] ?
-          "Delivery available in #{delivery_info[:delivery_days]} days" :
-          "Delivery not available in this area"
-      },
-      message: delivery_info[:deliverable] ? 'Delivery available' : 'Delivery not available'
-    })
-  rescue ActiveRecord::RecordNotFound
-    json_response({ success: false, message: 'Product not found' }, :not_found)
+    if pincode_validation[:valid]
+      # Return general delivery information for the pincode
+      json_response({
+        success: true,
+        data: {
+          pincode: pincode,
+          deliverable: pincode_validation[:serviceable],
+          location_info: {
+            district: pincode_validation[:district],
+            state: pincode_validation[:state],
+            country: pincode_validation[:country],
+            post_offices: pincode_validation[:post_offices]
+          },
+          estimated_days: 3, # Default delivery days for valid pincodes
+          delivery_charge: 0, # Default delivery charge (can be customized based on distance/area)
+          message: pincode_validation[:serviceable] ?
+            "Delivery available to #{pincode_validation[:district]}, #{pincode_validation[:state]}" :
+            "Delivery not available in this area"
+        },
+        message: pincode_validation[:serviceable] ? 'Delivery available' : 'Delivery not available'
+      })
+    else
+      json_response({
+        success: false,
+        data: {
+          pincode: pincode,
+          deliverable: false,
+          error: pincode_validation[:error]
+        },
+        message: 'Invalid pincode or delivery not available'
+      }, :unprocessable_entity)
+    end
   end
 
   # POST /api/v1/mobile/ecommerce/subscriptions
@@ -1335,6 +1350,7 @@ class Api::V1::Mobile::EcommerceController < Api::V1::Mobile::BaseController
       subtotal: booking.subtotal.to_f,
       tax_amount: booking.tax_amount.to_f,
       discount_amount: booking.discount_amount&.to_f || 0,
+      delivery_charges: booking.delivery_charges&.to_f || 0,
       total_amount: booking.total_amount.to_f,
       customer_name: booking.customer_name,
       customer_email: booking.customer_email,

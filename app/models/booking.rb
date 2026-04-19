@@ -176,9 +176,12 @@ class Booking < ApplicationRecord
       self.discount_amount = current_discount
     end
 
+    # Include delivery charges in total calculation
+    delivery_charge = delivery_charges.to_f
+
     self.subtotal = items_total.round(2)
     self.tax_amount = total_gst.round(2)
-    self.total_amount = (items_total + total_gst - current_discount).round(2)
+    self.total_amount = (items_total + total_gst + delivery_charge - current_discount).round(2)
   end
 
   def calculate_totals!
