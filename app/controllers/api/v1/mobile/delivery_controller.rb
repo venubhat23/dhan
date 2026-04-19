@@ -435,8 +435,8 @@ module Api
               # Update booking status
               task.update!(
                 status: 'delivered',
-                delivered_at: Time.current,
-                delivery_notes: params.dig(:notes),
+                delivery_time: Time.current,
+                delivered_to: task.customer_name,
                 payment_status: params.dig(:payment_collected, :amount) ? 'paid' : task.payment_status
               )
 
@@ -447,8 +447,7 @@ module Api
             else
               # Update subscription task
               task.update!(
-                status: 'completed',
-                completed_at: Time.current
+                status: 'completed'
               )
             end
 
@@ -534,8 +533,9 @@ module Api
               else
                 booking.update!(
                   status: 'delivered',
-                  delivered_at: completed_at,
-                  delivery_person_id: delivery_person_id
+                  delivery_time: completed_at,
+                  delivery_person_id: delivery_person_id,
+                  delivered_to: booking.customer_name
                 )
                 updated_ids << id
               end
@@ -574,11 +574,9 @@ module Api
             elsif update[:status] == 'delivered'
               if booking.update(
                 status: 'delivered',
-                delivered_at: update[:delivered_at] || Time.current,
-                delivery_notes: update[:delivery_notes],
+                delivery_time: update[:delivered_at] || Time.current,
                 delivery_person_id: delivery_person_id,
-                latitude: update[:latitude],
-                longitude: update[:longitude]
+                delivered_to: booking.customer_name
               )
                 results << {
                   booking_id: booking_id,
@@ -598,9 +596,7 @@ module Api
               end
             elsif update[:status] == 'failed'
               if booking.update(
-                status: 'failed_delivery',
-                failed_at: update[:attempted_at] || Time.current,
-                failure_reason: update[:failure_reason],
+                status: 'cancelled',
                 delivery_person_id: delivery_person_id
               )
                 results << {
