@@ -506,6 +506,7 @@ class Api::V1::Mobile::EcommerceController < Api::V1::Mobile::BaseController
       emergency_contact_name: customer.emergency_contact_name,
       emergency_contact_number: customer.emergency_contact_number,
       preferred_language: customer.preferred_language,
+      pincode: customer.pincode,
       longitude: customer.longitude,
       latitude: customer.latitude,
       notes: customer.notes,
@@ -547,7 +548,7 @@ class Api::V1::Mobile::EcommerceController < Api::V1::Mobile::BaseController
         :address, :gender, :marital_status, :birth_date, :pan_no, :gst_no,
         :company_name, :occupation, :annual_income, :nationality, :blood_group,
         :emergency_contact_name, :emergency_contact_number, :preferred_language,
-        :longitude, :latitude, :notes
+        :pincode, :longitude, :latitude, :notes
       )
     elsif params[:ecommerce].present?
       params.require(:ecommerce).permit(
@@ -555,7 +556,7 @@ class Api::V1::Mobile::EcommerceController < Api::V1::Mobile::BaseController
         :address, :gender, :marital_status, :birth_date, :pan_no, :gst_no,
         :company_name, :occupation, :annual_income, :nationality, :blood_group,
         :emergency_contact_name, :emergency_contact_number, :preferred_language,
-        :longitude, :latitude, :notes
+        :pincode, :longitude, :latitude, :notes
       )
     else
       # Handle direct parameters (backwards compatibility)
@@ -564,7 +565,7 @@ class Api::V1::Mobile::EcommerceController < Api::V1::Mobile::BaseController
         :address, :gender, :marital_status, :birth_date, :pan_no, :gst_no,
         :company_name, :occupation, :annual_income, :nationality, :blood_group,
         :emergency_contact_name, :emergency_contact_number, :preferred_language,
-        :longitude, :latitude, :notes
+        :pincode, :longitude, :latitude, :notes
       )
     end
 
@@ -594,6 +595,7 @@ class Api::V1::Mobile::EcommerceController < Api::V1::Mobile::BaseController
           emergency_contact_name: customer.emergency_contact_name,
           emergency_contact_number: customer.emergency_contact_number,
           preferred_language: customer.preferred_language,
+          pincode: customer.pincode,
           longitude: customer.longitude,
           latitude: customer.latitude,
           notes: customer.notes,
