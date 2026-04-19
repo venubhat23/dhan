@@ -1,8 +1,8 @@
 module Api
   module V1
     module Mobile
-      class DeliveryController < ApplicationController
-        before_action :authenticate_delivery_person!
+      class DeliveryController < Api::V1::Mobile::BaseController
+        before_action :authenticate_customer!
 
         # GET /api/v1/mobile/delivery/tasks/today
         def tasks_today
@@ -207,31 +207,8 @@ module Api
 
         private
 
-        def authenticate_delivery_person!
-          # Implement your authentication logic here
-          # This should check for valid delivery person JWT token
-          unless valid_delivery_person_token?
-            render json: { success: false, message: "Unauthorized: Invalid or expired token" }, status: :unauthorized
-          end
-        end
-
-        def valid_delivery_person_token?
-          # Check JWT token from Authorization header
-          token = request.headers['Authorization']&.split(' ')&.last
-          return false unless token
-
-          # Decode and verify JWT token
-          begin
-            decoded_token = JWT.decode(token, Rails.application.secret_key_base, true, algorithm: 'HS256')
-            @current_delivery_person = DeliveryPerson.find_by(id: decoded_token[0]['delivery_person_id'])
-            @current_delivery_person.present?
-          rescue JWT::DecodeError, JWT::ExpiredSignature
-            false
-          end
-        end
-
         def current_delivery_person_id
-          @current_delivery_person&.id
+          current_delivery_person&.id
         end
 
         def get_todays_tasks

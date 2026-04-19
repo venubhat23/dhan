@@ -253,17 +253,62 @@
   </div>
   <div class="card-body">
     <% if @booking.has_invoice? %>
+      <!-- Invoice Details -->
+      <div class="alert alert-success d-flex align-items-center mb-3">
+        <i class="fas fa-check-circle me-2"></i>
+        <div>
+          <strong>Invoice Generated Successfully!</strong>
+          <% if @booking.invoice_number.present? %>
+            <br><small>Invoice #<%= @booking.invoice_number %></small>
+          <% end %>
+        </div>
+      </div>
+
+      <!-- Invoice Quick Preview -->
+      <div class="card mb-3" style="background-color: #f8f9fa;">
+        <div class="card-body py-2">
+          <div class="row text-center">
+            <div class="col-4">
+              <small class="text-muted d-block">Invoice Date</small>
+              <strong style="font-size: 0.875rem;"><%= Date.current.strftime('%d %b %Y') %></strong>
+            </div>
+            <div class="col-4">
+              <small class="text-muted d-block">Amount</small>
+              <strong class="text-success" style="font-size: 0.875rem;">₹<%= number_with_delimiter(@booking.total_amount) %></strong>
+            </div>
+            <div class="col-4">
+              <small class="text-muted d-block">Status</small>
+              <span class="badge bg-success" style="font-size: 0.7rem;">Generated</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
       <div class="d-grid gap-2">
         <%= link_to mobile_invoice_path(@booking), class: "btn btn-success", target: "_blank" do %>
-          <i class="fas fa-eye me-2"></i>View Invoice
+          <i class="fas fa-eye me-2"></i>View Full Invoice
         <% end %>
+
         <% if @booking.customer_phone.present? %>
           <button class="btn btn-outline-success" onclick="shareInvoiceWhatsApp()">
             <i class="fab fa-whatsapp me-2"></i>Share via WhatsApp
           </button>
         <% end %>
+
+        <button class="btn btn-outline-primary" onclick="printInvoice()">
+          <i class="fas fa-print me-2"></i>Print Invoice
+        </button>
       </div>
     <% else %>
+      <div class="alert alert-info d-flex align-items-center mb-3">
+        <i class="fas fa-info-circle me-2"></i>
+        <div>
+          <strong>Ready to Generate Invoice</strong>
+          <br><small>Create a professional invoice for this booking</small>
+        </div>
+      </div>
+
       <div class="d-grid">
         <button class="btn btn-primary" onclick="generateInvoice()">
           <i class="fas fa-file-plus me-2"></i>Generate Invoice
@@ -373,6 +418,20 @@ function generateInvoice() {
     hideLoading();
     showAlert('An error occurred', 'error');
   });
+}
+
+// Print invoice function
+function printInvoice() {
+  <% if @booking.has_invoice? %>
+    const invoiceWindow = window.open('<%= mobile_invoice_path(@booking) %>', '_blank');
+    invoiceWindow.addEventListener('load', function() {
+      setTimeout(() => {
+        invoiceWindow.print();
+      }, 500);
+    });
+  <% else %>
+    showAlert('Please generate invoice first', 'info');
+  <% end %>
 }
 
 <% if @booking.has_invoice? && @booking.customer_phone.present? %>

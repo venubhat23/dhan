@@ -435,15 +435,15 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
     base_data = {
       username: user.email,
       user_image: nil, # Add if you have profile images
-      full_name: user.display_name,
+      full_name: user.respond_to?(:display_name) ? user.display_name : "#{user.first_name} #{user.last_name}",
       first_name: user.first_name,
       last_name: user.last_name,
       email: user.email,
-      mobile_number: user.mobile,
-      gender: user.gender,
-      age: user.age,
-      birth_date: user.birth_date,
-      address: user.address
+      mobile_number: user.respond_to?(:mobile) ? user.mobile : nil,
+      gender: user.respond_to?(:gender) ? user.gender : nil,
+      age: user.respond_to?(:age) ? user.age : nil,
+      birth_date: user.respond_to?(:birth_date) ? user.birth_date : nil,
+      address: user.respond_to?(:address) ? user.address : nil
     }
 
     # Handle city and state based on model structure
@@ -521,6 +521,23 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
         pan_number: user.pan_number,
         occupation: user.occupation,
         annual_income: user.annual_income
+      })
+    when DeliveryPerson
+      base_data.merge!({
+        vehicle_type: user.vehicle_type,
+        vehicle_number: user.vehicle_number,
+        license_number: user.license_number,
+        delivery_areas: user.delivery_areas || [],
+        joining_date: user.joining_date,
+        years_of_service: user.joining_date ? ((Date.current - user.joining_date) / 365).to_i : 0,
+        salary: user.salary,
+        status: user.status,
+        emergency_contact_name: user.emergency_contact_name,
+        emergency_contact_mobile: user.emergency_contact_mobile,
+        bank_name: user.bank_name,
+        account_no: user.account_no,
+        ifsc_code: user.ifsc_code,
+        account_holder_name: user.account_holder_name
       })
     end
 

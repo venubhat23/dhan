@@ -192,7 +192,7 @@
       </div>
       <div class="card-body">
         <div class="row">
-          <div class="col-6">
+          <div class="col-12 col-md-6">
             <div class="mb-3">
               <%= form.label :payment_status, class: "form-label fw-bold" do %>
                 <i class="fas fa-credit-card me-2"></i>Payment
@@ -204,10 +204,10 @@
                     ['Partial', 'partial']
                   ], 'unpaid'),
                   {},
-                  { class: "form-select" } %>
+                  { class: "form-select mobile-dropdown-safe" } %>
             </div>
           </div>
-          <div class="col-6">
+          <div class="col-12 col-md-6">
             <div class="mb-3">
               <%= form.label :status, class: "form-label fw-bold" do %>
                 <i class="fas fa-info-circle me-2"></i>Status
@@ -218,7 +218,7 @@
                     ['Confirmed', 'confirmed']
                   ], 'draft'),
                   {},
-                  { class: "form-select" } %>
+                  { class: "form-select mobile-dropdown-safe" } %>
             </div>
           </div>
         </div>
@@ -744,5 +744,56 @@ document.addEventListener('DOMContentLoaded', function() {
 .btn-group .btn:not(:first-child) {
   border-top-left-radius: 0 !important;
   border-bottom-left-radius: 0 !important;
+}
+
+/* Fix dropdown overlapping issues */
+.form-select {
+  position: relative;
+  z-index: 1;
+}
+
+.mobile-dropdown-safe {
+  position: relative;
+  z-index: 1;
+  overflow: visible;
+}
+
+.mobile-dropdown-safe:focus,
+.mobile-dropdown-safe:active {
+  z-index: 1050 !important;
+  position: relative !important;
+}
+
+/* Prevent dropdown overlap by ensuring proper stacking */
+.card-body {
+  position: relative;
+  overflow: visible;
+}
+
+/* Ensure proper spacing for dropdowns */
+.mb-3 {
+  margin-bottom: 2rem !important;
+  position: relative;
+  overflow: visible;
+}
+
+/* Mobile responsive dropdown fixes */
+@media (max-width: 768px) {
+  .form-select {
+    font-size: 16px; /* Prevents zoom on iOS */
+    min-height: 44px; /* Better touch targets */
+  }
+
+  /* Force mobile dropdowns to use full width and prevent overlap */
+  .mobile-dropdown-safe {
+    width: 100% !important;
+    position: relative !important;
+    z-index: auto !important;
+  }
+
+  /* Add more spacing between form elements on mobile */
+  .col-12:not(:last-child) .mb-3 {
+    margin-bottom: 2.5rem !important;
+  }
 }
 </style>

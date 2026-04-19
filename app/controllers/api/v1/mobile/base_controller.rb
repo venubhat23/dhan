@@ -51,6 +51,8 @@ class Api::V1::Mobile::BaseController < ApplicationController
         @current_user = User.find(user_id)
       when 'sub_agent'
         @current_user = SubAgent.find(user_id)
+      when 'delivery_person'
+        @current_user = DeliveryPerson.find(user_id)
       else
         return render json: {
           success: false,
@@ -92,6 +94,10 @@ class Api::V1::Mobile::BaseController < ApplicationController
 
   def current_sub_agent
     current_user if current_user.is_a?(SubAgent)
+  end
+
+  def current_delivery_person
+    current_user if current_user.is_a?(DeliveryPerson)
   end
 
 
