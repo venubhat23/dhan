@@ -235,12 +235,12 @@ module Api
         end
 
         def get_todays_tasks
-          # Get all bookings/orders assigned to current delivery person for today
+          # Get all pending bookings/orders assigned to current delivery person
           begin
             if defined?(Booking) && Booking.column_names.include?('delivery_person_id')
               bookings = Booking.where(delivery_person_id: current_delivery_person_id)
-                              .where('DATE(created_at) = ?', Date.current)
-                              .where.not(status: ['delivered', 'cancelled'])
+                              .where.not(status: ['delivered', 'cancelled', 'completed'])
+                              .order(:created_at)
             else
               bookings = []
             end
@@ -333,8 +333,8 @@ module Api
               }
             } : [],
             payment: {
-              method: booking.payment_method,
-              amount_to_collect: booking.payment_method == 'cash' ? booking.total_amount : 0,
+              method: booking.payment_method || 'cash',
+              amount_to_collect: (booking.payment_method == 'cash' || booking.payment_method.nil?) && booking.payment_status != 'paid' ? booking.total_amount : 0,
               status: booking.payment_status
             },
             delivery_slot: booking.respond_to?(:delivery_slot) ? (booking.delivery_slot || "10:00 AM - 12:00 PM") : "10:00 AM - 12:00 PM",
