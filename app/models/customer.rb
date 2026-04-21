@@ -83,6 +83,7 @@ class Customer < ApplicationRecord
 
   def set_defaults
     # No default status field - column doesn't exist in customers table
+    self.vip = false if vip.nil?
   end
 
   # Optional validations - removed validations for non-existent columns
@@ -90,6 +91,8 @@ class Customer < ApplicationRecord
   # Scopes
   scope :active, -> { column_names.include?('status') ? where(status: true) : all }
   scope :inactive, -> { column_names.include?('status') ? where(status: false) : none }
+  scope :vip_customers, -> { where(vip: true) }
+  scope :regular_customers, -> { where(vip: false) }
 
   # Callbacks
   before_validation :normalize_blank_values, :normalize_mobile_numbers
@@ -122,6 +125,14 @@ class Customer < ApplicationRecord
 
   def whatsapp_same_as_mobile?
     whatsapp_number == mobile
+  end
+
+  def vip_customer?
+    vip == true
+  end
+
+  def vip_status
+    vip_customer? ? "VIP" : "Regular"
   end
 
 

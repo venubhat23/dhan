@@ -891,7 +891,7 @@ class Admin::CustomersController < Admin::ApplicationController
       :birth_date, :gender, :marital_status, :pan_no, :gst_no,
       :company_name, :occupation, :annual_income,
       :emergency_contact_name, :emergency_contact_number, :blood_group,
-      :nationality, :preferred_language, :notes, :address, :status,
+      :nationality, :preferred_language, :notes, :address, :status, :vip,
       :personal_image, :house_image, profile_image: []
     )
   end

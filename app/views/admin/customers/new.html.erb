@@ -376,6 +376,18 @@
       </div>
       <div class="card-body pt-3">
         <div class="row g-3">
+          <!-- VIP Customer Status -->
+          <div class="col-12">
+            <div class="form-check form-switch">
+              <%= form.check_box :vip, class: "form-check-input", id: "vip_customer" %>
+              <label class="form-check-label fw-medium" for="vip_customer">
+                <i class="bi bi-star-fill text-warning me-1"></i>
+                VIP Customer
+              </label>
+            </div>
+            <div class="form-text">Mark this customer as VIP for special treatment and priority service</div>
+          </div>
+
           <div class="col-12">
             <%= form.label :notes, "Notes", class: "form-label fw-medium" %>
             <div class="input-group">

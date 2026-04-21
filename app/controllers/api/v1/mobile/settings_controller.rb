@@ -407,28 +407,13 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
   end
 
   def get_customer_agent(customer)
-    # Try to find agent from customer's policies
-    health_policy = HealthInsurance.where(customer: customer).joins(:sub_agent).first
-    life_policy = LifeInsurance.where(customer: customer).joins(:sub_agent).first
-
-    sub_agent = health_policy&.sub_agent || life_policy&.sub_agent
-
-    if sub_agent
-      {
-        name: sub_agent.display_name,
-        mobile: sub_agent.mobile,
-        email: sub_agent.email,
-        address: sub_agent.address || "Not provided"
-      }
-    else
-      # Default company agent
-      {
-        name: "Atma Nirbhar Farm Support Team",
-        mobile: "+918431174477",
-        email: "support@dr-wise.in",
-        address: "123 Insurance Street, Mumbai, Maharashtra, India"
-      }
-    end
+    # Default company agent
+    {
+      name: "Atma Nirbhar Farm Support Team",
+      mobile: "+918431174477",
+      email: "support@dr-wise.in",
+      address: "123 Insurance Street, Mumbai, Maharashtra, India"
+    }
   end
 
   def build_profile_data(user)

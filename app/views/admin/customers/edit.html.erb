@@ -157,12 +157,24 @@
         </div>
       </div>
 
-      <!-- Notes -->
+      <!-- Additional Information -->
       <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-transparent border-0">
-          <h5 class="mb-0">Additional Notes</h5>
+          <h5 class="mb-0">Additional Information</h5>
         </div>
         <div class="card-body">
+          <!-- VIP Customer Status -->
+          <div class="mb-3">
+            <div class="form-check form-switch">
+              <%= form.check_box :vip, class: "form-check-input", id: "vip_customer" %>
+              <label class="form-check-label fw-medium" for="vip_customer">
+                <i class="bi bi-star-fill text-warning me-1"></i>
+                VIP Customer
+              </label>
+            </div>
+            <div class="form-text">Mark this customer as VIP for special treatment and priority service</div>
+          </div>
+
           <%= form.label :notes, class: "form-label" %>
           <%= form.text_area :notes, class: "form-control", placeholder: "Any additional notes or special requirements", rows: 3 %>
           <div class="form-text">Add any special notes, preferences, or important information about this customer</div>
@@ -289,6 +301,11 @@
             <span class="badge bg-<%= customer_status ? 'success' : 'danger' %>">
               <%= customer_status ? 'Active' : 'Inactive' %>
             </span>
+            <% if @customer.vip_customer? %>
+              <span class="badge bg-warning ms-1">
+                <i class="bi bi-star-fill me-1"></i>VIP
+              </span>
+            <% end %>
           </div>
         </div>
 
