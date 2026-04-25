@@ -785,7 +785,11 @@ Rails.application.routes.draw do
     resources :expenses
 
     # Delivery Settings management
-    resources :delivery_settings
+    resources :delivery_settings do
+      member do
+        patch :toggle_status
+      end
+    end
 
     # Settings namespace
     namespace :settings do

@@ -1,0 +1,86 @@
+<% content_for :title, "Edit Delivery Charge" %>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1"><i class="fas fa-edit me-2"></i>Edit Delivery Charge</h2>
+    <p class="text-muted mb-0">Update delivery charge for pincode <strong><%= @delivery_charge.pincode %></strong></p>
+  </div>
+  <%= link_to admin_delivery_settings_path, class: "btn btn-outline-secondary" do %>
+    <i class="bi bi-arrow-left me-1"></i> Back to Delivery Settings
+  <% end %>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0"><i class="fas fa-edit me-2"></i>Edit Delivery Charge — <%= @delivery_charge.pincode %></h5>
+      </div>
+      <div class="card-body p-4">
+
+        <% if @delivery_charge.errors.any? %>
+          <div class="alert alert-danger mb-4">
+            <h6 class="alert-heading mb-2">Please fix the following errors:</h6>
+            <ul class="mb-0">
+              <% @delivery_charge.errors.full_messages.each do |msg| %>
+                <li><%= msg %></li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+
+        <%= form_with model: [:admin, @delivery_charge], local: true do |f| %>
+          <div class="mb-3">
+            <%= f.label :pincode, class: "form-label fw-semibold" %>
+            <%= f.text_field :pincode, class: "form-control form-control-lg bg-light",
+                readonly: true %>
+            <div class="form-text">Pincode cannot be changed</div>
+          </div>
+
+          <div class="mb-3">
+            <%= f.label :area, class: "form-label fw-semibold" %>
+            <%= f.text_field :area, class: "form-control",
+                placeholder: "e.g., Bangalore Central" %>
+          </div>
+
+          <div class="mb-3">
+            <%= f.label :charge_amount, "Charge Amount (₹)", class: "form-label fw-semibold" %>
+            <span class="text-danger">*</span>
+            <div class="input-group">
+              <span class="input-group-text">₹</span>
+              <%= f.number_field :charge_amount, class: "form-control form-control-lg",
+                  min: 0, step: 0.01, required: true %>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <div class="form-check form-switch">
+              <%= f.check_box :is_active, class: "form-check-input", role: "switch" %>
+              <%= f.label :is_active, "Active", class: "form-check-label fw-semibold" %>
+            </div>
+            <div class="form-text">Inactive zones won't be offered at checkout</div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <%= f.submit "Update Delivery Charge", class: "btn btn-warning btn-lg px-4" %>
+            <%= link_to "Cancel", admin_delivery_settings_path, class: "btn btn-outline-secondary btn-lg" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="card border-danger mt-4">
+      <div class="card-header bg-danger text-white">
+        <h6 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Danger Zone</h6>
+      </div>
+      <div class="card-body">
+        <p class="text-muted mb-3">Permanently delete this delivery charge. This cannot be undone.</p>
+        <%= button_to "Delete Delivery Charge", admin_delivery_setting_path(@delivery_charge),
+            method: :delete,
+            class: "btn btn-outline-danger",
+            data: { confirm: "Are you sure you want to delete the delivery charge for pincode #{@delivery_charge.pincode}?" } %>
+      </div>
+    </div>
+  </div>
+</div>

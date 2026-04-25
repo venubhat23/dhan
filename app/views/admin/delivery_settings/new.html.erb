@@ -1,0 +1,78 @@
+<% content_for :title, "Add Delivery Charge" %>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1"><i class="fas fa-truck me-2"></i>Add Delivery Charge</h2>
+    <p class="text-muted mb-0">Add delivery charge for a new pincode area</p>
+  </div>
+  <%= link_to admin_delivery_settings_path, class: "btn btn-outline-secondary" do %>
+    <i class="bi bi-arrow-left me-1"></i> Back to Delivery Settings
+  <% end %>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="fas fa-plus-circle me-2"></i>New Delivery Charge</h5>
+      </div>
+      <div class="card-body p-4">
+
+        <% if @delivery_charge.errors.any? %>
+          <div class="alert alert-danger mb-4">
+            <h6 class="alert-heading mb-2">Please fix the following errors:</h6>
+            <ul class="mb-0">
+              <% @delivery_charge.errors.full_messages.each do |msg| %>
+                <li><%= msg %></li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+
+        <%= form_with model: [:admin, @delivery_charge], local: true do |f| %>
+          <div class="mb-3">
+            <%= f.label :pincode, class: "form-label fw-semibold" %>
+            <span class="text-danger">*</span>
+            <%= f.text_field :pincode, class: "form-control form-control-lg",
+                placeholder: "e.g., 560001",
+                maxlength: 6,
+                pattern: "[0-9]{6}",
+                required: true %>
+            <div class="form-text">Enter 6-digit pincode</div>
+          </div>
+
+          <div class="mb-3">
+            <%= f.label :area, class: "form-label fw-semibold" %>
+            <%= f.text_field :area, class: "form-control",
+                placeholder: "e.g., Bangalore Central" %>
+            <div class="form-text">Optional: name of the area for this pincode</div>
+          </div>
+
+          <div class="mb-3">
+            <%= f.label :charge_amount, "Charge Amount (₹)", class: "form-label fw-semibold" %>
+            <span class="text-danger">*</span>
+            <div class="input-group">
+              <span class="input-group-text">₹</span>
+              <%= f.number_field :charge_amount, class: "form-control form-control-lg",
+                  min: 0, step: 0.01, required: true, placeholder: "30.00" %>
+            </div>
+            <div class="form-text">Delivery charge for this pincode area</div>
+          </div>
+
+          <div class="mb-4">
+            <div class="form-check form-switch">
+              <%= f.check_box :is_active, class: "form-check-input", role: "switch", id: "is_active" %>
+              <%= f.label :is_active, "Active", class: "form-check-label fw-semibold" %>
+            </div>
+            <div class="form-text">Inactive zones won't be offered at checkout</div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <%= f.submit "Add Delivery Charge", class: "btn btn-primary btn-lg px-4" %>
+            <%= link_to "Cancel", admin_delivery_settings_path, class: "btn btn-outline-secondary btn-lg" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,57 +1,43 @@
 class Admin::DeliverySettingsController < Admin::ApplicationController
-  before_action :set_delivery_charge, only: [:update]
+  before_action :set_delivery_charge, only: [:show, :edit, :update, :destroy, :toggle_status]
 
   def index
     @delivery_charges = DeliveryCharge.order(:pincode)
+  end
+
+  def new
+    @delivery_charge = DeliveryCharge.new(charge_amount: 30.00, is_active: true)
   end
 
   def create
     @delivery_charge = DeliveryCharge.new(delivery_charge_params)
 
     if @delivery_charge.save
-      render json: { success: true, message: 'Delivery charge created successfully' }
+      redirect_to admin_delivery_settings_path, notice: 'Delivery charge added successfully.'
     else
-      render json: { success: false, message: 'Failed to create delivery charge', errors: @delivery_charge.errors.full_messages }
+      render :new, status: :unprocessable_entity
     end
+  end
+
+  def edit
   end
 
   def update
     if @delivery_charge.update(delivery_charge_params)
-      render json: { success: true, message: 'Delivery charge updated successfully' }
+      redirect_to admin_delivery_settings_path, notice: 'Delivery charge updated successfully.'
     else
-      render json: { success: false, message: 'Failed to update delivery charge', errors: @delivery_charge.errors.full_messages }
+      render :edit, status: :unprocessable_entity
     end
   end
 
-  def edit_pincode_charges
-    @delivery_charges = DeliveryCharge.order(:pincode)
-    render :index
+  def destroy
+    @delivery_charge.destroy
+    redirect_to admin_delivery_settings_path, notice: 'Delivery charge deleted.'
   end
 
-  def update_pincode_charges
-    success_count = 0
-    error_messages = []
-
-    params[:delivery_charges]&.each do |pincode, charge_params|
-      delivery_charge = DeliveryCharge.find_or_initialize_by(pincode: pincode)
-      delivery_charge.assign_attributes(charge_params.permit(:charge_amount, :is_active))
-
-      if delivery_charge.save
-        success_count += 1
-      else
-        error_messages << "Failed to update #{pincode}: #{delivery_charge.errors.full_messages.join(', ')}"
-      end
-    end
-
-    if error_messages.empty?
-      render json: { success: true, message: "Successfully updated #{success_count} delivery charges" }
-    else
-      render json: {
-        success: false,
-        message: "Updated #{success_count} charges with #{error_messages.count} errors",
-        errors: error_messages
-      }
-    end
+  def toggle_status
+    @delivery_charge.update(is_active: !@delivery_charge.is_active)
+    redirect_to admin_delivery_settings_path, notice: "Delivery charge #{@delivery_charge.is_active? ? 'activated' : 'deactivated'}."
   end
 
   private

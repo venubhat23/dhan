@@ -316,17 +316,20 @@
                           <% end %>
                           <div class="col-12">
                             <hr class="my-2">
+                            <% _gst_price_with = (@product.final_amount_with_gst || @product.final_price_after_discount).to_f %>
+                            <% _gst_amount = (@product.gst_amount || (_gst_price_with * @product.gst_percentage.to_f / (100.0 + @product.gst_percentage.to_f))).round(2) %>
+                            <% _base_price = (_gst_price_with - _gst_amount).round(2) %>
                             <div class="d-flex justify-content-between">
                               <span class="text-muted">Base Price:</span>
-                              <span class="fw-medium">₹<%= @product.final_price_after_discount.round(2) %></span>
+                              <span class="fw-medium">₹<%= _base_price %></span>
                             </div>
                             <div class="d-flex justify-content-between mt-2">
                               <span class="text-muted">GST Amount:</span>
-                              <span class="fw-medium">₹<%= (@product.gst_amount || (@product.final_price_after_discount * @product.gst_percentage / 100)).round(2) %></span>
+                              <span class="fw-medium">₹<%= _gst_amount %></span>
                             </div>
                             <div class="d-flex justify-content-between mt-2">
                               <span class="text-muted fw-bold">Price with GST:</span>
-                              <span class="fw-bold text-primary">₹<%= (@product.final_amount_with_gst || (@product.final_price_after_discount * (1 + @product.gst_percentage.to_f / 100))).round(2) %></span>
+                              <span class="fw-bold text-primary">₹<%= _gst_price_with.round(2) %></span>
                             </div>
                           </div>
                         </div>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_04_18_021528) do
+ActiveRecord::Schema[8.0].define(version: 2026_04_22_141707) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -86,6 +86,11 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_18_021528) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "image_url"
+    t.string "r2_image_key"
+    t.string "r2_image_filename"
+    t.string "r2_image_content_type"
+    t.bigint "r2_image_size"
+    t.text "r2_additional_images"
     t.index ["display_location"], name: "index_banners_on_display_location"
     t.index ["display_order"], name: "index_banners_on_display_order"
     t.index ["status"], name: "index_banners_on_status"
@@ -207,6 +212,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_18_021528) do
     t.bigint "franchise_id"
     t.boolean "quick_invoice", default: false
     t.string "booked_by", default: "admin"
+    t.decimal "delivery_charges"
     t.index ["booked_by"], name: "index_bookings_on_booked_by"
     t.index ["booking_schedule_id"], name: "index_bookings_on_booking_schedule_id"
     t.index ["courier_service"], name: "index_bookings_on_courier_service"
@@ -359,6 +365,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_18_021528) do
     t.boolean "status", default: true, null: false
     t.boolean "is_registered_by_mobile"
     t.boolean "vip"
+    t.string "pincode"
     t.index ["latitude", "longitude"], name: "index_customers_on_location"
     t.index ["whatsapp_number"], name: "index_customers_on_whatsapp_number"
   end
@@ -402,6 +409,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_18_021528) do
     t.datetime "updated_at", null: false
     t.string "password_digest"
     t.string "auto_generated_password"
+    t.decimal "longitude"
+    t.decimal "latitude"
   end
 
   create_table "delivery_rules", force: :cascade do |t|
@@ -479,6 +488,61 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_18_021528) do
     t.index ["mobile"], name: "index_franchises_on_mobile", unique: true
     t.index ["pan_no"], name: "index_franchises_on_pan_no", unique: true
     t.index ["user_id"], name: "index_franchises_on_user_id"
+  end
+
+  create_table "health_insurances", force: :cascade do |t|
+    t.string "policy_holder"
+    t.string "insurance_company_name"
+    t.string "policy_type"
+    t.string "insurance_type"
+    t.string "policy_number"
+    t.date "policy_booking_date"
+    t.date "policy_start_date"
+    t.date "policy_end_date"
+    t.string "payment_mode"
+    t.decimal "sum_insured"
+    t.decimal "net_premium"
+    t.decimal "gst_percentage"
+    t.decimal "total_premium"
+    t.string "plan_name"
+    t.bigint "customer_id", null: false
+    t.bigint "sub_agent_id"
+    t.bigint "distributor_id"
+    t.bigint "investor_id"
+    t.bigint "agency_code_id"
+    t.bigint "broker_id"
+    t.decimal "commission_amount"
+    t.decimal "tds_percentage"
+    t.decimal "tds_amount"
+    t.decimal "after_tds_value"
+    t.text "notification_dates"
+    t.string "lead_id"
+    t.integer "policy_term"
+    t.decimal "main_agent_commission_percentage"
+    t.decimal "company_expenses_percentage"
+    t.decimal "sub_agent_commission_percentage"
+    t.decimal "sub_agent_commission_amount"
+    t.decimal "sub_agent_tds_percentage"
+    t.decimal "sub_agent_tds_amount"
+    t.decimal "sub_agent_after_tds_value"
+    t.decimal "ambassador_commission_percentage"
+    t.decimal "ambassador_commission_amount"
+    t.decimal "ambassador_tds_percentage"
+    t.decimal "ambassador_tds_amount"
+    t.decimal "ambassador_after_tds_value"
+    t.decimal "investor_commission_percentage"
+    t.decimal "investor_commission_amount"
+    t.decimal "investor_tds_percentage"
+    t.decimal "investor_tds_amount"
+    t.decimal "investor_after_tds_value"
+    t.decimal "total_distribution_percentage"
+    t.decimal "profit_percentage"
+    t.decimal "profit_amount"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["customer_id"], name: "index_health_insurances_on_customer_id"
+    t.index ["policy_number"], name: "index_health_insurances_on_policy_number", unique: true
+    t.index ["sub_agent_id"], name: "index_health_insurances_on_sub_agent_id"
   end
 
   create_table "invoice_items", force: :cascade do |t|
@@ -1151,6 +1215,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_18_021528) do
     t.integer "distributor_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.decimal "longitude"
+    t.decimal "latitude"
     t.index ["aadhar_no"], name: "index_sub_agents_on_aadhar_no", unique: true
     t.index ["email"], name: "index_sub_agents_on_email", unique: true
     t.index ["mobile"], name: "index_sub_agents_on_mobile", unique: true
@@ -1286,6 +1352,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_18_021528) do
     t.datetime "last_store_access"
     t.json "store_access_logs", default: []
     t.json "notification_preferences", default: {"low_stock_alerts"=>true, "transfer_notifications"=>true, "booking_alerts"=>true, "daily_reports"=>false}
+    t.decimal "longitude"
+    t.decimal "latitude"
     t.index ["aadhar_no"], name: "index_users_on_aadhar_no", unique: true
     t.index ["assigned_store_id"], name: "index_users_on_assigned_store"
     t.index ["assigned_store_id"], name: "index_users_on_assigned_store_id"
@@ -1367,6 +1435,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_18_021528) do
     t.boolean "status"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "gst_number"
   end
 
   create_table "wallet_transactions", force: :cascade do |t|
@@ -1416,6 +1485,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_18_021528) do
   add_foreign_key "expenses", "stores"
   add_foreign_key "expenses", "users", column: "created_by_id"
   add_foreign_key "franchises", "users"
+  add_foreign_key "health_insurances", "customers"
+  add_foreign_key "health_insurances", "sub_agents"
   add_foreign_key "invoice_items", "invoices"
   add_foreign_key "invoice_items", "milk_delivery_tasks"
   add_foreign_key "invoice_items", "products"
