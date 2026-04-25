@@ -1026,13 +1026,13 @@
               </div>
 
               <div class="form-group">
-                <label class="form-label">Final Customer Price (Including GST)</label>
+                <label class="form-label">Base Price (Excluding GST)</label>
                 <div class="final-price-display">
                   <span class="currency-symbol">₹</span>
                   <input type="text" id="base-price-display" class="form-control" readonly
                          value="0.00" style="font-weight: bold; color: #28a745;">
                 </div>
-                <div class="help-text">Base price after extracting GST</div>
+                <div class="help-text">Price before GST (Final Price − GST Amount)</div>
                 <%= form.hidden_field :base_price_excluding_gst, id: "base-price-hidden" %>
               </div>
 
@@ -1044,7 +1044,7 @@
                          value="0.00" style="font-weight: bold; color: #dc3545;">
                 </div>
                 <%= form.hidden_field :gst_amount, id: "gst-amount-hidden" %>
-                <div class="help-text">GST amount calculated from base price</div>
+                <div class="help-text">GST = Final Price × GST%</div>
               </div>
             </div>
           </div>
@@ -1088,13 +1088,13 @@
 
             <!-- Base Price for Detailed GST -->
             <div class="form-group">
-              <label class="form-label">Final Customer Price (Including GST)</label>
+              <label class="form-label">Base Price (Excluding GST)</label>
               <div class="final-price-display">
                 <span class="currency-symbol">₹</span>
                 <input type="text" id="base-price-detailed-display" class="form-control" readonly
                        value="0.00" style="font-weight: bold; color: #28a745;">
               </div>
-              <div class="help-text">Base price after extracting GST components</div>
+              <div class="help-text">Price before GST (Final Price − GST Amount)</div>
             </div>
 
             <div class="form-grid form-grid-3">
@@ -1925,7 +1925,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // GST Calculation Function - REVERSE CALCULATION (Inclusive GST)
+  // GST Calculation: entered price = final customer price (GST inclusive)
+  // GST = FinalPrice × rate%, Base = FinalPrice − GST
   function calculateGSTAmounts() {
     if (!gstToggle || !gstToggle.checked) {
       resetGSTCalculations();
@@ -1955,29 +1956,19 @@ document.addEventListener('DOMContentLoaded', function() {
     let taxDetails = '';
 
     if (gstSimpleRadio && gstSimpleRadio.checked) {
-      // Simple GST Forward Calculation (GST-exclusive)
-      const gstPercentage = parseFloat(gstPercentageInput?.value) || 0;
+      // Reverse GST: entered price is the FINAL price customer pays (GST inclusive)
+      // GST = FinalPrice × rate%, Base = FinalPrice - GST
+      // e.g. ₹1000 at 5% → GST = 50, Base = 950, Final = 1000
+      let gstPercentage = parseFloat(gstPercentageInput?.value) || 0;
 
       if (gstPercentage > 100) {
         gstPercentageInput.value = 100;
         gstPercentage = 100;
       }
 
-      // Reverse GST calculation: Treat input as GST-inclusive price
-      // User enters ₹100 with 5% GST -> Base: ₹95.24, GST: ₹4.76, but we round GST to ₹5
-      const inclusivePrice = basePriceInput; // User input is the final inclusive price
-
-      // Calculate base price (excluding GST): Base = Inclusive / (1 + GST/100)
-      basePrice = inclusivePrice / (1 + gstPercentage / 100);
-
-      // Calculate GST amount: GST = Inclusive - Base
-      totalGSTAmount = inclusivePrice - basePrice;
-
-      // Round GST amount to nearest whole number for cleaner display
-      totalGSTAmount = Math.round(totalGSTAmount);
-
-      // Recalculate base price to ensure total = base + rounded GST
-      basePrice = inclusivePrice - totalGSTAmount;
+      const finalPrice = basePriceInput;
+      totalGSTAmount = Math.round(finalPrice * gstPercentage / 100);
+      basePrice = finalPrice - totalGSTAmount;
 
       // Update displays
       if (basePriceDisplay) basePriceDisplay.value = basePrice.toFixed(2);
@@ -1989,32 +1980,21 @@ document.addEventListener('DOMContentLoaded', function() {
       taxDetails = `GST: ${gstPercentage}%`;
 
     } else if (gstDetailedRadio && gstDetailedRadio.checked) {
-      // Detailed GST Forward Calculation (GST-exclusive)
+      // Reverse GST (detailed): entered price is the FINAL price customer pays
       const cgstPercentage = parseFloat(cgstPercentageInput?.value) || 0;
       const sgstPercentage = parseFloat(sgstPercentageInput?.value) || 0;
       const igstPercentage = parseFloat(igstPercentageInput?.value) || 0;
 
-      // Reverse GST calculation for detailed GST: Treat input as GST-inclusive price
-      const inclusivePrice = basePriceInput; // User input is the final inclusive price
+      const finalPrice = basePriceInput;
       const totalGSTPercentage = cgstPercentage + sgstPercentage + igstPercentage;
 
-      // Calculate base price (excluding GST): Base = Inclusive / (1 + Total GST/100)
-      basePrice = inclusivePrice / (1 + totalGSTPercentage / 100);
-
-      // Calculate individual GST components from the base price
-      cgstAmount = (basePrice * cgstPercentage) / 100;
-      sgstAmount = (basePrice * sgstPercentage) / 100;
-      igstAmount = (basePrice * igstPercentage) / 100;
-
-      // Round individual GST amounts to whole numbers for cleaner display
-      cgstAmount = Math.round(cgstAmount);
-      sgstAmount = Math.round(sgstAmount);
-      igstAmount = Math.round(igstAmount);
+      // Calculate each GST component as % of final price, then base = final - total GST
+      cgstAmount = Math.round(finalPrice * cgstPercentage / 100);
+      sgstAmount = Math.round(finalPrice * sgstPercentage / 100);
+      igstAmount = Math.round(finalPrice * igstPercentage / 100);
 
       totalGSTAmount = cgstAmount + sgstAmount + igstAmount;
-
-      // Recalculate base price to ensure total = base + rounded GST amounts
-      basePrice = inclusivePrice - totalGSTAmount;
+      basePrice = finalPrice - totalGSTAmount;
 
       // Update displays
       if (basePriceDetailedDisplay) basePriceDetailedDisplay.value = basePrice.toFixed(2);

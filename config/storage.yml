@@ -6,22 +6,36 @@ local:
   service: Disk
   root: <%= Rails.root.join("storage") %>
 
-# Cloudflare R2 Storage Configuration
-# Only configure if credentials are present
-<% if Rails.application.credentials.dig(:cloudflare_r2, :bucket).present? %>
+# Cloudflare R2 configuration for ActiveStorage
 cloudflare_r2:
   service: S3
-  access_key_id: <%= Rails.application.credentials.dig(:cloudflare_r2, :access_key_id) %>
-  secret_access_key: <%= Rails.application.credentials.dig(:cloudflare_r2, :secret_access_key) %>
+  access_key_id: <%= ENV.fetch("R2_ACCESS_KEY_ID") { "52ed60ae0a0776fb357299dede45ab9f" } %>
+  secret_access_key: <%= ENV.fetch("R2_SECRET_ACCESS_KEY") { "5b19ea5dede62f503eebb2b57de7719962f38d6b86ef387f993bcf0d6102f657" } %>
   region: auto
-  bucket: <%= Rails.application.credentials.dig(:cloudflare_r2, :bucket) %>
-  endpoint: <%= Rails.application.credentials.dig(:cloudflare_r2, :endpoint) %>
+  bucket: <%= ENV.fetch("R2_BUCKET") { "dr-wise-software" } %>
+  endpoint: <%= ENV.fetch("R2_ENDPOINT") { "https://1f8982473cb9a48a41c053ca18db87ca.r2.cloudflarestorage.com" } %>
   force_path_style: true
-<% else %>
-cloudflare_r2:
-  service: Disk
-  root: <%= Rails.root.join("storage") %>
-<% end %>
+  public: true
+
+development:
+  service: S3
+  access_key_id: 52ed60ae0a0776fb357299dede45ab9f
+  secret_access_key: 5b19ea5dede62f503eebb2b57de7719962f38d6b86ef387f993bcf0d6102f657
+  region: auto
+  bucket: dr-wise-software
+  endpoint: https://1f8982473cb9a48a41c053ca18db87ca.r2.cloudflarestorage.com
+  force_path_style: true
+  public: true
+
+production:
+  service: S3
+  access_key_id: 52ed60ae0a0776fb357299dede45ab9f
+  secret_access_key: 5b19ea5dede62f503eebb2b57de7719962f38d6b86ef387f993bcf0d6102f657
+  region: auto
+  bucket: dr-wise-software
+  endpoint: https://1f8982473cb9a48a41c053ca18db87ca.r2.cloudflarestorage.com
+  force_path_style: true
+  public: true
 
 # Use bin/rails credentials:edit to set the AWS secrets (as aws:access_key_id|secret_access_key)
 # amazon:

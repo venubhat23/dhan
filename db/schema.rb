@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_04_19_102215) do
+ActiveRecord::Schema[8.0].define(version: 2026_04_22_141707) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -86,6 +86,11 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_19_102215) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "image_url"
+    t.string "r2_image_key"
+    t.string "r2_image_filename"
+    t.string "r2_image_content_type"
+    t.bigint "r2_image_size"
+    t.text "r2_additional_images"
     t.index ["display_location"], name: "index_banners_on_display_location"
     t.index ["display_order"], name: "index_banners_on_display_order"
     t.index ["status"], name: "index_banners_on_status"

@@ -212,7 +212,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const uploadGuidelines = document.querySelector('.upload-guidelines');
   const previewImage = document.getElementById('preview-image');
   const removeButton = document.getElementById('remove-image');
-  const imageUrlField = document.getElementById('<%= dom_id(@banner, :image_url) %>');
+  const imageUrlField = document.getElementById('banner_image_url');
 
   // Click to upload
   uploadArea.addEventListener('click', () => {

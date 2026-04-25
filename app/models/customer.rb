@@ -83,7 +83,7 @@ class Customer < ApplicationRecord
 
   def set_defaults
     # No default status field - column doesn't exist in customers table
-    self.vip = false if vip.nil?
+    self.vip = false if has_attribute?(:vip) && vip.nil?
   end
 
   # Optional validations - removed validations for non-existent columns
