@@ -1,9 +1,8 @@
-class Admin::DeliverySettingsController < ApplicationController
-  before_action :authenticate_admin
+class Admin::DeliverySettingsController < Admin::ApplicationController
   before_action :set_delivery_charge, only: [:update]
 
   def index
-    @bangalore_pincodes = DeliveryCharge.bangalore_pincodes.order(:pincode)
+    @delivery_charges = DeliveryCharge.order(:pincode)
   end
 
   def create
@@ -25,7 +24,7 @@ class Admin::DeliverySettingsController < ApplicationController
   end
 
   def edit_pincode_charges
-    @bangalore_pincodes = DeliveryCharge.bangalore_pincodes.order(:pincode)
+    @delivery_charges = DeliveryCharge.order(:pincode)
     render :index
   end
 
@@ -45,10 +44,7 @@ class Admin::DeliverySettingsController < ApplicationController
     end
 
     if error_messages.empty?
-      render json: {
-        success: true,
-        message: "Successfully updated #{success_count} delivery charges"
-      }
+      render json: { success: true, message: "Successfully updated #{success_count} delivery charges" }
     else
       render json: {
         success: false,
@@ -59,12 +55,6 @@ class Admin::DeliverySettingsController < ApplicationController
   end
 
   private
-
-  def authenticate_admin
-    unless current_user&.admin? || current_user&.super_admin?
-      redirect_to root_path, alert: 'Access denied'
-    end
-  end
 
   def set_delivery_charge
     @delivery_charge = DeliveryCharge.find(params[:id])

@@ -22,7 +22,7 @@
                 <div class="card-body text-center" style="background-color: #f8f9fa; color: #333;">
                   <i class="fas fa-map-marker-alt fa-2x text-primary mb-2"></i>
                   <h6 class="text-muted mb-1">Total Pincodes</h6>
-                  <h3 class="text-primary fw-bold"><%= @bangalore_pincodes.count %></h3>
+                  <h3 class="text-primary fw-bold"><%= @delivery_charges.count %></h3>
                 </div>
               </div>
             </div>
@@ -31,7 +31,7 @@
                 <div class="card-body text-center" style="background-color: #f8f9fa; color: #333;">
                   <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
                   <h6 class="text-muted mb-1">Active Zones</h6>
-                  <h3 class="text-success fw-bold"><%= @bangalore_pincodes.active.count %></h3>
+                  <h3 class="text-success fw-bold"><%= @delivery_charges.active.count %></h3>
                 </div>
               </div>
             </div>
@@ -40,7 +40,7 @@
                 <div class="card-body text-center" style="background-color: #f8f9fa; color: #333;">
                   <i class="fas fa-pause-circle fa-2x text-warning mb-2"></i>
                   <h6 class="text-muted mb-1">Inactive Zones</h6>
-                  <h3 class="text-warning fw-bold"><%= @bangalore_pincodes.inactive.count %></h3>
+                  <h3 class="text-warning fw-bold"><%= @delivery_charges.inactive.count %></h3>
                 </div>
               </div>
             </div>
@@ -49,7 +49,7 @@
                 <div class="card-body text-center" style="background-color: #f8f9fa; color: #333;">
                   <i class="fas fa-rupee-sign fa-2x text-info mb-2"></i>
                   <h6 class="text-muted mb-1">Avg. Charge</h6>
-                  <h3 class="text-info fw-bold">₹<%= @bangalore_pincodes.active.average(:charge_amount)&.round(2) || 0 %></h3>
+                  <h3 class="text-info fw-bold">₹<%= @delivery_charges.active.average(:charge_amount)&.round(2) || 0 %></h3>
                 </div>
               </div>
             </div>
@@ -68,7 +68,7 @@
                 </tr>
               </thead>
               <tbody>
-                <% @bangalore_pincodes.each do |delivery_charge| %>
+                <% @delivery_charges.each do |delivery_charge| %>
                   <tr id="delivery-charge-<%= delivery_charge.id %>">
                     <td><strong><%= delivery_charge.pincode %></strong></td>
                     <td><%= delivery_charge.area || 'Not specified' %></td>
@@ -98,7 +98,7 @@
               </tbody>
             </table>
 
-            <% if @bangalore_pincodes.empty? %>
+            <% if @delivery_charges.empty? %>
               <div class="text-center py-4">
                 <i class="fas fa-truck fa-3x text-muted mb-3"></i>
                 <h5 class="text-muted">No delivery charges configured</h5>
