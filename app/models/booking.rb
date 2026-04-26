@@ -153,10 +153,8 @@ class Booking < ApplicationRecord
           gst_rate = item.product.gst_percentage.to_f
           total_price = price * quantity
 
-          # Calculate GST amount from inclusive price: GST = (Price * GST%) / (100 + GST%)
-          # Round GST to whole number for cleaner display
-          calculated_gst = (total_price * gst_rate / (100 + gst_rate))
-          item_gst = calculated_gst.round
+          # Price is inclusive of GST: tax = price * rate/100, base = price - tax
+          item_gst = (total_price * gst_rate / 100).round(2)
           item_base = total_price - item_gst
 
           items_total += item_base
@@ -206,8 +204,7 @@ class Booking < ApplicationRecord
       if item.product && item.product.gst_enabled && item.product.gst_percentage.to_f > 0
         gst_rate = item.product.gst_percentage.to_f
         total_price = (item.price || 0) * (item.quantity || 0)
-        # Calculate GST amount from inclusive price: GST = (Price * GST%) / (100 + GST%)
-        item_gst = (total_price * gst_rate / (100 + gst_rate)).round(2)
+        item_gst = (total_price * gst_rate / 100).round(2)
         total_gst += item_gst
       end
     end
