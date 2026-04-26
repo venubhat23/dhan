@@ -212,12 +212,22 @@ module Api
         end
 
         def get_todays_tasks
-          # Get all pending bookings/orders assigned to current delivery person
+          # Get today's bookings assigned to current delivery person (pending and completed)
           begin
             if defined?(Booking) && Booking.column_names.include?('delivery_person_id')
-              bookings = Booking.where(delivery_person_id: current_delivery_person_id)
-                              .where.not(status: ['delivered', 'cancelled', 'completed'])
+              pending_statuses = ['ordered_and_delivery_pending', 'confirmed', 'processing', 'packed', 'shipped', 'out_for_delivery']
+              completed_statuses = ['delivered', 'completed']
+
+              pending_bookings = Booking.where(delivery_person_id: current_delivery_person_id)
+                              .where(status: pending_statuses)
                               .order(:created_at)
+
+              completed_bookings = Booking.where(delivery_person_id: current_delivery_person_id)
+                              .where(status: completed_statuses)
+                              .where('DATE(COALESCE(delivery_time, updated_at)) = ?', Date.current)
+                              .order(:updated_at)
+
+              bookings = pending_bookings.to_a + completed_bookings.to_a
             else
               bookings = []
             end
@@ -250,7 +260,7 @@ module Api
           subscriptions = Array(tasks[:subscriptions])
 
           total = bookings.size + subscriptions.size
-          completed = bookings.count { |b| b.status == 'delivered' } + subscriptions.count { |s| s.status == 'completed' }
+          completed = bookings.count { |b| ['delivered', 'completed'].include?(b.status) } + subscriptions.count { |s| s.status == 'completed' }
           pending = total - completed
 
           total_collection = calculate_total_collection(bookings)
@@ -376,8 +386,8 @@ module Api
           # Simple implementation - return task IDs
           # In production, implement actual route optimization algorithm
           task_ids = []
-          task_ids += tasks[:bookings].pluck(:id)
-          task_ids += tasks[:subscriptions].pluck(:id)
+          task_ids += Array(tasks[:bookings]).map(&:id)
+          task_ids += Array(tasks[:subscriptions]).respond_to?(:pluck) ? tasks[:subscriptions].pluck(:id) : Array(tasks[:subscriptions]).map(&:id)
           task_ids.first(3)
         end
 

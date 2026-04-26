@@ -58,6 +58,55 @@
   </div>
 </div>
 
+<!-- Delivery Completed Section -->
+<% if %w[delivered completed].include?(@booking.status) %>
+<div class="card border-0 shadow-sm mb-4 border-success">
+  <div class="card-header bg-success bg-opacity-10 border-0 pb-0">
+    <div class="d-flex align-items-center justify-content-between">
+      <h5 class="mb-0 text-success">
+        <i class="bi bi-check-circle-fill text-success me-2"></i>
+        Delivery Completed
+      </h5>
+      <span class="badge bg-success px-3 py-2">
+        <i class="bi bi-check-all me-1"></i>
+        <%= @booking.status.humanize %>
+      </span>
+    </div>
+  </div>
+  <div class="card-body pt-3">
+    <div class="row g-3">
+      <% if @booking.respond_to?(:delivery_time) && @booking.delivery_time.present? %>
+        <div class="col-md-4">
+          <strong class="text-muted d-block">Delivered At</strong>
+          <%= @booking.delivery_time.strftime("%B %d, %Y at %I:%M %p") %>
+        </div>
+      <% end %>
+      <% if @booking.respond_to?(:delivered_to) && @booking.delivered_to.present? %>
+        <div class="col-md-4">
+          <strong class="text-muted d-block">Delivered To</strong>
+          <%= @booking.delivered_to %>
+        </div>
+      <% end %>
+      <% if @booking.respond_to?(:delivery_person) && @booking.delivery_person.present? %>
+        <div class="col-md-4">
+          <strong class="text-muted d-block">Delivery Person</strong>
+          <%= @booking.delivery_person %>
+        </div>
+      <% end %>
+    </div>
+    <% if @booking.can_return? %>
+      <div class="mt-3">
+        <%= form_with url: update_status_admin_booking_path(@booking), method: :patch, local: true, class: "d-inline" do |f| %>
+          <%= f.hidden_field :status, value: 'returned' %>
+          <%= f.submit "Process Return", class: "btn btn-outline-warning btn-sm",
+              data: { confirm: "Are you sure you want to process a return for this order?" } %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>
+<% end %>
+
 <!-- Status Management Section -->
 <% if @booking.next_possible_statuses.any? %>
 <div class="card border-0 shadow-sm mb-4">
