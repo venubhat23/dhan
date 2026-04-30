@@ -377,14 +377,13 @@ document.addEventListener('DOMContentLoaded', function() {
                       </li>
                       <li><hr class="dropdown-divider"></li>
                       <li>
-                        <%= link_to admin_product_path(product),
-                            class: "dropdown-item text-danger",
-                            data: {
-                              turbo_method: :delete,
-                              turbo_confirm: "Are you sure you want to delete #{product.name}? This action cannot be undone."
-                            } do %>
+                        <button type="button"
+                                class="dropdown-item text-danger"
+                                onclick="if(confirm('Are you sure you want to delete <%= j(product.name) %>? This action cannot be undone.')) { document.getElementById('delete-product-<%= product.id %>').submit(); }">
                           <i class="bi bi-trash me-2"></i>
                           Delete Product
+                        </button>
+                        <%= form_tag admin_product_path(product), method: :delete, id: "delete-product-#{product.id}", style: "display: none;" do %>
                         <% end %>
                       </li>
                     </ul>
