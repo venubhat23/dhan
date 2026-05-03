@@ -855,6 +855,11 @@ Rails.application.routes.draw do
         post 'ecommerce/delivery/validate', to: 'ecommerce#validate_delivery'
         post 'ecommerce/location/save', to: 'ecommerce#save_location'
 
+        # Cashfree Payment APIs
+        post 'ecommerce/payments/initiate',                 to: 'ecommerce#initiate_payment'
+        get  'ecommerce/payments/status/:cf_order_id',      to: 'ecommerce#payment_status'
+        post 'ecommerce/payments/webhook',                  to: 'ecommerce#payment_webhook'
+
         # Delivery Person APIs
         get 'delivery/tasks/today', to: 'delivery#tasks_today'
         get 'delivery/tasks/:id', to: 'delivery#task_details'

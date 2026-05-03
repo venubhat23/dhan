@@ -1,5 +1,5 @@
 class Api::V1::Mobile::EcommerceController < Api::V1::Mobile::BaseController
-  before_action :authenticate_customer!, except: [:products, :banners, :featured_products, :check_delivery]
+  before_action :authenticate_customer!, except: [:products, :banners, :featured_products, :check_delivery, :payment_webhook]
   before_action :set_category, only: [:category_details, :category_products]
   before_action :set_product, only: [:product_details]
 
@@ -1293,6 +1293,116 @@ class Api::V1::Mobile::EcommerceController < Api::V1::Mobile::BaseController
         errors: customer.errors.full_messages
       }, :unprocessable_entity)
     end
+  end
+
+  # POST /api/v1/mobile/ecommerce/payments/initiate
+  def initiate_payment
+    customer = Customer.find_by(email: @current_user&.email)
+    return json_response({ success: false, message: 'Customer not found' }, :not_found) unless customer
+
+    booking = customer.bookings.find_by(id: params[:booking_id])
+    return json_response({ success: false, message: 'Booking not found' }, :not_found) unless booking
+
+    if booking.payment_status_paid?
+      return json_response({ success: false, message: 'Booking is already paid' }, :unprocessable_entity)
+    end
+
+    cf_order_id = "CF_#{booking.booking_number}_#{Time.current.to_i}"
+
+    result = CashfreeService.new.create_order(
+      order_id: cf_order_id,
+      amount:   booking.total_amount,
+      customer: {
+        id:    customer.id,
+        name:  customer.display_name,
+        email: customer.email,
+        phone: customer.mobile.to_s
+      }
+    )
+
+    if result['payment_session_id'].present?
+      booking.update(cashfree_order_id: cf_order_id)
+      json_response({
+        success: true,
+        data: {
+          payment_session_id: result['payment_session_id'],
+          cf_order_id:        cf_order_id,
+          order_amount:       booking.total_amount.to_f,
+          booking_number:     booking.booking_number
+        },
+        message: 'Payment session created successfully'
+      })
+    else
+      Rails.logger.error "Cashfree order creation failed: #{result.inspect}"
+      json_response({
+        success: false,
+        message: result['message'] || 'Failed to create payment session'
+      }, :unprocessable_entity)
+    end
+  end
+
+  # GET /api/v1/mobile/ecommerce/payments/status/:cf_order_id
+  def payment_status
+    customer = Customer.find_by(email: @current_user&.email)
+    return json_response({ success: false, message: 'Customer not found' }, :not_found) unless customer
+
+    cf_order_id = params[:cf_order_id]
+    booking     = customer.bookings.find_by(cashfree_order_id: cf_order_id)
+    return json_response({ success: false, message: 'Booking not found for this order' }, :not_found) unless booking
+
+    result = CashfreeService.new.get_order(cf_order_id)
+    order_status = result['order_status']
+
+    if order_status == 'PAID' && !booking.payment_status_paid?
+      booking.update(payment_status: :paid, payment_method: 'online')
+    end
+
+    json_response({
+      success: true,
+      data: {
+        cf_order_id:     cf_order_id,
+        order_status:    order_status,
+        payment_done:    order_status == 'PAID',
+        booking_id:      booking.id,
+        booking_number:  booking.booking_number,
+        booking_status:  booking.status,
+        payment_status:  booking.payment_status,
+        total_amount:    booking.total_amount.to_f
+      },
+      message: order_status == 'PAID' ? 'Payment confirmed' : 'Payment pending'
+    })
+  end
+
+  # POST /api/v1/mobile/ecommerce/payments/webhook  (called by Cashfree servers)
+  def payment_webhook
+    raw_body  = request.raw_post
+    timestamp = request.headers['x-webhook-timestamp']
+    signature = request.headers['x-webhook-signature']
+
+    unless CashfreeService.new.verify_webhook_signature(raw_body, timestamp, signature)
+      Rails.logger.warn "Cashfree webhook: invalid signature"
+      return render json: { error: 'Invalid signature' }, status: :unauthorized
+    end
+
+    data         = JSON.parse(raw_body)
+    event_type   = data['type']
+    cf_order_id  = data.dig('data', 'order', 'order_id')
+    order_status = data.dig('data', 'order', 'order_status')
+
+    Rails.logger.info "Cashfree webhook received: event=#{event_type} order=#{cf_order_id} status=#{order_status}"
+
+    if event_type == 'PAYMENT_SUCCESS_WEBHOOK' && order_status == 'PAID'
+      booking = Booking.find_by(cashfree_order_id: cf_order_id)
+      if booking
+        booking.update(payment_status: :paid, payment_method: 'online', status: 'confirmed')
+        Rails.logger.info "Booking #{booking.booking_number} marked as paid via webhook"
+      end
+    end
+
+    render json: { received: true }, status: :ok
+  rescue JSON::ParserError => e
+    Rails.logger.error "Cashfree webhook JSON parse error: #{e.message}"
+    render json: { error: 'Invalid payload' }, status: :bad_request
   end
 
   private
