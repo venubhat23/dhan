@@ -249,7 +249,7 @@ class Customer::CheckoutController < Customer::BaseController
       payment_method = params[:payment_method] || 'cod'
 
       # For online/UPI payments, initiate Cashfree and return payment_session_id
-      if %w[online upi card netbanking].include?(payment_method)
+      if %w[online upi card netbanking cashfree].include?(payment_method)
         cf_order_id = "MKS_#{Time.current.strftime('%Y%m%d%H%M%S')}_#{SecureRandom.hex(4).upcase}"
         cf_result = CashfreeService.new.create_order(
           order_id: cf_order_id,
