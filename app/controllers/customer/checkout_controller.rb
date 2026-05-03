@@ -246,13 +246,50 @@ class Customer::CheckoutController < Customer::BaseController
         return
       end
 
-      render json: {
-        success: true,
-        message: 'Order placed successfully',
-        booking_number: @booking.booking_number,
-        booking_id: @booking.id,
-        total_amount: @booking.total_amount
-      }
+      payment_method = params[:payment_method] || 'cod'
+
+      # For online/UPI payments, initiate Cashfree and return payment_session_id
+      if %w[online upi card netbanking].include?(payment_method)
+        cf_order_id = "MKS_#{Time.current.strftime('%Y%m%d%H%M%S')}_#{SecureRandom.hex(4).upcase}"
+        cf_result = CashfreeService.new.create_order(
+          order_id: cf_order_id,
+          amount:   @booking.total_amount,
+          customer: {
+            id:    current_customer.id,
+            name:  current_customer.display_name,
+            email: current_customer.email,
+            phone: current_customer.mobile.to_s
+          }
+        )
+
+        if cf_result['payment_session_id'].present?
+          @booking.update!(cashfree_order_id: cf_order_id)
+          Rails.logger.info "Cashfree session created for booking #{@booking.id}: #{cf_order_id}"
+          render json: {
+            success: true,
+            message: 'Order created, complete payment',
+            booking_number: @booking.booking_number,
+            booking_id: @booking.id,
+            total_amount: @booking.total_amount,
+            payment_session_id: cf_result['payment_session_id'],
+            cf_order_id: cf_order_id
+          }
+        else
+          error_msg = cf_result['message'] || 'Failed to initiate payment'
+          Rails.logger.error "Cashfree order creation failed for booking #{@booking.id}: #{cf_result.inspect}"
+          # Cancel the booking since payment can't be initiated
+          @booking.update(status: 'cancelled')
+          render json: { success: false, error: error_msg }, status: :unprocessable_entity
+        end
+      else
+        render json: {
+          success: true,
+          message: 'Order placed successfully',
+          booking_number: @booking.booking_number,
+          booking_id: @booking.id,
+          total_amount: @booking.total_amount
+        }
+      end
 
     rescue ActiveRecord::RecordNotFound => e
       Rails.logger.error "Product not found: #{e.message}"
