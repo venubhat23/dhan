@@ -221,7 +221,7 @@
 
             <!-- Place Order Button -->
             <div class="d-grid">
-              <%= form.submit "Place Order", class: "btn btn-primary btn-lg", id: "place-order-btn" %>
+              <%= form.submit "Place Order", class: "btn btn-primary btn-lg", id: "place-order-btn", data: { cod_label: "Place Order", online_label: "Pay Now →" } %>
             </div>
 
             <div class="text-center mt-3">
@@ -259,6 +259,19 @@ document.addEventListener('DOMContentLoaded', function() {
           radio.removeAttribute('required');
           radio.checked = false;
         });
+      }
+    });
+  });
+
+  // Update button label based on payment method
+  const paymentRadios = document.querySelectorAll('input[name="payment_method"]');
+  const placeOrderBtnEl = document.getElementById('place-order-btn');
+  paymentRadios.forEach(radio => {
+    radio.addEventListener('change', function () {
+      if (this.value === 'online') {
+        placeOrderBtnEl.value = placeOrderBtnEl.dataset.onlineLabel || 'Pay Now →';
+      } else {
+        placeOrderBtnEl.value = placeOrderBtnEl.dataset.codLabel || 'Place Order';
       }
     });
   });

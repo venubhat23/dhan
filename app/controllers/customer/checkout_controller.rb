@@ -1,6 +1,7 @@
 class Customer::CheckoutController < Customer::BaseController
   before_action :initialize_cart
-  before_action :check_cart_not_empty, except: [:confirmation, :cart_order]
+  before_action :check_cart_not_empty, except: [:confirmation, :cart_order, :payment_callback]
+  skip_before_action :verify_authenticity_token, only: [:payment_webhook]
 
   def show
     @cart_items = @cart[:items] || []
@@ -65,7 +66,23 @@ class Customer::CheckoutController < Customer::BaseController
         @booking = create_booking
 
         if @booking && @booking.persisted?
-          # Clear cart
+          # Online payment — call Cashfree before clearing cart
+          if params[:payment_method] == 'online'
+            cf_result = initiate_cashfree_payment(@booking)
+            if cf_result[:success]
+              session[:cart] = { items: [] }
+              redirect_to customer_checkout_cashfree_path(
+                booking_id: @booking.id,
+                session_id: cf_result[:payment_session_id],
+                cf_order_id: cf_result[:cf_order_id]
+              )
+              return
+            else
+              raise ActiveRecord::Rollback
+            end
+          end
+
+          # COD — clear cart and go to confirmation
           session[:cart] = { items: [] }
           redirect_to customer_checkout_confirmation_path(booking_id: @booking.id)
         else
@@ -102,6 +119,68 @@ class Customer::CheckoutController < Customer::BaseController
     @booking_items = @booking.booking_items
   rescue ActiveRecord::RecordNotFound
     redirect_to customer_orders_path, alert: 'Order not found.'
+  end
+
+  # GET /customer/checkout/cashfree?booking_id=X&session_id=Y&cf_order_id=Z
+  # Renders the Cashfree JS drop page (auto-opens payment modal)
+  def cashfree
+    @booking    = current_customer.bookings.find(params[:booking_id])
+    @session_id = params[:session_id]
+    @cf_order_id = params[:cf_order_id]
+  rescue ActiveRecord::RecordNotFound
+    redirect_to customer_checkout_payment_path, alert: 'Booking not found.'
+  end
+
+  # GET /customer/checkout/payment_callback?booking_id=X
+  # Cashfree redirects here after payment attempt
+  def payment_callback
+    booking = current_customer.bookings.find_by(id: params[:booking_id])
+    unless booking
+      redirect_to customer_orders_path, alert: 'Order not found.'
+      return
+    end
+
+    # Verify payment status from Cashfree
+    if booking.cashfree_order_id.present?
+      result = CashfreeService.new.get_order(booking.cashfree_order_id)
+      if result['order_status'] == 'PAID'
+        booking.update(payment_status: :paid, payment_method: 'online', status: 'confirmed')
+        redirect_to customer_checkout_confirmation_path(booking_id: booking.id),
+                    notice: 'Payment successful! Your order is confirmed.'
+        return
+      end
+    end
+
+    redirect_to customer_checkout_confirmation_path(booking_id: booking.id),
+                notice: 'Order placed. Payment verification in progress.'
+  end
+
+  # POST /customer/checkout/payment_webhook
+  # Cashfree server-to-server webhook
+  def payment_webhook
+    raw_body  = request.raw_post
+    timestamp = request.headers['x-webhook-timestamp']
+    signature = request.headers['x-webhook-signature']
+
+    unless CashfreeService.new.verify_webhook_signature(raw_body, timestamp, signature)
+      Rails.logger.warn "Web Cashfree webhook: invalid signature"
+      render json: { error: 'Invalid signature' }, status: :unauthorized
+      return
+    end
+
+    data         = JSON.parse(raw_body)
+    event_type   = data['type']
+    cf_order_id  = data.dig('data', 'order', 'order_id')
+    order_status = data.dig('data', 'order', 'order_status')
+
+    if event_type == 'PAYMENT_SUCCESS_WEBHOOK' && order_status == 'PAID'
+      booking = Booking.find_by(cashfree_order_id: cf_order_id)
+      booking&.update(payment_status: :paid, payment_method: 'online', status: 'confirmed')
+    end
+
+    render json: { received: true }
+  rescue JSON::ParserError
+    render json: { error: 'Invalid payload' }, status: :bad_request
   end
 
   def cart_order
@@ -299,6 +378,28 @@ class Customer::CheckoutController < Customer::BaseController
     end
   end
 
+
+  def initiate_cashfree_payment(booking)
+    cf_order_id = "CF_#{booking.booking_number}_#{Time.current.to_i}"
+    result = CashfreeService.new.create_order(
+      order_id: cf_order_id,
+      amount:   booking.total_amount,
+      customer: {
+        id:    current_customer.id,
+        name:  current_customer.display_name,
+        email: current_customer.email,
+        phone: current_customer.mobile.to_s
+      }
+    )
+    if result['payment_session_id'].present?
+      booking.update(cashfree_order_id: cf_order_id)
+      { success: true, payment_session_id: result['payment_session_id'], cf_order_id: cf_order_id }
+    else
+      Rails.logger.error "Cashfree web payment initiation failed: #{result.inspect}"
+      flash.now[:alert] = 'Unable to initiate online payment. Please try again or choose Cash on Delivery.'
+      { success: false }
+    end
+  end
 
   def generate_booking_number
     "BK#{Date.current.strftime('%Y%m%d')}#{rand(1000..9999)}"

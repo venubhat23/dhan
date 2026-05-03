@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_03_100000) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_03_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -213,8 +213,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_03_100000) do
     t.boolean "quick_invoice", default: false
     t.string "booked_by", default: "admin"
     t.decimal "delivery_charges"
+    t.string "cashfree_order_id"
     t.index ["booked_by"], name: "index_bookings_on_booked_by"
     t.index ["booking_schedule_id"], name: "index_bookings_on_booking_schedule_id"
+    t.index ["cashfree_order_id"], name: "index_bookings_on_cashfree_order_id"
     t.index ["courier_service"], name: "index_bookings_on_courier_service"
     t.index ["delivery_person_id"], name: "index_bookings_on_delivery_person_id"
     t.index ["delivery_time"], name: "index_bookings_on_delivery_time"

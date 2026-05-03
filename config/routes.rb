@@ -1079,6 +1079,10 @@ Rails.application.routes.draw do
         post :payment
         get :confirmation
         post :cart_order
+        # Cashfree payment routes (web)
+        get  :cashfree
+        get  :payment_callback
+        post :payment_webhook
       end
     end
 

@@ -1,0 +1,60 @@
+<% content_for :title, 'Complete Payment' %>
+
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-6 text-center">
+      <div class="card shadow-sm p-5">
+        <div id="payment-loading">
+          <div class="spinner-border text-success mb-4" role="status" style="width: 3rem; height: 3rem;"></div>
+          <h4>Redirecting to Payment...</h4>
+          <p class="text-muted">Please wait. Do not close or refresh this page.</p>
+          <p class="text-muted small">Order: <strong><%= @booking.booking_number %></strong> &nbsp;|&nbsp; Amount: <strong>₹<%= @booking.total_amount %></strong></p>
+        </div>
+
+        <div id="payment-error" style="display:none;">
+          <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 3rem;"></i>
+          <h4 class="mt-3">Payment Could Not Open</h4>
+          <p class="text-muted">Something went wrong while opening the payment page.</p>
+          <%= link_to customer_orders_path, class: "btn btn-outline-primary mt-2" do %>
+            View My Orders
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Cashfree JS SDK -->
+<script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const paymentSessionId = "<%= @session_id %>";
+    const returnUrl = "<%= customer_checkout_payment_callback_url(booking_id: @booking.id) %>";
+    const environment = "<%= ENV['CASHFREE_ENV'] == 'PRODUCTION' ? 'production' : 'sandbox' %>";
+
+    try {
+      const cashfree = Cashfree({ mode: environment });
+
+      cashfree.checkout({
+        paymentSessionId: paymentSessionId,
+        returnUrl: returnUrl,
+        redirectTarget: "_self"
+      }).then(function (result) {
+        if (result.error) {
+          console.error("Cashfree error:", result.error);
+          document.getElementById('payment-loading').style.display = 'none';
+          document.getElementById('payment-error').style.display = 'block';
+        }
+        if (result.redirect) {
+          // Payment is being redirected — normal flow
+          console.log("Redirecting to payment gateway...");
+        }
+      });
+    } catch (e) {
+      console.error("Cashfree init error:", e);
+      document.getElementById('payment-loading').style.display = 'none';
+      document.getElementById('payment-error').style.display = 'block';
+    }
+  });
+</script>
