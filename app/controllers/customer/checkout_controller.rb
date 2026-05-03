@@ -186,7 +186,7 @@ class Customer::CheckoutController < Customer::BaseController
   def cart_order
     Rails.logger.info "=== CART ORDER API CALLED ==="
 
-    cart_items = @cart[:items]
+    cart_items = params[:cart_data]
 
     if cart_items.blank?
       render json: { success: false, error: 'Cart is empty' }, status: :bad_request
@@ -214,9 +214,9 @@ class Customer::CheckoutController < Customer::BaseController
         total_amount = 0
 
         cart_items.each do |item|
-          product = Product.find(item['product_id'])
-          quantity = item['quantity'].to_f
-          price = item['price'].to_f
+          product = Product.find(item[:id] || item['id'])
+          quantity = (item[:quantity] || item['quantity']).to_f
+          price = (item[:price] || item['price']).to_f
 
           @booking.booking_items.build(product: product, quantity: quantity, price: price)
           total_amount += (price * quantity)

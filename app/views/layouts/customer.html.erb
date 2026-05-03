@@ -1202,12 +1202,20 @@
           return;
         }
 
+        const cart = JSON.parse(localStorage.getItem('customerCart') || '[]');
+        if (cart.length === 0) {
+          alert('Your cart is empty');
+          placeOrderBtn.disabled = false;
+          placeOrderBtn.innerHTML = '<i class="fas fa-check me-2"></i>Place Order';
+          return;
+        }
+
         const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
 
-        // Server reads cart from session — only send delivery details and payment method
         const orderData = {
           delivery_address: `${selectedAddress.address}, ${selectedAddress.city}, ${selectedAddress.state} - ${selectedAddress.pincode}`,
-          payment_method: paymentMethod
+          payment_method: paymentMethod,
+          cart_data: cart
         };
 
         // Show loading
