@@ -1202,23 +1202,12 @@
           return;
         }
 
-        const cart = JSON.parse(localStorage.getItem('customerCart') || '[]');
-        if (cart.length === 0) {
-          alert('Your cart is empty');
-          return;
-        }
-
         const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
 
-        // Create order data for backend
+        // Server reads cart from session — only send delivery details and payment method
         const orderData = {
-          customer_name: selectedAddress.name,
-          customer_phone: selectedAddress.mobile,
-          customer_email: '<%= current_customer&.email %>',
           delivery_address: `${selectedAddress.address}, ${selectedAddress.city}, ${selectedAddress.state} - ${selectedAddress.pincode}`,
-          payment_method: paymentMethod,
-          payment_status: paymentMethod === 'cod' ? 'unpaid' : 'paid',
-          cart_data: cart
+          payment_method: paymentMethod
         };
 
         // Show loading

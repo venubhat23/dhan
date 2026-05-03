@@ -185,10 +185,8 @@ class Customer::CheckoutController < Customer::BaseController
 
   def cart_order
     Rails.logger.info "=== CART ORDER API CALLED ==="
-    Rails.logger.info "Params: #{params.inspect}"
 
-    cart_items = params[:cart_data]
-    Rails.logger.info "Cart items: #{cart_items.inspect}"
+    cart_items = @cart[:items]
 
     if cart_items.blank?
       render json: { success: false, error: 'Cart is empty' }, status: :bad_request
@@ -206,9 +204,9 @@ class Customer::CheckoutController < Customer::BaseController
           status: 'confirmed',
           payment_method: params[:payment_method] || 'cod',
           payment_status: :unpaid,
-          customer_name: params[:customer_name] || current_customer.display_name,
-          customer_email: params[:customer_email] || current_customer.email,
-          customer_phone: params[:customer_phone] || current_customer.mobile,
+          customer_name: current_customer.display_name,
+          customer_email: current_customer.email,
+          customer_phone: current_customer.mobile,
           delivery_address: params[:delivery_address]
         }
 
@@ -216,9 +214,9 @@ class Customer::CheckoutController < Customer::BaseController
         total_amount = 0
 
         cart_items.each do |item|
-          product = Product.find(item[:id] || item['id'])
-          quantity = (item[:quantity] || item['quantity']).to_f
-          price = (item[:price] || item['price']).to_f
+          product = Product.find(item['product_id'])
+          quantity = item['quantity'].to_f
+          price = item['price'].to_f
 
           @booking.booking_items.build(product: product, quantity: quantity, price: price)
           total_amount += (price * quantity)
@@ -266,6 +264,7 @@ class Customer::CheckoutController < Customer::BaseController
 
         if cf_result['payment_session_id'].present?
           @booking.update!(cashfree_order_id: cf_order_id)
+          session[:cart] = { items: [] }
           Rails.logger.info "Cashfree session created for booking #{@booking.id}: #{cf_order_id}"
           render json: {
             success: true,
@@ -279,11 +278,11 @@ class Customer::CheckoutController < Customer::BaseController
         else
           error_msg = cf_result['message'] || 'Failed to initiate payment'
           Rails.logger.error "Cashfree order creation failed for booking #{@booking.id}: #{cf_result.inspect}"
-          # Cancel the booking since payment can't be initiated
           @booking.update(status: 'cancelled')
           render json: { success: false, error: error_msg }, status: :unprocessable_entity
         end
       else
+        session[:cart] = { items: [] }
         render json: {
           success: true,
           message: 'Order placed successfully',
