@@ -187,26 +187,25 @@ class Customer::CheckoutController < Customer::BaseController
     Rails.logger.info "=== CART ORDER API CALLED ==="
     Rails.logger.info "Params: #{params.inspect}"
 
+    cart_items = params[:cart_data]
+    Rails.logger.info "Cart items: #{cart_items.inspect}"
+
+    if cart_items.blank?
+      render json: { success: false, error: 'Cart is empty' }, status: :bad_request
+      return
+    end
+
+    booking_error = nil
+
     begin
-      # Extract cart data from params (already parsed by Rails)
-      cart_items = params[:cart_data]
-      Rails.logger.info "Cart items: #{cart_items.inspect}"
-
-      # Validate required fields
-      if cart_items.blank?
-        render json: { success: false, error: 'Cart is empty' }, status: 400
-        return
-      end
-
-      # Create booking from frontend cart data
       ActiveRecord::Base.transaction do
-        # Create booking attributes (similar to admin bookings controller)
         booking_attributes = {
           customer: current_customer,
           booking_number: generate_booking_number,
           booking_date: Time.current,
           status: 'confirmed',
           payment_method: params[:payment_method] || 'cod',
+          payment_status: :unpaid,
           customer_name: params[:customer_name] || current_customer.display_name,
           customer_email: params[:customer_email] || current_customer.email,
           customer_phone: params[:customer_phone] || current_customer.mobile,
@@ -214,68 +213,53 @@ class Customer::CheckoutController < Customer::BaseController
         }
 
         @booking = Booking.new(booking_attributes)
-
-        # Calculate totals before saving (like admin controller)
         total_amount = 0
 
-        # Build booking items from cart data
         cart_items.each do |item|
-          begin
-            product = Product.find(item[:id] || item['id'])
-            quantity = (item[:quantity] || item['quantity']).to_f
-            price = (item[:price] || item['price']).to_f
+          product = Product.find(item[:id] || item['id'])
+          quantity = (item[:quantity] || item['quantity']).to_f
+          price = (item[:price] || item['price']).to_f
 
-            @booking.booking_items.build(
-              product: product,
-              quantity: quantity,
-              price: price
-            )
-
-            total_amount += (price * quantity)
-            Rails.logger.info "Added booking item: #{product.name} x #{quantity} @ ₹#{price}"
-          rescue ActiveRecord::RecordNotFound => e
-            Rails.logger.error "Product not found: #{item[:id] || item['id']}"
-            raise ActiveRecord::Rollback, "Product not found: #{item[:id] || item['id']}"
-          end
+          @booking.booking_items.build(product: product, quantity: quantity, price: price)
+          total_amount += (price * quantity)
+          Rails.logger.info "Added booking item: #{product.name} x #{quantity} @ ₹#{price}"
         end
 
-        # Set totals
         @booking.subtotal = total_amount
         @booking.total_amount = total_amount
 
-        # Set payment status based on payment method
-        if params[:payment_method] == 'cod'
-          @booking.payment_status = :unpaid
-        else
-          @booking.payment_status = :unpaid # Can be changed later for online payments
-        end
-
         if @booking.save
-          # Calculate detailed totals including tax (like admin controller)
           @booking.calculate_totals
           @booking.save!
 
           Rails.logger.info "Booking created successfully: #{@booking.booking_number}"
           Rails.logger.info "Total amount: ₹#{@booking.total_amount}"
-
-          render json: {
-            success: true,
-            message: 'Order placed successfully',
-            booking_number: @booking.booking_number,
-            booking_id: @booking.id,
-            total_amount: @booking.total_amount
-          }
         else
-          Rails.logger.error "Booking creation failed: #{@booking.errors.full_messages.join(', ')}"
-          raise ActiveRecord::Rollback, @booking.errors.full_messages.join(', ')
+          booking_error = @booking.errors.full_messages.join(', ')
+          Rails.logger.error "Booking creation failed: #{booking_error}"
+          raise ActiveRecord::Rollback
         end
       end
 
-    rescue ActiveRecord::Rollback => e
-      render json: { success: false, error: e.message || 'Failed to create order' }, status: 422
+      if booking_error.present?
+        render json: { success: false, error: booking_error }, status: :unprocessable_entity
+        return
+      end
+
+      render json: {
+        success: true,
+        message: 'Order placed successfully',
+        booking_number: @booking.booking_number,
+        booking_id: @booking.id,
+        total_amount: @booking.total_amount
+      }
+
+    rescue ActiveRecord::RecordNotFound => e
+      Rails.logger.error "Product not found: #{e.message}"
+      render json: { success: false, error: "Product not found: #{e.message}" }, status: :unprocessable_entity
     rescue => e
       Rails.logger.error "Unexpected error in cart_order: #{e.message}\n#{e.backtrace.join('\n')}"
-      render json: { success: false, error: 'An unexpected error occurred' }, status: 500
+      render json: { success: false, error: 'An unexpected error occurred' }, status: :internal_server_error
     end
   end
 
@@ -382,14 +366,16 @@ class Customer::CheckoutController < Customer::BaseController
   def initiate_cashfree_payment(booking)
     cf_order_id = "CF_#{booking.booking_number}_#{Time.current.to_i}"
     result = CashfreeService.new.create_order(
-      order_id: cf_order_id,
-      amount:   booking.total_amount,
+      order_id:   cf_order_id,
+      amount:     booking.total_amount,
       customer: {
         id:    current_customer.id,
         name:  current_customer.display_name,
         email: current_customer.email,
         phone: current_customer.mobile.to_s
-      }
+      },
+      return_url: customer_checkout_payment_callback_url(booking_id: booking.id),
+      notify_url: customer_checkout_payment_webhook_url
     )
     if result['payment_session_id'].present?
       booking.update(cashfree_order_id: cf_order_id)

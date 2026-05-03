@@ -15,8 +15,8 @@ class CashfreeService
   end
 
   # Creates an order on Cashfree and returns payment_session_id
-  def create_order(order_id:, amount:, customer:, currency: "INR")
-    response = post("/orders", {
+  def create_order(order_id:, amount:, customer:, currency: "INR", return_url: nil, notify_url: nil)
+    body = {
       order_id: order_id,
       order_amount: amount.to_f.round(2),
       order_currency: currency,
@@ -26,8 +26,14 @@ class CashfreeService
         customer_email: customer[:email].to_s,
         customer_phone: customer[:phone].to_s
       }
-    })
-    response
+    }
+
+    order_meta = {}
+    order_meta[:return_url] = return_url if return_url.present?
+    order_meta[:notify_url] = notify_url if notify_url.present?
+    body[:order_meta] = order_meta if order_meta.any?
+
+    post("/orders", body)
   end
 
   # Fetches order status from Cashfree
