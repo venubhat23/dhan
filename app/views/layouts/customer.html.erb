@@ -45,6 +45,7 @@
       <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     <% end %>
 
+    <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
   </head>
 
   <body class="insurance-app">
@@ -1253,34 +1254,41 @@
         .then(data => {
           console.log('Order response data:', data);
           if (data && data.success) {
-            // Clear cart first
             localStorage.removeItem('customerCart');
             updateCartBadge();
 
-            // Hide all modal views to prevent any UI conflicts
+            // Online payment — open Cashfree payment modal
+            if (data.payment_session_id) {
+              const cashfreeEnv = '<%= ENV["CASHFREE_ENV"] == "PRODUCTION" ? "production" : "sandbox" %>';
+              const cashfree = Cashfree({ mode: cashfreeEnv });
+              cashfree.checkout({
+                paymentSessionId: data.payment_session_id,
+                redirectTarget: "_self"
+              }).then(function(result) {
+                if (result.error) {
+                  console.error('Cashfree error:', result.error);
+                  placeOrderBtn.disabled = false;
+                  placeOrderBtn.innerHTML = '<i class="fas fa-check me-2"></i>Place Order';
+                  alert('Payment failed: ' + (result.error.message || 'Please try again.'));
+                }
+              }).catch(function(err) {
+                console.error('Cashfree init error:', err);
+                placeOrderBtn.disabled = false;
+                placeOrderBtn.innerHTML = '<i class="fas fa-check me-2"></i>Place Order';
+                alert('Could not open payment. Please try again.');
+              });
+              return;
+            }
+
+            // COD — show success and redirect
             document.getElementById('cart-view').style.display = 'none';
             document.getElementById('checkout-view').style.display = 'none';
             document.getElementById('success-view').style.display = 'none';
+            document.querySelectorAll('.alert, .toast').forEach(el => el.remove());
 
-            // Clear any existing flash messages and toasts first
-            const existingAlerts = document.querySelectorAll('.alert, .toast, .alert-success, .alert-danger, .alert-warning');
-            existingAlerts.forEach(el => el.remove());
-
-            // Convert total_amount to number and format properly
             const totalAmount = parseFloat(data.total_amount || 0).toFixed(2);
-
-            // Show success alert with order details
-            alert(`🎉 Order Placed Successfully!\\n\\nOrder Number: ${data.booking_number}\\nTotal Amount: ₹${totalAmount}\\nPayment: ${paymentMethod.toUpperCase()}\\n\\nRedirecting to your order details...`);
-
-            // Additional cleanup: Remove any remaining alerts before redirect
-            setTimeout(() => {
-              document.querySelectorAll('.alert').forEach(el => el.remove());
-            }, 100);
-
-            // Redirect to specific order details page
+            alert(`Order Placed Successfully!\n\nOrder Number: ${data.booking_number}\nTotal: ₹${totalAmount}\n\nRedirecting to your order...`);
             window.location.href = `/customer/orders/${data.booking_id}`;
-
-            return; // Exit early on success
           } else {
             throw new Error(data?.error || 'Failed to place order');
           }

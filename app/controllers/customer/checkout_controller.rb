@@ -252,14 +252,16 @@ class Customer::CheckoutController < Customer::BaseController
       if %w[online upi card netbanking cashfree].include?(payment_method)
         cf_order_id = "MKS_#{Time.current.strftime('%Y%m%d%H%M%S')}_#{SecureRandom.hex(4).upcase}"
         cf_result = CashfreeService.new.create_order(
-          order_id: cf_order_id,
-          amount:   @booking.total_amount,
+          order_id:   cf_order_id,
+          amount:     @booking.total_amount,
           customer: {
             id:    current_customer.id,
             name:  current_customer.display_name,
             email: current_customer.email,
             phone: current_customer.mobile.to_s
-          }
+          },
+          return_url: customer_checkout_payment_callback_url(booking_id: @booking.id),
+          notify_url: customer_checkout_payment_webhook_url
         )
 
         if cf_result['payment_session_id'].present?
