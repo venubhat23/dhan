@@ -3,6 +3,9 @@ require "active_support/core_ext/integer/time"
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
+  # Don't re-dump schema.rb after each migration (avoids cross-database schema dump errors)
+  config.active_record.dump_schema_after_migration = false
+
   # Make code changes take effect immediately without server restart.
   config.enable_reloading = true
 
